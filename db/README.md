@@ -1,7 +1,26 @@
 # Historical placement schema
 
 `schema.ts` defines PostgreSQL tables using the installed Drizzle ORM and
-PostgreSQL stack. No migration has been applied to a database.
+PostgreSQL stack. `index.ts` exports the typed Drizzle database instance as
+`db` and its underlying postgres-js connection as `postgresClient`. In Next.js
+development, the connection is reused across hot reloads.
+
+## Migration workflow
+
+1. Copy `.env.example` to an untracked `.env` and replace its fictional
+   credentials with a PostgreSQL connection URL in `DATABASE_URL`.
+2. After changing `schema.ts`, create a named migration with
+   `npm run db:generate -- --name <migration_name>`.
+3. Review the generated SQL and metadata in `drizzle/`, then validate the
+   migration history with `npm run db:check`.
+4. Commit the schema and generated migration artifacts together.
+5. Apply committed migrations with `npm run db:migrate` only after confirming
+   that `DATABASE_URL` points to the intended running PostgreSQL database.
+
+Use committed migrations for schema changes; do not use `drizzle-kit push`.
+Drizzle Studio is available through `npm run db:studio` when a database is
+running. The initial migration is generated for an empty database and has not
+been applied by this setup.
 
 ## Confirmed departmental rules
 
@@ -44,4 +63,4 @@ PostgreSQL stack. No migration has been applied to a database.
   Password hashes are nullable for provider-based authentication. The auth owner
   must select the provider/session strategy and integrate the required tables.
 - Schema exports use camelCase TypeScript property names and snake_case SQL
-  column names. No database connection, migration workflow, or UI is added here.
+  column names. Database deployment and UI integration remain separate work.
