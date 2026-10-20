@@ -12,7 +12,7 @@ export default function DashboardHeader({ role, batches, students }: Props) {
     <header className="mme-header">
       <div>
         <p className="eyebrow">
-          NIT TIRUCHIRAPPALLI · METALLURGICAL &amp; MATERIALS ENGINEERING
+          NIT TRICHY · METALLURGICAL &amp; MATERIALS ENGINEERING
         </p>
         <h1>MME Placement Dashboard</h1>
         <p className="mme-header-sub">

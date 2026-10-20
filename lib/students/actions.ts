@@ -31,7 +31,7 @@ export async function createStudentCompany(input: unknown): Promise<CompanyResul
   try {
     const [company] = await db.insert(companies).values(data)
       .onConflictDoNothing({ target: companies.name })
-      .returning({ name: companies.name, domain: companies.domain });
+      .returning({ name: companies.name, domain: companies.domain, visitDate: companies.visitDate });
     if (!company) return { fieldErrors: { name: "This company already exists. Select it from the list." } };
     revalidatePath("/");
     return { ok: true, company };

@@ -409,7 +409,7 @@
 }
 .home-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 .home-card {
@@ -1655,6 +1655,7 @@ nav em {
 }
 .home-grid {
   gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .home-card,
 .home-note,
@@ -1747,6 +1748,131 @@ nav em {
   }
   .sidebar {
     background: rgba(8, 13, 22, 0.96);
+  }
+}
+
+/* MME workspace navigation refresh. */
+.portal-shell {
+  font-family: var(--font-geist-sans), sans-serif;
+}
+.portal-shell .sidebar-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 54px;
+  margin-bottom: 20px;
+}
+.portal-shell .sidebar-logo {
+  width: 44px;
+  height: 44px;
+  padding: 3px;
+  border-radius: 50%;
+  background: rgba(5, 12, 25, 0.86);
+}
+.portal-shell .sidebar-brandDivider {
+  width: 1px;
+  height: 30px;
+  background: rgba(180, 204, 255, 0.3);
+}
+.portal-shell .sidebar-lockup {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+.portal-shell .sidebar-lockup strong {
+  color: #f3f6ff;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+.portal-shell .sidebar-lockup small {
+  overflow: hidden;
+  color: #9eabc0;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.portal-shell .sidebar::after {
+  display: none;
+  content: none;
+}
+.portal-shell nav button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 4px;
+  color: #aab6ca;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+.portal-shell nav button > span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  margin: 0;
+}
+.portal-shell nav button.active {
+  box-shadow: inset 3px 0 #70a0ff;
+}
+.portal-shell nav button:hover {
+  background: rgba(57, 112, 229, 0.14);
+  color: #e4edff;
+}
+.portal-shell nav button:focus-visible,
+.portal-shell .signout-button:focus-visible {
+  outline: 2px solid #78aaff;
+  outline-offset: 3px;
+}
+.portal-shell nav button small {
+  margin-left: auto;
+  border: 1px solid rgba(120, 170, 255, 0.45);
+  border-radius: 999px;
+  padding: 2px 6px;
+  color: #cfe0ff;
+  font-size: 10px;
+  line-height: 1;
+}
+.portal-shell .role-switch .role-current,
+.portal-shell .signout-button,
+.portal-shell .content-area,
+.portal-shell .topbar,
+.portal-shell .eyebrow,
+.portal-shell .table-tools,
+.portal-shell .table-row.head {
+  font-family: var(--font-geist-sans), sans-serif;
+}
+.portal-shell .role-switch .role-current,
+.portal-shell .signout-button {
+  font-family: var(--font-geist-sans), sans-serif;
+}
+.portal-shell h1,
+.portal-shell h2,
+.portal-shell h3,
+.portal-shell .wordmark,
+.portal-shell .home-card strong,
+.portal-shell .metric > strong,
+.portal-shell .drive-list article strong,
+.portal-shell .compare b {
+  font-family: var(--font-geist-sans), sans-serif;
+}
+@media (max-width: 800px) {
+  .portal-shell .sidebar-logo-wrap {
+    min-height: 44px;
+    margin: 0;
+  }
+  .portal-shell .sidebar-logo {
+    width: 40px;
+    height: 40px;
+  }
+  .portal-shell .sidebar-brandDivider,
+  .portal-shell .sidebar-lockup {
+    display: none;
   }
 }
 
@@ -1915,6 +2041,20 @@ nav em {
   gap: 13px;
   perspective: 500px;
   font-family: "Space Grotesk", sans-serif;
+}
+
+.portal-shell .sidebar-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 76px;
+  margin-bottom: 16px;
+}
+.portal-shell .sidebar-logo {
+  display: block;
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
 }
 .portal-shell .wordmark-mark {
   position: relative;
@@ -2106,17 +2246,6 @@ nav em {
 .portal-shell .drive-status-input {
   width: 86px;
   align-self: center;
-}
-.portal-shell .sidebar::after {
-  position: absolute;
-  top: 98px;
-  right: 18px;
-  content: "01 / 05";
-  color: #456394;
-  font:
-    9px "DM Mono",
-    monospace;
-  letter-spacing: 0.12em;
 }
 .portal-shell .content-area {
   font-family: "DM Sans", var(--font-geist-sans), sans-serif;
@@ -2525,6 +2654,14 @@ nav em {
   .portal-shell .sidebar .wordmark {
     flex-shrink: 0;
   }
+  .portal-shell .sidebar .sidebar-logo-wrap {
+    min-height: 44px;
+    margin: 0;
+  }
+  .portal-shell .sidebar .sidebar-logo {
+    width: 44px;
+    height: 44px;
+  }
   .portal-shell .sidebar nav {
     display: flex;
     flex: 1;
@@ -2554,5 +2691,82 @@ nav em {
   .portal-shell .table-panel {
     max-width: 100%;
     overflow-x: auto;
+  }
+}
+
+/* Keep the final workspace overrides after legacy responsive rules. */
+.portal-shell .sidebar::after {
+  display: none;
+  content: none;
+}
+.portal-shell nav button,
+.portal-shell .role-switch .role-current,
+.portal-shell .signout-button {
+  font-family: var(--font-geist-sans), sans-serif;
+}
+.portal-shell nav button > span {
+  display: inline-grid;
+  min-width: 20px;
+  margin: 0;
+  place-items: center;
+}
+.portal-shell nav button.active {
+  box-shadow: inset 3px 0 #70a0ff;
+}
+.portal-shell nav button:focus-visible,
+.portal-shell .signout-button:focus-visible {
+  outline: 2px solid #78aaff;
+  outline-offset: 3px;
+}
+@media (max-width: 800px) {
+  .portal-shell nav button > span {
+    display: inline-grid;
+  }
+}
+
+/* The Home landing view is a viewport composition, not a scrolling feed. */
+.portal-shell .content-area:has(.home-view) {
+  min-height: 0;
+  height: 100dvh;
+  overflow: hidden;
+  padding-bottom: 24px;
+}
+.portal-shell:has(.home-view) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+html:has(.home-view),
+body:has(.home-view) {
+  height: 100%;
+  overflow: hidden;
+}
+.portal-shell .home-view {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(150px, 26%);
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding-bottom: 0;
+}
+.portal-shell .home-hero {
+  min-height: 0;
+  margin: 24px 0 0;
+}
+.portal-shell .home-grid,
+.portal-shell .home-card {
+  min-height: 0;
+}
+@media (max-width: 800px) {
+  .portal-shell .content-area:has(.home-view) {
+    height: calc(100dvh - 60px);
+    padding-bottom: 16px;
+  }
+  .portal-shell .home-view {
+    grid-template-rows: minmax(0, 1fr) minmax(116px, 25%);
+  }
+  .portal-shell .home-hero {
+    margin-top: 16px;
+    padding: 30px 24px;
   }
 }

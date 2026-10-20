@@ -113,7 +113,7 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
     return { rollNumber: draft.rollNumber, name: draft.name, batchYear: draft.batchYear,
       ...(hasOffer ? { offer } : {}) };
   }
-  function field(key: Field, label: string, extra: { readOnly?: boolean; inputMode?: "numeric" | "decimal"; type?: string; maxLength?: number } = {}) {
+  function field(key: Field, label: string, extra: { readOnly?: boolean; inputMode?: "numeric" | "decimal"; type?: string; maxLength?: number; min?: string } = {}) {
     return <div className="student-field" key={key}>
       <label htmlFor={`student-${key}`}>{label}</label>
       <input id={`student-${key}`} value={draft[key]} {...extra} disabled={pending}
@@ -218,7 +218,10 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
           <option value="">Not recorded</option>{OFFER_TYPES.map(t => <option key={t}>{t}</option>)}
         </select><span className="student-field-error">{result.fieldErrors?.offerType}</span>
       </label>
-      {field("offerDate", "Offer date (optional)", { type: "date" })}
+      {field("offerDate", "Offer date (optional)", {
+        type: "date",
+        min: companyOptions.find(c => c.name === draft.companyName)?.visitDate ?? undefined,
+      })}
     </div>}
     {(result.error || result.fieldErrors?.form || result.fieldErrors?.offer) &&
       <p role="alert">{result.error || result.fieldErrors?.form || result.fieldErrors?.offer}</p>}

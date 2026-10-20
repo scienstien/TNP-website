@@ -1,11 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { companies } from "@/db/schema";
+import { companies, placementOffers } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { isValidIsoDate } from "./dates";
+import { validateCompanyUpdate } from "@/lib/companies/validation";
 
 export interface VisitFormState {
   ok?: boolean;
@@ -30,7 +30,6 @@ const clean = (value: FormDataEntryValue | null, max: number) =>
     .trim()
     .replace(/\s+/g, " ")
     .slice(0, max);
-const orNull = (value: string) => (value === "" ? null : value);
 
 /** Every change is authorised here on the server; hiding the buttons is not access control. */
 async function requireAdmin(): Promise<string | null> {
@@ -62,20 +61,37 @@ export async function saveVisit(
   const values = { company, visitDate, sector, hrName, phoneNumber, email };
   const fieldErrors: VisitFormState["fieldErrors"] = {};
   if (company.length < 2) fieldErrors.company = "Enter the company name.";
-  if (!isValidIsoDate(visitDate))
-    fieldErrors.visitDate = "Choose a valid date.";
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-    fieldErrors.email = "Enter a valid email address.";
-  if (phoneNumber && !/^[+\d][\d\s().-]{5,}$/.test(phoneNumber))
-    fieldErrors.phoneNumber = "Enter a valid phone number.";
+  const parsed = validateCompanyUpdate(
+    { domain: sector, hrName, phoneNumber, email, visitDate },
+    company,
+  );
+  Object.assign(fieldErrors, parsed.fieldErrors);
   if (Object.keys(fieldErrors).length > 0) return { values, fieldErrors };
 
+  const conflictingOffer = await db
+    .select({ studentRollNumber: placementOffers.studentRollNumber })
+    .from(placementOffers)
+    .where(and(
+      eq(placementOffers.companyName, company),
+      isNotNull(placementOffers.offerDate),
+      lt(placementOffers.offerDate, visitDate),
+    ))
+    .limit(1);
+  if (conflictingOffer.length) {
+    return {
+      values,
+      fieldErrors: {
+        visitDate: "Visit date cannot be after an existing offer date for this company.",
+      },
+    };
+  }
+
   const record = {
-    domain: orNull(sector),
-    hrName: orNull(hrName),
-    phoneNumber: orNull(phoneNumber),
-    email: orNull(email),
-    visitDate,
+    domain: parsed.data.domain,
+    hrName: parsed.data.hrName,
+    phoneNumber: parsed.data.phoneNumber,
+    email: parsed.data.email,
+    visitDate: parsed.data.visitDate,
   };
 
   await db

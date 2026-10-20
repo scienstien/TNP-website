@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateStudent } from "./validation";
+import { offerDateProblem, validateStudent } from "./validation";
 import { validateCompany } from "./company-validation";
 
 const base = { rollNumber: "123456789", name: "Asha Example", batchYear: "2026" };
@@ -49,4 +49,11 @@ test("offer nullability, decimals, calendar dates and enum", () => {
   assert.deepEqual(valid.data.offer, { packageLpa: "0.12345", offerDate: "2024-02-29", offerType: null });
   assert.deepEqual(validateStudent({ offer: { packageLpa: "" } }, false).data.offer, { packageLpa: null });
   assert.deepEqual(validateStudent({ name: "Updated Name" }, false).data, { name: "Updated Name" });
+});
+test("offer dates cannot precede the company's visit date", () => {
+  assert.equal(offerDateProblem("2026-05-10", "2026-05-11"),
+    "Offer date cannot be before the company's campus visit date.");
+  assert.equal(offerDateProblem("2026-05-11", "2026-05-11"), null);
+  assert.equal(offerDateProblem(null, "2026-05-11"), null);
+  assert.equal(offerDateProblem("2026-05-10", null), null);
 });

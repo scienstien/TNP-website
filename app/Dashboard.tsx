@@ -1,6 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
+import {
+  Building2,
+  CalendarDays,
+  GraduationCap,
+  Home as HomeIcon,
+  LayoutDashboard,
+  type LucideIcon,
+} from "lucide-react";
 import StudentRecords from "@/components/students/StudentRecords";
 import type { StudentData } from "@/lib/students/types";
 import DriveCalendar from "@/components/calendar/DriveCalendar";
@@ -8,8 +17,10 @@ import PlacementAnalytics from "@/components/dashboard/PlacementAnalytics";
 import { signOutAction } from "@/lib/auth/actions";
 import type { CalendarData } from "@/lib/calendar/types";
 import type { PlacementRecord } from "@/lib/placements/types";
+import Companies from "@/components/companies/Companies";
+import type { CompanyRecord } from "@/lib/companies/types";
 
-type View = "Home" | "Overview" | "Calendar" | "Students";
+type View = "Home" | "Overview" | "Calendar" | "Companies" | "Students";
 
 export interface DashboardUser {
   name: string | null;
@@ -23,12 +34,14 @@ export default function Dashboard({
   placementRecords,
   calendar,
   studentData,
+  companies,
   today,
 }: {
   user: DashboardUser;
   placementRecords: PlacementRecord[];
   calendar: CalendarData;
   studentData: StudentData | null;
+  companies: CompanyRecord[];
   /** Today's date at the institute (YYYY-MM-DD), computed on the server. */
   today: string;
 }) {
@@ -49,48 +62,48 @@ export default function Dashboard({
   return (
     <main className="portal-shell">
       <aside className="sidebar">
-        <div className="wordmark" aria-label="TNP Placement Control Room">
-          <b className="wordmark-mark">TNP</b>
-          <span>
-            <strong>PLACEMENT</strong>
-            <strong>CONTROL ROOM</strong>
-            <small>MME · 5 YEAR ARCHIVE</small>
+        <div className="sidebar-logo-wrap">
+          <Image className="sidebar-logo" src="/nitt-logo.webp" alt="NIT Trichy" width={48} height={48} priority />
+          <span className="sidebar-brandDivider" aria-hidden="true" />
+          <span className="sidebar-lockup">
+            <strong>T&amp;P</strong>
+            <small>NIT TRICHY · MME</small>
           </span>
-        </div>
-        <div className="role-switch">
-          <small>SIGNED IN AS</small>
-          <p className="role-current">
-            <i className={role === "Admin" ? "orange-dot" : "green-dot"} />
-            {role}
-          </p>
         </div>
         <nav>
           <NavButton
             active={view === "Home"}
             onClick={() => setView("Home")}
-            icon="H"
+            icon={HomeIcon}
           >
             Home
           </NavButton>
           <NavButton
             active={view === "Overview"}
             onClick={() => setView("Overview")}
-            icon="O"
+            icon={LayoutDashboard}
           >
             Dashboard
           </NavButton>
           <NavButton
             active={view === "Calendar"}
             onClick={() => setView("Calendar")}
-            icon="[]"
+            icon={CalendarDays}
           >
-            Drive calendar {upcomingCount > 0 && <small>{upcomingCount}</small>}
+            Calendar {upcomingCount > 0 && <small aria-label={`${upcomingCount} upcoming visits`}>{upcomingCount}</small>}
+          </NavButton>
+          <NavButton
+            active={view === "Companies"}
+            onClick={() => setView("Companies")}
+            icon={Building2}
+          >
+            Companies
           </NavButton>
           {role === "Admin" && (
             <NavButton
               active={view === "Students"}
               onClick={() => setView("Students")}
-              icon="S"
+              icon={GraduationCap}
             >
               Student records
             </NavButton>
@@ -112,19 +125,10 @@ export default function Dashboard({
         </div>
       </aside>
       <section className="content-area">
-        <header className="topbar">
-          <span>
-            PLACEMENT OFFICE <b>/</b> {view.toUpperCase()}
-          </span>
-          <div>
-            <i className="green-dot" /> Live data <strong>{initials}</strong>
-          </div>
-        </header>
         {view === "Home" && (
           <HomeView
             role={role}
             firstName={firstName}
-            upcomingCount={upcomingCount}
             onDashboard={() => setView("Overview")}
             onCalendar={() => setView("Calendar")}
           />
@@ -146,6 +150,7 @@ export default function Dashboard({
             />
           </>
         )}
+        {view === "Companies" && <Companies data={companies} isAdmin={role === "Admin"} />}
         {view === "Students" && role === "Admin" && studentData && (
           <StudentRecords data={studentData} />
         )}
@@ -157,13 +162,11 @@ export default function Dashboard({
 function HomeView({
   role,
   firstName,
-  upcomingCount,
   onDashboard,
   onCalendar,
 }: {
   role: "Professor" | "Admin";
   firstName: string;
-  upcomingCount: number;
   onDashboard: () => void;
   onCalendar: () => void;
 }) {
@@ -176,14 +179,10 @@ function HomeView({
             : "FACULTY WORKSPACE"}
         </p>
         <h1>
-          Good morning,
+          Hello,
           <br />
           <em>{firstName}.</em>
         </h1>
-        <p>
-          Here is the pulse of the 2025-26 placement season. Everything
-          important, one decision away.
-        </p>
         <div className="home-actions">
           <button className="dark-button" onClick={onDashboard}>
             Open dashboard <span>{"->"}</span>
@@ -201,10 +200,6 @@ function HomeView({
             <br />
             dashboard
           </strong>
-          <small>
-            Live outcomes, CTC intelligence and year-on-year movement{" "}
-            <b>{"->"}</b>
-          </small>
         </button>
         <button className="home-card dark-card" onClick={onCalendar}>
           <span>02 / PIPELINE</span>
@@ -213,21 +208,7 @@ function HomeView({
             <br />
             calendar
           </strong>
-          <small>
-            Upcoming recruiters, HR contacts and campus dates <b>{"->"}</b>
-          </small>
         </button>
-        <div className="home-note">
-          <span>STATUS</span>
-          <strong>
-            <i className="green-dot" /> Season in motion
-          </strong>
-          <p>
-            {upcomingCount === 0
-              ? "No company visits are scheduled."
-              : `${upcomingCount} company ${upcomingCount === 1 ? "visit is" : "visits are"} scheduled from today onwards.`}
-          </p>
-        </div>
       </div>
     </section>
   );
@@ -236,17 +217,17 @@ function HomeView({
 function NavButton({
   active,
   onClick,
-  icon,
+  icon: Icon,
   children,
 }: {
   active: boolean;
   onClick: () => void;
-  icon: string;
+  icon: LucideIcon;
   children: React.ReactNode;
 }) {
   return (
-    <button className={active ? "active" : ""} onClick={onClick}>
-      <span>{icon}</span>
+    <button className={active ? "active" : ""} onClick={onClick} aria-current={active ? "page" : undefined}>
+      <span aria-hidden="true"><Icon size={18} strokeWidth={1.8} /></span>
       {children}
     </button>
   );

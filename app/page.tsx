@@ -5,6 +5,7 @@ import { todayInInstituteZone } from "@/lib/calendar/dates";
 import { getPlacementRecords } from "@/lib/placements/queries";
 import Dashboard from "./Dashboard";
 import { getStudentData } from "@/lib/students/queries";
+import { getCompanies } from "@/lib/companies/queries";
 
 // The dashboard needs a signed-in user; the role shown comes from the database, not the client.
 export default function Page() {
@@ -16,10 +17,11 @@ export default function Page() {
 }
 
 async function SignedInDashboard() {
-  const [user, placementRecords, calendar] = await Promise.all([
+  const [user, placementRecords, calendar, companies] = await Promise.all([
     requireUser(),
     getPlacementRecords(),
     getCalendarData(),
+    getCompanies(),
   ]);
   const studentData = user.role === "ADMIN" ? await getStudentData() : null;
   return (
@@ -27,6 +29,7 @@ async function SignedInDashboard() {
       user={{ name: user.name, email: user.email, role: user.role }}
       placementRecords={placementRecords}
       calendar={calendar}
+      companies={companies}
       studentData={studentData}
       today={todayInInstituteZone()}
     />

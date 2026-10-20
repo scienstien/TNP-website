@@ -11,7 +11,8 @@ export async function getStudentData(): Promise<StudentData> {
     db.select({ student: students, offer: placementOffers }).from(students)
       .leftJoin(placementOffers, eq(students.rollNumber, placementOffers.studentRollNumber))
       .orderBy(students.batchYear, students.rollNumber),
-    db.select({ name: companies.name, domain: companies.domain }).from(companies).orderBy(companies.name),
+    db.select({ name: companies.name, domain: companies.domain, visitDate: companies.visitDate })
+      .from(companies).orderBy(companies.name),
   ]);
   return {
     companies: companyRows,

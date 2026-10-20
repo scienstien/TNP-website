@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, placementOffers, students } from "@/db/schema";
 import type { StudentRecord, StudentResult } from "./types";
-import { rollProblem, validateStudent } from "./validation";
+import { offerDateProblem, rollProblem, validateStudent } from "./validation";
 
 type Database = typeof db;
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -60,18 +60,20 @@ export async function mutateStudent(
         if (Object.keys(changes).length) await tx.update(students).set(changes).where(eq(students.rollNumber, id));
       }
       if (data.offer && Object.keys(data.offer).length) {
-        if (data.offer.companyName !== undefined) {
-          const [company] = await tx.select({ name: companies.name }).from(companies)
-            .where(eq(companies.name, data.offer.companyName));
-          if (!company) throw new StudentError("Select an existing company.", "companyName");
-        }
         const [existing] = await tx.select().from(placementOffers).where(eq(placementOffers.studentRollNumber, id));
+        const companyName = data.offer.companyName ?? existing?.companyName;
+        if (!companyName) throw new StudentError("Select an existing company.", "companyName");
+        const [company] = await tx.select({ name: companies.name, visitDate: companies.visitDate })
+          .from(companies).where(eq(companies.name, companyName));
+        if (!company) throw new StudentError("Select an existing company.", "companyName");
+        const offerDate = data.offer.offerDate !== undefined ? data.offer.offerDate : existing?.offerDate;
+        const dateProblem = offerDateProblem(offerDate, company.visitDate);
+        if (dateProblem) throw new StudentError(dateProblem, "offerDate");
         if (existing) {
           await tx.update(placementOffers).set(data.offer).where(eq(placementOffers.studentRollNumber, id));
         } else {
-          if (!data.offer.companyName) throw new StudentError("Select an existing company.", "companyName");
           await tx.insert(placementOffers).values({
-            studentRollNumber: id, ...data.offer, companyName: data.offer.companyName,
+            studentRollNumber: id, ...data.offer, companyName,
           });
         }
       }

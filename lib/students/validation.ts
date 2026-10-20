@@ -6,6 +6,12 @@ export const rollProblem = (value: unknown): string | null =>
   (typeof value === "number" && Number.isInteger(value) && value >= 100000000 && value <= 999999999)
     ? null : "Enter exactly 9 digits, with no leading zero.";
 
+export function offerDateProblem(offerDate: string | null | undefined, visitDate: string | null | undefined): string | null {
+  return offerDate && visitDate && offerDate < visitDate
+    ? "Offer date cannot be before the company's campus visit date."
+    : null;
+}
+
 const object = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value) &&
   Object.getPrototypeOf(value) === Object.prototype;

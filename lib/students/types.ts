@@ -15,7 +15,7 @@ export interface StudentRecord {
 }
 export interface StudentData {
   students: StudentRecord[];
-  companies: { name: string; domain: string | null }[];
+  companies: { name: string; domain: string | null; visitDate: string | null }[];
 }
 export type StudentChanges = {
   name?: string;
