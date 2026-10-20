@@ -14,6 +14,18 @@ type Student = {
   date: string;
   isNew?: boolean;
 };
+type Drive = {
+  date: string;
+  day: string;
+  month: string;
+  company: string;
+  stream: string;
+  hr: string;
+  contact: string;
+  email: string;
+  status: string;
+  tone: string;
+};
 type View = "Home" | "Overview" | "Calendar" | "Students";
 
 const names = [
@@ -84,8 +96,9 @@ const students: Student[] = Array.from({ length: 70 }, (_, index) => {
       : `2026-03-${String((index % 28) + 1).padStart(2, "0")}`,
   };
 });
-const drives = [
+const drives: Drive[] = [
   {
+    date: "2026-03-24",
     day: "24",
     month: "MAR",
     company: "Zomato",
@@ -97,6 +110,7 @@ const drives = [
     tone: "coral",
   },
   {
+    date: "2026-03-27",
     day: "27",
     month: "MAR",
     company: "Deloitte",
@@ -108,6 +122,7 @@ const drives = [
     tone: "yellow",
   },
   {
+    date: "2026-04-02",
     day: "02",
     month: "APR",
     company: "Amazon",
@@ -119,6 +134,7 @@ const drives = [
     tone: "blue",
   },
   {
+    date: "2026-04-08",
     day: "08",
     month: "APR",
     company: "Barclays",
@@ -277,12 +293,12 @@ export default function Dashboard({ user }: { user: DashboardUser }) {
   return (
     <main className="portal-shell">
       <aside className="sidebar">
-        <div className="wordmark">
-          <b>TNP</b>
+        <div className="wordmark" aria-label="TNP Placement Control Room">
+          <b className="wordmark-mark">TNP</b>
           <span>
-            PLACEMENT
-            <br />
+            <strong>PLACEMENT</strong>
             <strong>CONTROL ROOM</strong>
+            <small>MME · 5 YEAR ARCHIVE</small>
           </span>
         </div>
         <div className="role-switch">
@@ -373,7 +389,7 @@ export default function Dashboard({ user }: { user: DashboardUser }) {
             asOf={asOf}
           />
         )}
-        {view === "Calendar" && <Calendar role={role} />}
+        {view === "Calendar" && <CalendarEditor role={role} />}
         {view === "Students" && (
           <Students
             role={role}
@@ -468,6 +484,219 @@ function HomeView({
 }
 
 // Retained from the dashboard branch as a reference while its newer row editor is active.
+function CalendarEditor({ role }: { role: "Professor" | "Admin" }) {
+  const [calendarDrives, setCalendarDrives] = useState(drives);
+  const [month, setMonth] = useState(2);
+  const [year, setYear] = useState(2026);
+  const [selectedDate, setSelectedDate] = useState("2026-03-24");
+  const isAdmin = role === "Admin";
+  const monthName = new Date(year, month, 1).toLocaleString("en-US", {
+    month: "long",
+  });
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+  const selectedDrive = calendarDrives.find(
+    (drive) => drive.date === selectedDate,
+  );
+  const updateDrive = (index: number, changes: Partial<Drive>) =>
+    setCalendarDrives((current) =>
+      current.map((drive, driveIndex) =>
+        driveIndex === index ? { ...drive, ...changes } : drive,
+      ),
+    );
+  const changeMonth = (offset: number) => {
+    const next = new Date(year, month + offset, 1);
+    setMonth(next.getMonth());
+    setYear(next.getFullYear());
+  };
+  const selectDate = (day: number) =>
+    setSelectedDate(
+      `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+    );
+  const addDrive = () =>
+    setCalendarDrives((current) => [
+      ...current,
+      {
+        date: selectedDate,
+        day: selectedDate.slice(-2),
+        month: monthName.slice(0, 3).toUpperCase(),
+        company: "New company",
+        stream: "Technology",
+        hr: "HR contact",
+        contact: "+91 00000 00000",
+        email: "hr@company.com",
+        status: "Proposed",
+        tone: "blue",
+      },
+    ]);
+  const displayDrives = selectedDrive
+    ? [selectedDrive]
+    : calendarDrives.filter((drive) => drive.date >= selectedDate).slice(0, 4);
+  const selectedIndex = selectedDrive
+    ? calendarDrives.indexOf(selectedDrive)
+    : -1;
+
+  return (
+    <>
+      <Heading
+        eyebrow="RECRUITMENT PIPELINE"
+        title="Drive calendar"
+        subtitle="Select any date to schedule a company, HR contact and campus visit."
+        action={
+          isAdmin ? (
+            <button className="dark-button" onClick={addDrive}>
+              Add drive on selected date
+            </button>
+          ) : undefined
+        }
+      />
+      <div className="calendar-grid">
+        <section className="panel month">
+          <div className="month-title">
+            <button onClick={() => changeMonth(-1)}>prev</button>
+            <h2>
+              {monthName} {year}
+            </h2>
+            <button onClick={() => changeMonth(1)}>next</button>
+          </div>
+          <div className="weekdays">
+            {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((day) => (
+              <span key={day}>{day}</span>
+            ))}
+          </div>
+          <div className="days">
+            {Array.from({ length: firstDay + daysInMonth }, (_, index) => {
+              const day = index < firstDay ? 0 : index - firstDay + 1;
+              if (!day)
+                return <div className="empty-day" key={`empty-${index}`} />;
+              const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const hasDrive = calendarDrives.some(
+                (drive) => drive.date === date,
+              );
+              return (
+                <button
+                  className={`${date === selectedDate ? "selected-day " : ""}${hasDrive ? "scheduled " : ""}`}
+                  onClick={() => selectDate(day)}
+                  key={date}
+                >
+                  {day}
+                  {hasDrive && <i />}
+                </button>
+              );
+            })}
+          </div>
+          <p className="calendar-selection">
+            Selected: <strong>{selectedDate}</strong>
+            {selectedDrive
+              ? ` · ${selectedDrive.company}`
+              : " · no drive scheduled"}
+          </p>
+        </section>
+        <section className="panel upcoming">
+          <PanelTitle
+            eyebrow={selectedDrive ? "SELECTED DATE" : "NEXT UP"}
+            title={selectedDrive ? selectedDrive.company : "Upcoming drives"}
+          />
+          <div className="drive-list">
+            {displayDrives.map((drive) => {
+              const index = calendarDrives.indexOf(drive);
+              return (
+                <article key={`${drive.date}-${index}`}>
+                  <b className={drive.tone}>
+                    {isAdmin && index === selectedIndex ? (
+                      <input
+                        aria-label="Drive date"
+                        type="date"
+                        value={drive.date}
+                        onChange={(event) =>
+                          updateDrive(index, { date: event.target.value })
+                        }
+                      />
+                    ) : (
+                      drive.date.slice(-2)
+                    )}
+                    <small>
+                      {drive.date.slice(5, 7)}/{drive.date.slice(0, 4)}
+                    </small>
+                  </b>
+                  <span>
+                    {isAdmin && index === selectedIndex ? (
+                      <div className="drive-edit-fields">
+                        <input
+                          aria-label="Company"
+                          value={drive.company}
+                          onChange={(event) =>
+                            updateDrive(index, { company: event.target.value })
+                          }
+                        />
+                        <input
+                          aria-label="Sector"
+                          value={drive.stream}
+                          onChange={(event) =>
+                            updateDrive(index, { stream: event.target.value })
+                          }
+                        />
+                        <input
+                          aria-label="HR contact"
+                          value={drive.hr}
+                          onChange={(event) =>
+                            updateDrive(index, { hr: event.target.value })
+                          }
+                        />
+                        <input
+                          aria-label="Phone"
+                          value={drive.contact}
+                          onChange={(event) =>
+                            updateDrive(index, { contact: event.target.value })
+                          }
+                        />
+                        <input
+                          aria-label="Email"
+                          value={drive.email}
+                          onChange={(event) =>
+                            updateDrive(index, { email: event.target.value })
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <strong>{drive.company}</strong>
+                        <small>
+                          {drive.stream} - {drive.hr}
+                        </small>
+                        <small>
+                          {drive.contact} - {drive.email}
+                        </small>
+                      </>
+                    )}
+                  </span>
+                  {isAdmin && index === selectedIndex ? (
+                    <input
+                      className="drive-status-input"
+                      aria-label="Status"
+                      value={drive.status}
+                      onChange={(event) =>
+                        updateDrive(index, { status: event.target.value })
+                      }
+                    />
+                  ) : (
+                    <em>{drive.status}</em>
+                  )}
+                </article>
+              );
+            })}
+            {!displayDrives.length && (
+              <p className="calendar-empty">
+                No drive on this date. Admins can add one with the button above.
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
+    </>
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function LegacyStudents2({
   role,
@@ -798,10 +1027,7 @@ function Students({
                     }
                   />
                 ) : (
-                  <strong>
-                    {student.name || "Unnamed student"}
-                    <small>#{student.roll}</small>
-                  </strong>
+                  <strong>{student.name || "Unnamed student"}</strong>
                 )}
               </span>
               {admin ? (
@@ -1085,7 +1311,11 @@ function Overview({
                 d="M0 180 C80 170 120 150 180 155 S270 125 340 130 S430 100 510 102 S570 80 600 74"
               />
             </svg>
-            <small>JAN 01 JAN 31 FEB 28 MAR 31</small>
+            <small>
+              {["JAN 01", "JAN 31", "FEB 28", "MAR 31"].map((label) => (
+                <span key={label}>{label}</span>
+              ))}
+            </small>
           </div>
           <b className="chart-note">
             58 placed<small>as of Mar 20, 2026</small>
@@ -1094,7 +1324,14 @@ function Overview({
         <section className="panel">
           <PanelTitle eyebrow="CLASS OF 2026" title="Placement split" />
           <div className="split">
-            <div className="donut">
+            <div
+              className="donut"
+              style={
+                {
+                  "--share": `${Math.round((placed.length / 70) * 100)}%`,
+                } as React.CSSProperties
+              }
+            >
               <b>{placed.length}</b>
               <small>placed</small>
             </div>
@@ -1221,7 +1458,36 @@ function Overview({
   );
 }
 
-function Calendar({ role }: { role: "Professor" | "Admin" }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LegacyCalendar({ role }: { role: "Professor" | "Admin" }) {
+  const [calendarDrives, setCalendarDrives] = useState(drives);
+  const isAdmin = role === "Admin";
+  const updateDrive = (index: number, changes: Partial<Drive>) =>
+    setCalendarDrives((current) =>
+      current.map((drive, driveIndex) =>
+        driveIndex === index ? { ...drive, ...changes } : drive,
+      ),
+    );
+  const addDrive = () =>
+    setCalendarDrives((current) => [
+      ...current,
+      {
+        date: "2026-04-15",
+        day: "15",
+        month: "APR",
+        company: "New company",
+        stream: "Technology",
+        hr: "HR contact",
+        contact: "+91 00000 00000",
+        email: "hr@company.com",
+        status: "Proposed",
+        tone: "blue",
+      },
+    ]);
+  const scheduledDays = new Set(
+    calendarDrives.map((drive) => Number(drive.day)),
+  );
+
   return (
     <>
       <Heading
@@ -1229,8 +1495,10 @@ function Calendar({ role }: { role: "Professor" | "Admin" }) {
         title="Drive calendar"
         subtitle="Upcoming companies, HR contacts and campus visits."
         action={
-          role === "Admin" ? (
-            <button className="dark-button">Add drive</button>
+          isAdmin ? (
+            <button className="dark-button" onClick={addDrive}>
+              Add drive
+            </button>
           ) : undefined
         }
       />
@@ -1247,33 +1515,116 @@ function Calendar({ role }: { role: "Professor" | "Admin" }) {
             ))}
           </div>
           <div className="days">
-            {Array.from({ length: 31 }, (_, index) => (
-              <div className={index + 1 === 24 ? "today" : ""} key={index}>
-                {index + 1}
-                {[24, 27].includes(index + 1) && <i />}
-              </div>
-            ))}
+            {Array.from({ length: 31 }, (_, index) => {
+              const day = index + 1;
+              return (
+                <div
+                  className={`${day === 24 ? "today " : ""}${scheduledDays.has(day) ? "scheduled" : ""}`}
+                  key={day}
+                >
+                  {day}
+                  {scheduledDays.has(day) && <i />}
+                </div>
+              );
+            })}
           </div>
         </section>
         <section className="panel upcoming">
           <PanelTitle eyebrow="NEXT UP" title="Upcoming drives" />
           <div className="drive-list">
-            {drives.map((drive) => (
-              <article key={drive.company}>
+            {calendarDrives.map((drive, index) => (
+              <article key={`${drive.company}-${index}`}>
                 <b className={drive.tone}>
-                  {drive.day}
-                  <small>{drive.month}</small>
+                  {isAdmin ? (
+                    <input
+                      aria-label="Drive day"
+                      value={drive.day}
+                      onChange={(event) =>
+                        updateDrive(index, { day: event.target.value })
+                      }
+                    />
+                  ) : (
+                    drive.day
+                  )}
+                  <small>
+                    {isAdmin ? (
+                      <input
+                        aria-label="Drive month"
+                        value={drive.month}
+                        onChange={(event) =>
+                          updateDrive(index, {
+                            month: event.target.value.toUpperCase(),
+                          })
+                        }
+                      />
+                    ) : (
+                      drive.month
+                    )}
+                  </small>
                 </b>
                 <span>
-                  <strong>{drive.company}</strong>
-                  <small>
-                    {drive.stream} - {drive.hr}
-                  </small>
-                  <small>
-                    {drive.contact} - {drive.email}
-                  </small>
+                  {isAdmin ? (
+                    <div className="drive-edit-fields">
+                      <input
+                        aria-label="Company"
+                        value={drive.company}
+                        onChange={(event) =>
+                          updateDrive(index, { company: event.target.value })
+                        }
+                      />
+                      <input
+                        aria-label="Sector"
+                        value={drive.stream}
+                        onChange={(event) =>
+                          updateDrive(index, { stream: event.target.value })
+                        }
+                      />
+                      <input
+                        aria-label="HR contact"
+                        value={drive.hr}
+                        onChange={(event) =>
+                          updateDrive(index, { hr: event.target.value })
+                        }
+                      />
+                      <input
+                        aria-label="Phone"
+                        value={drive.contact}
+                        onChange={(event) =>
+                          updateDrive(index, { contact: event.target.value })
+                        }
+                      />
+                      <input
+                        aria-label="Email"
+                        value={drive.email}
+                        onChange={(event) =>
+                          updateDrive(index, { email: event.target.value })
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <strong>{drive.company}</strong>
+                      <small>
+                        {drive.stream} - {drive.hr}
+                      </small>
+                      <small>
+                        {drive.contact} - {drive.email}
+                      </small>
+                    </>
+                  )}{" "}
                 </span>
-                <em>{drive.status}</em>
+                {isAdmin ? (
+                  <input
+                    className="drive-status-input"
+                    aria-label="Status"
+                    value={drive.status}
+                    onChange={(event) =>
+                      updateDrive(index, { status: event.target.value })
+                    }
+                  />
+                ) : (
+                  <em>{drive.status}</em>
+                )}
               </article>
             ))}
           </div>
