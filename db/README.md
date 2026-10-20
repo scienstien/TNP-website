@@ -5,16 +5,60 @@ PostgreSQL stack. `index.ts` exports the typed Drizzle database instance as
 `db` and its underlying postgres-js connection as `postgresClient`. In Next.js
 development, the connection is reused across hot reloads.
 
-## Migration workflow
+## Local database workflow
 
-1. Copy `.env.example` to an untracked `.env` and replace its fictional
-   credentials with a PostgreSQL connection URL in `DATABASE_URL`.
-2. After changing `schema.ts`, create a named migration with
+1. Copy the example environment file and review its development-only values:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+   Keep `DATABASE_URL` aligned if the PostgreSQL user, password, database, or
+   host port changes. The untracked `.env` file is read by both Docker Compose
+   and the database scripts.
+2. Start the local PostgreSQL 17 container and check its status:
+
+   ```sh
+   npm run db:up
+   docker compose ps
+   ```
+
+   Docker Desktop users on WSL must first enable integration for this distro.
+   PostgreSQL is exposed only on `127.0.0.1` and stores its files in the named
+   `tnp_postgres_data` volume.
+3. Apply all committed migrations once PostgreSQL reports healthy:
+
+   ```sh
+   npm run db:migrate
+   ```
+
+4. Optionally load the small fictional smoke-test dataset:
+
+   ```sh
+   npm run db:seed
+   ```
+
+   The seed is safe to rerun: it updates only its `DEMO`-prefixed records and
+   preserves unrelated data. It creates two placed students and one unplaced
+   student. It does not create an authentication user.
+5. Stop the container without removing its persisted data:
+
+   ```sh
+   npm run db:down
+   ```
+
+   `npm run db:logs` follows the PostgreSQL logs. Running
+   `docker compose down -v` also deletes the named volume and all local database
+   data, so use it only when an intentional reset is required.
+
+## Schema change workflow
+
+1. After changing `schema.ts`, create a named migration with
    `npm run db:generate -- --name <migration_name>`.
-3. Review the generated SQL and metadata in `drizzle/`, then validate the
+2. Review the generated SQL and metadata in `drizzle/`, then validate the
    migration history with `npm run db:check`.
-4. Commit the schema and generated migration artifacts together.
-5. Apply committed migrations with `npm run db:migrate` only after confirming
+3. Commit the schema and generated migration artifacts together.
+4. Apply committed migrations with `npm run db:migrate` only after confirming
    that `DATABASE_URL` points to the intended running PostgreSQL database.
 
 Use committed migrations for schema changes; do not use `drizzle-kit push`.
