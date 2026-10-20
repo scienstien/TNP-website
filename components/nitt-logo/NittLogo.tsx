@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * <NittLogo />: the 3D NIT Trichy medallion as a React Three Fiber object.
@@ -6,23 +6,26 @@
  * Accepts the usual group props (position, rotation, scale, ...).
  */
 
-import { useFrame, useLoader, type ThreeElements } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
-import * as THREE from 'three';
-import { createNittLogo, type NittLogoOptions } from './createNittLogo';
+import { useFrame, useLoader, type ThreeElements } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
+import * as THREE from "three";
+import { createNittLogo, type NittLogoOptions } from "./createNittLogo";
 
-export interface NittLogoProps extends Omit<ThreeElements['group'], 'children'> {
+export interface NittLogoProps extends Omit<
+  ThreeElements["group"],
+  "children"
+> {
   /** Logo artwork. Default '/nitt-logo.webp'. */
   textureUrl?: string;
   /** Turntable speed in radians per second. 0 stops it. Default 0.5. */
   spin?: number;
-  thickness?: NittLogoOptions['thickness'];
-  doubleSided?: NittLogoOptions['doubleSided'];
-  colors?: NittLogoOptions['colors'];
+  thickness?: NittLogoOptions["thickness"];
+  doubleSided?: NittLogoOptions["doubleSided"];
+  colors?: NittLogoOptions["colors"];
 }
 
 export default function NittLogo({
-  textureUrl = '/nitt-logo.webp',
+  textureUrl = "/nitt-logo.webp",
   spin = 0.5,
   thickness,
   doubleSided,

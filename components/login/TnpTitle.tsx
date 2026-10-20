@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * "T&P" title that unfolds into "Training & Placement".
@@ -9,17 +9,25 @@
  * while a copper "&" spins in, and the space around it opens up.
  */
 
-import { useEffect, useState, type PointerEvent } from 'react';
-import { display } from './fonts';
+import { useEffect, useState, type PointerEvent } from "react";
+import { display } from "./fonts";
 
-const EASE_OUT = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
-const EASE_BACK = 'ease-[cubic-bezier(0.34,1.56,0.64,1)]';
+const EASE_OUT = "ease-[cubic-bezier(0.22,1,0.36,1)]";
+const EASE_BACK = "ease-[cubic-bezier(0.34,1.56,0.64,1)]";
 
-function Tail({ text, open, delay }: { text: string; open: boolean; delay: number }) {
+function Tail({
+  text,
+  open,
+  delay,
+}: {
+  text: string;
+  open: boolean;
+  delay: number;
+}) {
   return (
     <span
       className={`grid transition-[grid-template-columns] duration-500 motion-reduce:transition-none ${EASE_OUT} ${
-        open ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'
+        open ? "grid-cols-[1fr]" : "grid-cols-[0fr]"
       }`}
     >
       <span className="min-w-0 overflow-hidden whitespace-nowrap">
@@ -27,9 +35,11 @@ function Tail({ text, open, delay }: { text: string; open: boolean; delay: numbe
           <span
             key={i}
             className={`inline-block transition duration-300 motion-reduce:transition-none ${EASE_OUT} ${
-              open ? 'translate-y-0 opacity-100' : 'translate-y-[0.4em] opacity-0'
+              open
+                ? "translate-y-0 opacity-100"
+                : "translate-y-[0.4em] opacity-0"
             }`}
-            style={{ transitionDelay: open ? `${delay + i * 28}ms` : '0ms' }}
+            style={{ transitionDelay: open ? `${delay + i * 28}ms` : "0ms" }}
           >
             {letter}
           </span>
@@ -43,19 +53,23 @@ function Ampersand({ open }: { open: boolean }) {
   return (
     <span
       className={`grid transition-[margin] duration-500 motion-reduce:transition-none ${EASE_OUT} ${
-        open ? 'mx-[0.25em]' : 'mx-[0.04em]'
+        open ? "mx-[0.25em]" : "mx-[0.04em]"
       }`}
     >
       <span
         className={`[grid-area:1/1] transition duration-300 motion-reduce:transition-none ${
-          open ? '-rotate-90 scale-50 opacity-0' : 'rotate-0 scale-100 opacity-100'
+          open
+            ? "-rotate-90 scale-50 opacity-0"
+            : "rotate-0 scale-100 opacity-100"
         }`}
       >
         &amp;
       </span>
       <span
         className={`[grid-area:1/1] font-normal text-[#E08A50] transition duration-700 motion-reduce:transition-none ${EASE_BACK} ${
-          open ? 'rotate-0 scale-110 opacity-100' : 'rotate-[200deg] scale-50 opacity-0'
+          open
+            ? "rotate-0 scale-110 opacity-100"
+            : "rotate-[200deg] scale-50 opacity-0"
         }`}
       >
         &amp;
@@ -64,44 +78,58 @@ function Ampersand({ open }: { open: boolean }) {
   );
 }
 
-export default function TnpTitle({ className = '', as = 'h1', useDisplayFont = true, autoIntervalMs }: { className?: string; as?: 'h1' | 'span'; useDisplayFont?: boolean; autoIntervalMs?: number }) {
+export default function TnpTitle({
+  className = "",
+  as = "h1",
+  useDisplayFont = true,
+  autoIntervalMs,
+}: {
+  className?: string;
+  as?: "h1" | "span";
+  useDisplayFont?: boolean;
+  autoIntervalMs?: number;
+}) {
   const [open, setOpen] = useState(false);
   const Tag = as;
 
   useEffect(() => {
     if (!autoIntervalMs) return;
 
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let interval: number | undefined;
     const sync = () => {
       window.clearInterval(interval);
       if (reducedMotion.matches) {
         setOpen(false);
       } else {
-        interval = window.setInterval(() => setOpen((value) => !value), autoIntervalMs);
+        interval = window.setInterval(
+          () => setOpen((value) => !value),
+          autoIntervalMs,
+        );
       }
     };
 
     sync();
-    reducedMotion.addEventListener('change', sync);
+    reducedMotion.addEventListener("change", sync);
     return () => {
       window.clearInterval(interval);
-      reducedMotion.removeEventListener('change', sync);
+      reducedMotion.removeEventListener("change", sync);
     };
   }, [autoIntervalMs]);
 
   const hover = (event: PointerEvent, next: boolean) => {
-    if (!autoIntervalMs && event.pointerType === 'mouse') setOpen(next);
+    if (!autoIntervalMs && event.pointerType === "mouse") setOpen(next);
   };
 
   return (
     <Tag
       aria-label="Training and Placement"
-      className={`${useDisplayFont ? display.className : ''} flex w-max shrink-0 cursor-default select-none items-start whitespace-nowrap font-normal leading-[1.2] tracking-[-0.025em] text-[#F3EDE7] ${className}`}
+      className={`${useDisplayFont ? display.className : ""} flex w-max shrink-0 cursor-default select-none items-start whitespace-nowrap font-normal leading-[1.2] tracking-[-0.025em] text-[#F3EDE7] ${className}`}
       onPointerEnter={(event) => hover(event, true)}
       onPointerLeave={(event) => hover(event, false)}
       onPointerUp={(event) => {
-        if (!autoIntervalMs && event.pointerType !== 'mouse') setOpen((value) => !value);
+        if (!autoIntervalMs && event.pointerType !== "mouse")
+          setOpen((value) => !value);
       }}
     >
       <span aria-hidden="true" className="flex items-start">

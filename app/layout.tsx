@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "MME Placement Dashboard | NIT Tiruchirappalli",
-  description: "Historical placement analytics for Metallurgical and Materials Engineering at NIT Tiruchirappalli.",
+  description:
+    "Historical placement analytics for Metallurgical and Materials Engineering at NIT Tiruchirappalli.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

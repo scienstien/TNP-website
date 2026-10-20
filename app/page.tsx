@@ -3,23 +3,131 @@
 import { useMemo, useState } from "react";
 
 type PlacementType = "FTE" | "PPO" | "FTE + 6M" | "NA";
-type Student = { roll: string; name: string; company: string; stream: string; type: PlacementType; ctc: number | null; date: string; isNew?: boolean };
+type Student = {
+  roll: string;
+  name: string;
+  company: string;
+  stream: string;
+  type: PlacementType;
+  ctc: number | null;
+  date: string;
+  isNew?: boolean;
+};
 type View = "Home" | "Overview" | "Calendar" | "Students";
 
-const names = ["Aarav Mehta", "Ananya Iyer", "Arjun Rao", "Diya Shah", "Kabir Nair", "Meera Joshi", "Rohan Kapoor", "Ishita Verma", "Vivaan Singh", "Sara Khan", "Neil Bhatia", "Kiara Menon", "Aditya Bose", "Tara Malhotra", "Yash Kulkarni", "Navya Reddy", "Ritvik Das", "Aanya Gupta", "Siddharth Jain", "Myra Thomas"];
-const companyData = [["Deloitte", "Consulting", 18], ["Microsoft", "Technology", 34], ["TCS", "Technology", 7.5], ["Adobe", "Technology", 26], ["Google", "Technology", 42], ["JPMorgan", "Finance", 20], ["Zomato", "Consumer", 16], ["Accenture", "Consulting", 13], ["Myntra", "Consumer", 17], ["KPMG", "Consulting", 12]] as const;
-const sectors = ["Analytics & Data Science", "Core Engineering & Manufacturing", "IT / Software", "BFSI", "Oil & Gas / Energy", "Consulting", "Education", "E-commerce & Retail", "FMCG", "Pharma & Healthcare"];
+const names = [
+  "Aarav Mehta",
+  "Ananya Iyer",
+  "Arjun Rao",
+  "Diya Shah",
+  "Kabir Nair",
+  "Meera Joshi",
+  "Rohan Kapoor",
+  "Ishita Verma",
+  "Vivaan Singh",
+  "Sara Khan",
+  "Neil Bhatia",
+  "Kiara Menon",
+  "Aditya Bose",
+  "Tara Malhotra",
+  "Yash Kulkarni",
+  "Navya Reddy",
+  "Ritvik Das",
+  "Aanya Gupta",
+  "Siddharth Jain",
+  "Myra Thomas",
+];
+const companyData = [
+  ["Deloitte", "Consulting", 18],
+  ["Microsoft", "Technology", 34],
+  ["TCS", "Technology", 7.5],
+  ["Adobe", "Technology", 26],
+  ["Google", "Technology", 42],
+  ["JPMorgan", "Finance", 20],
+  ["Zomato", "Consumer", 16],
+  ["Accenture", "Consulting", 13],
+  ["Myntra", "Consumer", 17],
+  ["KPMG", "Consulting", 12],
+] as const;
+const sectors = [
+  "Analytics & Data Science",
+  "Core Engineering & Manufacturing",
+  "IT / Software",
+  "BFSI",
+  "Oil & Gas / Energy",
+  "Consulting",
+  "Education",
+  "E-commerce & Retail",
+  "FMCG",
+  "Pharma & Healthcare",
+];
 const unplaced = new Set([14, 19, 26, 34, 42, 48, 57, 60, 66, 69]);
 const students: Student[] = Array.from({ length: 70 }, (_, index) => {
   const [company, stream, salary] = companyData[index % companyData.length];
   const isUnplaced = unplaced.has(index);
-  return { roll: String(index + 1).padStart(2, "0"), name: names[index % names.length], company, stream, type: isUnplaced ? "NA" : index % 17 === 0 ? "PPO" : index % 11 === 0 ? "FTE + 6M" : "FTE", ctc: isUnplaced ? null : salary, date: isUnplaced ? "" : `2026-03-${String((index % 28) + 1).padStart(2, "0")}` };
+  return {
+    roll: String(index + 1).padStart(2, "0"),
+    name: names[index % names.length],
+    company,
+    stream,
+    type: isUnplaced
+      ? "NA"
+      : index % 17 === 0
+        ? "PPO"
+        : index % 11 === 0
+          ? "FTE + 6M"
+          : "FTE",
+    ctc: isUnplaced ? null : salary,
+    date: isUnplaced
+      ? ""
+      : `2026-03-${String((index % 28) + 1).padStart(2, "0")}`,
+  };
 });
 const drives = [
-  { day: "24", month: "MAR", company: "Zomato", stream: "Consumer", hr: "Radhika Menon", contact: "+91 98100 44012", email: "radhika@zomato.com", status: "Confirmed", tone: "coral" },
-  { day: "27", month: "MAR", company: "Deloitte", stream: "Consulting", hr: "Vikram Shah", contact: "+91 98990 22110", email: "vikram@deloitte.com", status: "Upcoming", tone: "yellow" },
-  { day: "02", month: "APR", company: "Amazon", stream: "Technology", hr: "Neha Gupta", contact: "+91 98200 88012", email: "neha@amazon.com", status: "Upcoming", tone: "blue" },
-  { day: "08", month: "APR", company: "Barclays", stream: "Finance", hr: "Mihir Kapoor", contact: "+91 98700 22110", email: "mihir@barclays.com", status: "Proposed", tone: "violet" },
+  {
+    day: "24",
+    month: "MAR",
+    company: "Zomato",
+    stream: "Consumer",
+    hr: "Radhika Menon",
+    contact: "+91 98100 44012",
+    email: "radhika@zomato.com",
+    status: "Confirmed",
+    tone: "coral",
+  },
+  {
+    day: "27",
+    month: "MAR",
+    company: "Deloitte",
+    stream: "Consulting",
+    hr: "Vikram Shah",
+    contact: "+91 98990 22110",
+    email: "vikram@deloitte.com",
+    status: "Upcoming",
+    tone: "yellow",
+  },
+  {
+    day: "02",
+    month: "APR",
+    company: "Amazon",
+    stream: "Technology",
+    hr: "Neha Gupta",
+    contact: "+91 98200 88012",
+    email: "neha@amazon.com",
+    status: "Upcoming",
+    tone: "blue",
+  },
+  {
+    day: "08",
+    month: "APR",
+    company: "Barclays",
+    stream: "Finance",
+    hr: "Mihir Kapoor",
+    contact: "+91 98700 22110",
+    email: "mihir@barclays.com",
+    status: "Proposed",
+    tone: "violet",
+  },
 ];
 
 export default function Home() {
@@ -31,66 +139,1325 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [compareDate, setCompareDate] = useState("2026-03-20");
   const placed = records.filter((student) => student.type !== "NA");
-  const salaries = placed.map((student) => student.ctc as number).sort((a, b) => a - b);
-  const average = salaries.reduce((sum, value) => sum + value, 0) / salaries.length;
+  const salaries = placed
+    .map((student) => student.ctc as number)
+    .sort((a, b) => a - b);
+  const average =
+    salaries.reduce((sum, value) => sum + value, 0) / salaries.length;
   const median = salaries[Math.floor(salaries.length / 2)];
-  const mode = salaries.reduce((best, value) => salaries.filter((item) => item === value).length > salaries.filter((item) => item === best).length ? value : best, salaries[0]);
-  const visibleStudents = useMemo(() => records.filter((student) => (filter === "All" || student.type === filter) && `${student.name} ${student.roll} ${student.company} ${student.stream}`.toLowerCase().includes(query.toLowerCase())), [filter, query, records]);
+  const mode = salaries.reduce(
+    (best, value) =>
+      salaries.filter((item) => item === value).length >
+      salaries.filter((item) => item === best).length
+        ? value
+        : best,
+    salaries[0],
+  );
+  const visibleStudents = useMemo(
+    () =>
+      records.filter(
+        (student) =>
+          (filter === "All" || student.type === filter) &&
+          `${student.name} ${student.roll} ${student.company} ${student.stream}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
+      ),
+    [filter, query, records],
+  );
   const asOf = placed.filter((student) => student.date <= compareDate).length;
-  const breakdown = dimension === "Company" ? companyData.slice(0, 5).map(([name]) => [name, placed.filter((student) => student.company === name).length] as [string, number]) : ["Technology", "Consulting", "Finance", "Consumer"].map((name) => [name, placed.filter((student) => student.stream === name).length] as [string, number]);
-  const goToFiltered = (value: string) => { setQuery(value); setView("Students"); };
+  const breakdown =
+    dimension === "Company"
+      ? companyData
+          .slice(0, 5)
+          .map(
+            ([name]) =>
+              [
+                name,
+                placed.filter((student) => student.company === name).length,
+              ] as [string, number],
+          )
+      : ["Technology", "Consulting", "Finance", "Consumer"].map(
+          (name) =>
+            [
+              name,
+              placed.filter((student) => student.stream === name).length,
+            ] as [string, number],
+        );
+  const goToFiltered = (value: string) => {
+    setQuery(value);
+    setView("Students");
+  };
 
-  const updateStudent = (roll: string, changes: Partial<Student>) => setRecords((current) => current.map((student) => student.roll === roll ? { ...student, ...changes } : student));
-  const clearDemoPlacements = () => { setRecords((current) => current.map((student) => ({ ...student, company: "", stream: "", type: "NA", ctc: null, date: "" }))); setFilter("NA"); setQuery(""); };
-  const addStudent = () => setRecords((current) => [{ roll: String(Math.max(0, ...current.map((student) => Number(student.roll))) + 1).padStart(2, "0"), name: "", company: "", stream: "", type: "NA", ctc: null, date: "", isNew: true }, ...current]);
-  const removeStudent = (roll: string) => setRecords((current) => current.filter((student) => student.roll !== roll));
-  const importStudents = (file: File) => { const reader = new FileReader(); reader.onload = () => { const rows = String(reader.result).split(/\r?\n/).filter(Boolean).slice(1).map((row) => row.split(",")); setRecords((current) => current.map((student) => { const row = rows.find((item) => item[0]?.trim() === student.roll || item[1]?.trim().toLowerCase() === student.name.toLowerCase()); if (!row) return student; const type = (row[4]?.trim() || "NA") as PlacementType; return { ...student, company: row[2]?.trim() || "", stream: row[3]?.trim() || "", type, ctc: row[5]?.trim() ? Number(row[5]) : null, date: row[6]?.trim() || "" }; })); }; reader.readAsText(file); };
+  const updateStudent = (roll: string, changes: Partial<Student>) =>
+    setRecords((current) =>
+      current.map((student) =>
+        student.roll === roll ? { ...student, ...changes } : student,
+      ),
+    );
+  const clearDemoPlacements = () => {
+    setRecords((current) =>
+      current.map((student) => ({
+        ...student,
+        company: "",
+        stream: "",
+        type: "NA",
+        ctc: null,
+        date: "",
+      })),
+    );
+    setFilter("NA");
+    setQuery("");
+  };
+  const addStudent = () =>
+    setRecords((current) => [
+      {
+        roll: String(
+          Math.max(0, ...current.map((student) => Number(student.roll))) + 1,
+        ).padStart(2, "0"),
+        name: "",
+        company: "",
+        stream: "",
+        type: "NA",
+        ctc: null,
+        date: "",
+        isNew: true,
+      },
+      ...current,
+    ]);
+  const removeStudent = (roll: string) =>
+    setRecords((current) => current.filter((student) => student.roll !== roll));
+  const importStudents = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = String(reader.result)
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .slice(1)
+        .map((row) => row.split(","));
+      setRecords((current) =>
+        current.map((student) => {
+          const row = rows.find(
+            (item) =>
+              item[0]?.trim() === student.roll ||
+              item[1]?.trim().toLowerCase() === student.name.toLowerCase(),
+          );
+          if (!row) return student;
+          const type = (row[4]?.trim() || "NA") as PlacementType;
+          return {
+            ...student,
+            company: row[2]?.trim() || "",
+            stream: row[3]?.trim() || "",
+            type,
+            ctc: row[5]?.trim() ? Number(row[5]) : null,
+            date: row[6]?.trim() || "",
+          };
+        }),
+      );
+    };
+    reader.readAsText(file);
+  };
 
-  return <main className="portal-shell">
-    <aside className="sidebar">
-      <div className="wordmark"><b>TNP</b><span>PLACEMENT<br /><strong>CONTROL ROOM</strong></span></div>
-      <div className="role-switch"><small>VIEWING AS</small><button onClick={() => setRole(role === "Admin" ? "Professor" : "Admin")}><i className={role === "Admin" ? "orange-dot" : "green-dot"} />{role}<em>v</em></button></div>
-      <nav><NavButton active={view === "Home"} onClick={() => setView("Home")} icon="H">Home</NavButton><NavButton active={view === "Overview"} onClick={() => setView("Overview")} icon="O">Dashboard</NavButton><NavButton active={view === "Calendar"} onClick={() => setView("Calendar")} icon="[]">Drive calendar <small>4</small></NavButton>{role === "Admin" && <NavButton active={view === "Students"} onClick={() => setView("Students")} icon="S">Student records</NavButton>}</nav>
-      <div className="profile"><b>AS</b><span>Ananya Sharma<small>{role === "Admin" ? "CIC representative" : "Faculty - CSE"}</small></span></div>
-    </aside>
-    <section className="content-area">
-      <header className="topbar"><span>PLACEMENT OFFICE <b>/</b> {view.toUpperCase()}</span><div><i className="green-dot" /> Live data <strong>AS</strong></div></header>
-      {view === "Home" && <HomeView role={role} onDashboard={() => setView("Overview")} onCalendar={() => setView("Calendar")} />}
-      {view === "Overview" && <Overview placed={placed} salaries={salaries} average={average} median={median} mode={mode} breakdown={breakdown} dimension={dimension} setDimension={setDimension} goToFiltered={goToFiltered} compareDate={compareDate} setCompareDate={setCompareDate} asOf={asOf} />}
-      {view === "Calendar" && <Calendar role={role} />}
-      {view === "Students" && <Students role={role} data={visibleStudents} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onUpdate={updateStudent} onImport={importStudents} onClear={clearDemoPlacements} onAdd={addStudent} onRemove={removeStudent} />}
-    </section>
-  </main>;
+  return (
+    <main className="portal-shell">
+      <aside className="sidebar">
+        <div className="wordmark">
+          <b>TNP</b>
+          <span>
+            PLACEMENT
+            <br />
+            <strong>CONTROL ROOM</strong>
+          </span>
+        </div>
+        <div className="role-switch">
+          <small>VIEWING AS</small>
+          <button
+            onClick={() => setRole(role === "Admin" ? "Professor" : "Admin")}
+          >
+            <i className={role === "Admin" ? "orange-dot" : "green-dot"} />
+            {role}
+            <em>v</em>
+          </button>
+        </div>
+        <nav>
+          <NavButton
+            active={view === "Home"}
+            onClick={() => setView("Home")}
+            icon="H"
+          >
+            Home
+          </NavButton>
+          <NavButton
+            active={view === "Overview"}
+            onClick={() => setView("Overview")}
+            icon="O"
+          >
+            Dashboard
+          </NavButton>
+          <NavButton
+            active={view === "Calendar"}
+            onClick={() => setView("Calendar")}
+            icon="[]"
+          >
+            Drive calendar <small>4</small>
+          </NavButton>
+          {role === "Admin" && (
+            <NavButton
+              active={view === "Students"}
+              onClick={() => setView("Students")}
+              icon="S"
+            >
+              Student records
+            </NavButton>
+          )}
+        </nav>
+        <div className="profile">
+          <b>AS</b>
+          <span>
+            Ananya Sharma
+            <small>
+              {role === "Admin" ? "CIC representative" : "Faculty - CSE"}
+            </small>
+          </span>
+        </div>
+      </aside>
+      <section className="content-area">
+        <header className="topbar">
+          <span>
+            PLACEMENT OFFICE <b>/</b> {view.toUpperCase()}
+          </span>
+          <div>
+            <i className="green-dot" /> Live data <strong>AS</strong>
+          </div>
+        </header>
+        {view === "Home" && (
+          <HomeView
+            role={role}
+            onDashboard={() => setView("Overview")}
+            onCalendar={() => setView("Calendar")}
+          />
+        )}
+        {view === "Overview" && (
+          <Overview
+            placed={placed}
+            salaries={salaries}
+            average={average}
+            median={median}
+            mode={mode}
+            breakdown={breakdown}
+            dimension={dimension}
+            setDimension={setDimension}
+            goToFiltered={goToFiltered}
+            compareDate={compareDate}
+            setCompareDate={setCompareDate}
+            asOf={asOf}
+          />
+        )}
+        {view === "Calendar" && <Calendar role={role} />}
+        {view === "Students" && (
+          <Students
+            role={role}
+            data={visibleStudents}
+            filter={filter}
+            setFilter={setFilter}
+            query={query}
+            setQuery={setQuery}
+            onUpdate={updateStudent}
+            onImport={importStudents}
+            onClear={clearDemoPlacements}
+            onAdd={addStudent}
+            onRemove={removeStudent}
+          />
+        )}
+      </section>
+    </main>
+  );
 }
 
-function HomeView({ role, onDashboard, onCalendar }: { role: "Professor" | "Admin"; onDashboard: () => void; onCalendar: () => void }) {
-  return <section className="home-view"><div className="home-hero"><p className="eyebrow">{role === "Admin" ? "CIC REPRESENTATIVE WORKSPACE" : "FACULTY WORKSPACE"}</p><h1>Good morning,<br /><em>Ananya.</em></h1><p>Here is the pulse of the 2025-26 placement season. Everything important, one decision away.</p><div className="home-actions"><button className="dark-button" onClick={onDashboard}>Open dashboard <span>{"->"}</span></button><button className="light-button" onClick={onCalendar}>View drive calendar</button></div></div><div className="home-grid"><button className="home-card coral-card" onClick={onDashboard}><span>01 / SIGNAL</span><strong>Placement<br />dashboard</strong><small>Live outcomes, CTC intelligence and year-on-year movement <b>{"->"}</b></small></button><button className="home-card dark-card" onClick={onCalendar}><span>02 / PIPELINE</span><strong>Drive<br />calendar</strong><small>Upcoming recruiters, HR contacts and campus dates <b>{"->"}</b></small></button><div className="home-note"><span>STATUS</span><strong><i className="green-dot" /> Season in motion</strong><p>4 recruiting drives are scheduled next. Last sync 4 min ago.</p></div></div></section>;
+function HomeView({
+  role,
+  onDashboard,
+  onCalendar,
+}: {
+  role: "Professor" | "Admin";
+  onDashboard: () => void;
+  onCalendar: () => void;
+}) {
+  return (
+    <section className="home-view">
+      <div className="home-hero">
+        <p className="eyebrow">
+          {role === "Admin"
+            ? "CIC REPRESENTATIVE WORKSPACE"
+            : "FACULTY WORKSPACE"}
+        </p>
+        <h1>
+          Good morning,
+          <br />
+          <em>Ananya.</em>
+        </h1>
+        <p>
+          Here is the pulse of the 2025-26 placement season. Everything
+          important, one decision away.
+        </p>
+        <div className="home-actions">
+          <button className="dark-button" onClick={onDashboard}>
+            Open dashboard <span>{"->"}</span>
+          </button>
+          <button className="light-button" onClick={onCalendar}>
+            View drive calendar
+          </button>
+        </div>
+      </div>
+      <div className="home-grid">
+        <button className="home-card coral-card" onClick={onDashboard}>
+          <span>01 / SIGNAL</span>
+          <strong>
+            Placement
+            <br />
+            dashboard
+          </strong>
+          <small>
+            Live outcomes, CTC intelligence and year-on-year movement{" "}
+            <b>{"->"}</b>
+          </small>
+        </button>
+        <button className="home-card dark-card" onClick={onCalendar}>
+          <span>02 / PIPELINE</span>
+          <strong>
+            Drive
+            <br />
+            calendar
+          </strong>
+          <small>
+            Upcoming recruiters, HR contacts and campus dates <b>{"->"}</b>
+          </small>
+        </button>
+        <div className="home-note">
+          <span>STATUS</span>
+          <strong>
+            <i className="green-dot" /> Season in motion
+          </strong>
+          <p>4 recruiting drives are scheduled next. Last sync 4 min ago.</p>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 // Retained from the dashboard branch as a reference while its newer row editor is active.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function LegacyStudents2({ role, data, filter, setFilter, query, setQuery, onUpdate, onImport, onClear, onAdd, onRemove }: { role: "Professor" | "Admin"; data: Student[]; filter: PlacementType | "All"; setFilter: (value: PlacementType | "All") => void; query: string; setQuery: (value: string) => void; onUpdate: (roll: string, changes: Partial<Student>) => void; onImport: (file: File) => void; onClear: () => void; onAdd: () => void; onRemove: (roll: string) => void }) {
-  return <><Heading eyebrow={role === "Admin" ? "ADMIN DATA ENTRY" : "READ-ONLY VIEW"} title="Student records" subtitle={role === "Admin" ? "Maintain placement outcomes for your full roster." : "Placement outcomes for the class of 2026."} action={role === "Admin" ? <div className="admin-actions"><button className="dark-button" onClick={onAdd}>Add student</button><label className="upload-button">Upload CSV<input type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) onImport(file); event.currentTarget.value = ""; }} /></label><button className="clear-button" onClick={onClear}>Clear demo data</button></div> : undefined} /><section className="panel table-panel"><div className="table-tools"><label>Search <input placeholder="name, roll no, company" value={query} onChange={(event) => setQuery(event.target.value)} /></label><div>{["All", "FTE", "PPO", "FTE + 6M", "NA"].map((value) => <button className={filter === value ? "selected" : ""} onClick={() => setFilter(value as PlacementType | "All")} key={value}>{value}</button>)}</div></div>{role === "Admin" && <p className="table-hint">Add, edit, or remove any row. New students appear at the top.</p>}<div className="table"><div className="table-row head"><span>STUDENT</span><span>COMPANY</span><span>STREAM</span><span>TYPE</span><span>CTC</span><span>OFFER DATE</span>{role === "Admin" && <span />}</div>{data.map((student) => <div className="table-row" key={student.roll}><span className="student-record-cell"><span className="student-avatar">{student.name.split(" ").map((part) => part[0]).join("").slice(0, 2) || "NS"}</span>{role === "Admin" && student.isNew ? <input className="cell-input" value={student.name} onChange={(event) => onUpdate(student.roll, { name: event.target.value })} /> : <strong>{student.name}<small>#{student.roll}</small></strong>}</span>{role === "Admin" ? <><input className="cell-input" placeholder="Company" value={student.company} onChange={(event) => onUpdate(student.roll, { company: event.target.value })} /><input className="cell-input" placeholder="Stream" value={student.stream} onChange={(event) => onUpdate(student.roll, { stream: event.target.value })} /><select className="cell-input" value={student.type} onChange={(event) => { const type = event.target.value as PlacementType; onUpdate(student.roll, { type, ctc: type === "NA" ? null : student.ctc || 10, date: type === "NA" ? "" : student.date || "2026-03-20" }); }}><option>FTE</option><option>PPO</option><option>FTE + 6M</option><option>NA</option></select><input className="cell-input" type="number" placeholder="LPA" value={student.ctc ?? ""} disabled={student.type === "NA"} onChange={(event) => onUpdate(student.roll, { ctc: event.target.value ? Number(event.target.value) : null })} /><input className="cell-input" type="date" value={student.date} disabled={student.type === "NA"} onChange={(event) => onUpdate(student.roll, { date: event.target.value })} /><button className="row-remove" aria-label={`Remove ${student.name}`} title={`Remove ${student.name}`} onClick={() => onRemove(student.roll)}>x</button></> : <><span>{student.company || "-"}</span><span>{student.stream || "-"}</span><span><i className={student.type === "NA" ? "na" : "placed-tag"}>{student.type}</i></span><span>{student.ctc ? `Rs ${student.ctc} LPA` : "-"}</span><span>{student.date || "-"}</span></>}</div>)}</div></section></>;
+function LegacyStudents2({
+  role,
+  data,
+  filter,
+  setFilter,
+  query,
+  setQuery,
+  onUpdate,
+  onImport,
+  onClear,
+  onAdd,
+  onRemove,
+}: {
+  role: "Professor" | "Admin";
+  data: Student[];
+  filter: PlacementType | "All";
+  setFilter: (value: PlacementType | "All") => void;
+  query: string;
+  setQuery: (value: string) => void;
+  onUpdate: (roll: string, changes: Partial<Student>) => void;
+  onImport: (file: File) => void;
+  onClear: () => void;
+  onAdd: () => void;
+  onRemove: (roll: string) => void;
+}) {
+  return (
+    <>
+      <Heading
+        eyebrow={role === "Admin" ? "ADMIN DATA ENTRY" : "READ-ONLY VIEW"}
+        title="Student records"
+        subtitle={
+          role === "Admin"
+            ? "Maintain placement outcomes for your full roster."
+            : "Placement outcomes for the class of 2026."
+        }
+        action={
+          role === "Admin" ? (
+            <div className="admin-actions">
+              <button className="dark-button" onClick={onAdd}>
+                Add student
+              </button>
+              <label className="upload-button">
+                Upload CSV
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) onImport(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+              <button className="clear-button" onClick={onClear}>
+                Clear demo data
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
+      <section className="panel table-panel">
+        <div className="table-tools">
+          <label>
+            Search{" "}
+            <input
+              placeholder="name, roll no, company"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <div>
+            {["All", "FTE", "PPO", "FTE + 6M", "NA"].map((value) => (
+              <button
+                className={filter === value ? "selected" : ""}
+                onClick={() => setFilter(value as PlacementType | "All")}
+                key={value}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+        </div>
+        {role === "Admin" && (
+          <p className="table-hint">
+            Add, edit, or remove any row. New students appear at the top.
+          </p>
+        )}
+        <div className="table">
+          <div className="table-row head">
+            <span>STUDENT</span>
+            <span>COMPANY</span>
+            <span>STREAM</span>
+            <span>TYPE</span>
+            <span>CTC</span>
+            <span>OFFER DATE</span>
+            {role === "Admin" && <span />}
+          </div>
+          {data.map((student) => (
+            <div className="table-row" key={student.roll}>
+              <span className="student-record-cell">
+                <span className="student-avatar">
+                  {student.name
+                    .split(" ")
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2) || "NS"}
+                </span>
+                {role === "Admin" && student.isNew ? (
+                  <input
+                    className="cell-input"
+                    value={student.name}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { name: event.target.value })
+                    }
+                  />
+                ) : (
+                  <strong>
+                    {student.name}
+                    <small>#{student.roll}</small>
+                  </strong>
+                )}
+              </span>
+              {role === "Admin" ? (
+                <>
+                  <input
+                    className="cell-input"
+                    placeholder="Company"
+                    value={student.company}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { company: event.target.value })
+                    }
+                  />
+                  <input
+                    className="cell-input"
+                    placeholder="Stream"
+                    value={student.stream}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { stream: event.target.value })
+                    }
+                  />
+                  <select
+                    className="cell-input"
+                    value={student.type}
+                    onChange={(event) => {
+                      const type = event.target.value as PlacementType;
+                      onUpdate(student.roll, {
+                        type,
+                        ctc: type === "NA" ? null : student.ctc || 10,
+                        date: type === "NA" ? "" : student.date || "2026-03-20",
+                      });
+                    }}
+                  >
+                    <option>FTE</option>
+                    <option>PPO</option>
+                    <option>FTE + 6M</option>
+                    <option>NA</option>
+                  </select>
+                  <input
+                    className="cell-input"
+                    type="number"
+                    placeholder="LPA"
+                    value={student.ctc ?? ""}
+                    disabled={student.type === "NA"}
+                    onChange={(event) =>
+                      onUpdate(student.roll, {
+                        ctc: event.target.value
+                          ? Number(event.target.value)
+                          : null,
+                      })
+                    }
+                  />
+                  <input
+                    className="cell-input"
+                    type="date"
+                    value={student.date}
+                    disabled={student.type === "NA"}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { date: event.target.value })
+                    }
+                  />
+                  <button
+                    className="row-remove"
+                    aria-label={`Remove ${student.name}`}
+                    title={`Remove ${student.name}`}
+                    onClick={() => onRemove(student.roll)}
+                  >
+                    x
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>{student.company || "-"}</span>
+                  <span>{student.stream || "-"}</span>
+                  <span>
+                    <i className={student.type === "NA" ? "na" : "placed-tag"}>
+                      {student.type}
+                    </i>
+                  </span>
+                  <span>{student.ctc ? `Rs ${student.ctc} LPA` : "-"}</span>
+                  <span>{student.date || "-"}</span>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
 }
 
-function Students({ role, data, filter, setFilter, query, setQuery, onUpdate, onImport, onClear, onAdd, onRemove }: { role: "Professor" | "Admin"; data: Student[]; filter: PlacementType | "All"; setFilter: (value: PlacementType | "All") => void; query: string; setQuery: (value: string) => void; onUpdate: (roll: string, changes: Partial<Student>) => void; onImport: (file: File) => void; onClear: () => void; onAdd: () => void; onRemove: (roll: string) => void }) {
+function Students({
+  role,
+  data,
+  filter,
+  setFilter,
+  query,
+  setQuery,
+  onUpdate,
+  onImport,
+  onClear,
+  onAdd,
+  onRemove,
+}: {
+  role: "Professor" | "Admin";
+  data: Student[];
+  filter: PlacementType | "All";
+  setFilter: (value: PlacementType | "All") => void;
+  query: string;
+  setQuery: (value: string) => void;
+  onUpdate: (roll: string, changes: Partial<Student>) => void;
+  onImport: (file: File) => void;
+  onClear: () => void;
+  onAdd: () => void;
+  onRemove: (roll: string) => void;
+}) {
   const admin = role === "Admin";
-  return <><Heading eyebrow={admin ? "ADMIN DATA ENTRY" : "READ-ONLY VIEW"} title="Student records" subtitle={admin ? "Add a person's name, then complete their placement details." : "Placement outcomes for the class of 2026."} action={admin ? <div className="admin-actions"><button className="dark-button" onClick={onAdd}>Add student</button><label className="upload-button">Upload CSV<input type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) onImport(file); event.currentTarget.value = ""; }} /></label><button className="clear-button" onClick={onClear}>Clear demo data</button></div> : undefined} /><section className="panel table-panel"><div className="table-tools"><label>Search <input placeholder="name, roll no, company" value={query} onChange={(event) => setQuery(event.target.value)} /></label><div>{["All", "FTE", "PPO", "FTE + 6M", "NA"].map((value) => <button className={filter === value ? "selected" : ""} onClick={() => setFilter(value as PlacementType | "All")} key={value}>{value}</button>)}</div></div>{admin && <p className="table-hint">New rows start with a <b>Student name</b> field. Enter the person first, then complete the row.</p>}<div className="table"><div className="table-row head"><span>STUDENT</span><span>COMPANY</span><span>SECTOR</span><span>TYPE</span><span>CTC</span><span>OFFER DATE</span>{admin && <span />}</div>{data.map((student) => <div className="table-row" key={student.roll}><span className="student-record-cell"><span className="student-avatar">{student.name.split(" ").map((part) => part[0]).join("").slice(0, 2) || "NS"}</span>{admin && student.isNew ? <input className="cell-input" placeholder="Student name" value={student.name} onChange={(event) => onUpdate(student.roll, { name: event.target.value })} /> : <strong>{student.name || "Unnamed student"}<small>#{student.roll}</small></strong>}</span>{admin ? <><input className="cell-input" placeholder="Company" value={student.company} onChange={(event) => onUpdate(student.roll, { company: event.target.value })} /><select className="cell-input" value={student.stream} onChange={(event) => onUpdate(student.roll, { stream: event.target.value })}><option value="">Select sector</option>{sectors.map((sector) => <option key={sector}>{sector}</option>)}</select><select className="cell-input" value={student.type} onChange={(event) => { const type = event.target.value as PlacementType; onUpdate(student.roll, { type, ctc: type === "NA" ? null : student.ctc || 10, date: type === "NA" ? "" : student.date || "2026-03-20" }); }}><option>FTE</option><option>PPO</option><option>FTE + 6M</option><option>NA</option></select><input className="cell-input" type="number" placeholder="LPA" value={student.ctc ?? ""} disabled={student.type === "NA"} onChange={(event) => onUpdate(student.roll, { ctc: event.target.value ? Number(event.target.value) : null })} /><input className="cell-input" type="date" value={student.date} disabled={student.type === "NA"} onChange={(event) => onUpdate(student.roll, { date: event.target.value })} /><button className="row-remove" aria-label={`Remove ${student.name || "student"}`} onClick={() => onRemove(student.roll)}>x</button></> : <><span>{student.company || "-"}</span><span>{student.stream || "-"}</span><span><i className={student.type === "NA" ? "na" : "placed-tag"}>{student.type}</i></span><span>{student.ctc ? `Rs ${student.ctc} LPA` : "-"}</span><span>{student.date || "-"}</span></>}</div>)}</div></section></>;
+  return (
+    <>
+      <Heading
+        eyebrow={admin ? "ADMIN DATA ENTRY" : "READ-ONLY VIEW"}
+        title="Student records"
+        subtitle={
+          admin
+            ? "Add a person's name, then complete their placement details."
+            : "Placement outcomes for the class of 2026."
+        }
+        action={
+          admin ? (
+            <div className="admin-actions">
+              <button className="dark-button" onClick={onAdd}>
+                Add student
+              </button>
+              <label className="upload-button">
+                Upload CSV
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) onImport(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+              <button className="clear-button" onClick={onClear}>
+                Clear demo data
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
+      <section className="panel table-panel">
+        <div className="table-tools">
+          <label>
+            Search{" "}
+            <input
+              placeholder="name, roll no, company"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <div>
+            {["All", "FTE", "PPO", "FTE + 6M", "NA"].map((value) => (
+              <button
+                className={filter === value ? "selected" : ""}
+                onClick={() => setFilter(value as PlacementType | "All")}
+                key={value}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+        </div>
+        {admin && (
+          <p className="table-hint">
+            New rows start with a <b>Student name</b> field. Enter the person
+            first, then complete the row.
+          </p>
+        )}
+        <div className="table">
+          <div className="table-row head">
+            <span>STUDENT</span>
+            <span>COMPANY</span>
+            <span>SECTOR</span>
+            <span>TYPE</span>
+            <span>CTC</span>
+            <span>OFFER DATE</span>
+            {admin && <span />}
+          </div>
+          {data.map((student) => (
+            <div className="table-row" key={student.roll}>
+              <span className="student-record-cell">
+                <span className="student-avatar">
+                  {student.name
+                    .split(" ")
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2) || "NS"}
+                </span>
+                {admin && student.isNew ? (
+                  <input
+                    className="cell-input"
+                    placeholder="Student name"
+                    value={student.name}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { name: event.target.value })
+                    }
+                  />
+                ) : (
+                  <strong>
+                    {student.name || "Unnamed student"}
+                    <small>#{student.roll}</small>
+                  </strong>
+                )}
+              </span>
+              {admin ? (
+                <>
+                  <input
+                    className="cell-input"
+                    placeholder="Company"
+                    value={student.company}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { company: event.target.value })
+                    }
+                  />
+                  <select
+                    className="cell-input"
+                    value={student.stream}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { stream: event.target.value })
+                    }
+                  >
+                    <option value="">Select sector</option>
+                    {sectors.map((sector) => (
+                      <option key={sector}>{sector}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="cell-input"
+                    value={student.type}
+                    onChange={(event) => {
+                      const type = event.target.value as PlacementType;
+                      onUpdate(student.roll, {
+                        type,
+                        ctc: type === "NA" ? null : student.ctc || 10,
+                        date: type === "NA" ? "" : student.date || "2026-03-20",
+                      });
+                    }}
+                  >
+                    <option>FTE</option>
+                    <option>PPO</option>
+                    <option>FTE + 6M</option>
+                    <option>NA</option>
+                  </select>
+                  <input
+                    className="cell-input"
+                    type="number"
+                    placeholder="LPA"
+                    value={student.ctc ?? ""}
+                    disabled={student.type === "NA"}
+                    onChange={(event) =>
+                      onUpdate(student.roll, {
+                        ctc: event.target.value
+                          ? Number(event.target.value)
+                          : null,
+                      })
+                    }
+                  />
+                  <input
+                    className="cell-input"
+                    type="date"
+                    value={student.date}
+                    disabled={student.type === "NA"}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { date: event.target.value })
+                    }
+                  />
+                  <button
+                    className="row-remove"
+                    aria-label={`Remove ${student.name || "student"}`}
+                    onClick={() => onRemove(student.roll)}
+                  >
+                    x
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>{student.company || "-"}</span>
+                  <span>{student.stream || "-"}</span>
+                  <span>
+                    <i className={student.type === "NA" ? "na" : "placed-tag"}>
+                      {student.type}
+                    </i>
+                  </span>
+                  <span>{student.ctc ? `Rs ${student.ctc} LPA` : "-"}</span>
+                  <span>{student.date || "-"}</span>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
 }
 
-function NavButton({ active, onClick, icon, children }: { active: boolean; onClick: () => void; icon: string; children: React.ReactNode }) { return <button className={active ? "active" : ""} onClick={onClick}><span>{icon}</span>{children}</button>; }
-function Heading({ eyebrow, title, subtitle, action }: { eyebrow: string; title: string; subtitle: string; action?: React.ReactNode }) { return <div className="page-heading"><div><p className="eyebrow">{eyebrow}<i className="coral-dot" /></p><h1>{title} <span>*</span></h1><p>{subtitle}</p></div>{action && <div className="heading-actions">{action}</div>}</div>; }
-function PanelTitle({ eyebrow, title, action }: { eyebrow: string; title: string; action?: React.ReactNode }) { return <div className="panel-title"><div><p className="eyebrow">{eyebrow}</p><h2>{title}</h2></div>{action}</div>; }
-function Metric({ label, value, suffix, change, accent }: { label: string; value: string; suffix?: string; change: string; accent: string }) { return <article className={`metric ${accent}`}><p className="eyebrow">{label}</p><strong>{value}<small>{suffix}</small></strong><span>up {change} <i>vs last year</i></span></article>; }
-
-function Overview({ placed, salaries, average, median, mode, breakdown, dimension, setDimension, goToFiltered, compareDate, setCompareDate, asOf }: { placed: Student[]; salaries: number[]; average: number; median: number; mode: number; breakdown: [string, number][]; dimension: "Company" | "Stream"; setDimension: (value: "Company" | "Stream") => void; goToFiltered: (value: string) => void; compareDate: string; setCompareDate: (value: string) => void; asOf: number }) {
-  const types = (["FTE", "PPO", "FTE + 6M"] as PlacementType[]).map((type) => [type, placed.filter((student) => student.type === type).length] as [PlacementType, number]);
-  return <><Heading eyebrow="ACADEMIC YEAR 2025-26" title="Good morning, Ananya" subtitle="Here's how the placement season is shaping up." action={<><label>YEAR<select><option>2025-26</option><option>2024-25</option></select></label><button className="dark-button">Export report</button></>} /><div className="metric-grid"><Metric label="PLACEMENT RATE" value={`${Math.round(placed.length / 70 * 100)}%`} change="8.4%" accent="coral" /><Metric label="STUDENTS PLACED" value={`${placed.length}`} suffix="/ 70" change="12" accent="yellow" /><Metric label="AVERAGE CTC" value={`Rs ${average.toFixed(1)}`} suffix=" LPA" change="2.1 LPA" accent="blue" /><Metric label="MEDIAN CTC" value={`Rs ${median}`} suffix=" LPA" change="1.5 LPA" accent="violet" /></div><div className="dashboard-grid"><section className="panel chart-panel"><PanelTitle eyebrow="PLACEMENT PROGRESS" title="Offers over time" /><div className="fake-chart"><span>70</span><span>50</span><span>30</span><span>10</span><svg viewBox="0 0 600 190" preserveAspectRatio="none"><path d="M0 180 C80 170 120 140 180 150 S270 105 340 120 S430 70 510 92 S570 35 600 28" /><path className="secondary" d="M0 180 C80 170 120 150 180 155 S270 125 340 130 S430 100 510 102 S570 80 600 74" /></svg><small>JAN 01             JAN 31             FEB 28             MAR 31</small></div><b className="chart-note">58 placed<small>as of Mar 20, 2026</small></b></section><section className="panel"><PanelTitle eyebrow="CLASS OF 2026" title="Placement split" /><div className="split"><div className="donut"><b>{placed.length}</b><small>placed</small></div><div><p><i className="coral-dot" /> Placed <b>{placed.length}</b></p><p><i className="muted-dot" /> Unplaced <b>{70 - placed.length}</b></p></div></div><div className="ratio">PLACED : UNPLACED <b>{placed.length} : {70 - placed.length}</b></div></section><section className="panel"><PanelTitle eyebrow="WHERE OFFERS ARE" title={`${dimension} performance`} action={<div className="toggle"><button className={dimension === "Company" ? "selected" : ""} onClick={() => setDimension("Company")}>Company</button><button className={dimension === "Stream" ? "selected" : ""} onClick={() => setDimension("Stream")}>Stream</button></div>} /><div className="bars">{breakdown.map(([name, count]) => <button key={name} onClick={() => goToFiltered(name)}><span>{name}</span><i><b style={{ width: `${Math.max(count * 10, 10)}%` }} /></i><em>{count}</em></button>)}</div><small className="hint">Select a bar to inspect matching students.</small></section><section className="panel compare"><PanelTitle eyebrow="YEAR-ON-YEAR" title="Compare by date" /><label>AS OF <input type="date" value={compareDate} onChange={(event) => setCompareDate(event.target.value)} /></label><div><strong>{asOf}</strong><span>placed this year</span><b>to</b><strong>{Math.max(asOf - 7, 0)}</strong><span>last year</span></div><small className="positive">+7 students ahead of last year</small></section><section className="panel stats-panel"><PanelTitle eyebrow="SALARY INTELLIGENCE" title="CTC snapshot" /><div className="salary-stats"><span><small>LOWEST</small><b>Rs {salaries[0]} LPA</b></span><span><small>HIGHEST</small><b>Rs {salaries[salaries.length - 1]} LPA</b></span><span><small>MODE</small><b>Rs {mode} LPA</b></span></div><div className="salary-bars">{[["0-10", 12], ["10-20", 42], ["20-30", 21], ["30+", 10]].map(([label, count]) => <div key={label}><span>{label}</span><i><b style={{ width: `${Number(count) * 2}%` }} /></i><em>{count}</em></div>)}</div></section><section className="panel type-panel"><PanelTitle eyebrow="OFFER MIX" title="Placement types" /><div className="type-list">{types.map(([type, count]) => <button key={type} onClick={() => goToFiltered(type)}><span>{type}</span><b>{count}</b><i><em style={{ width: `${(count / placed.length) * 100}%` }} /></i></button>)}</div></section></div></>;
+function NavButton({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button className={active ? "active" : ""} onClick={onClick}>
+      <span>{icon}</span>
+      {children}
+    </button>
+  );
+}
+function Heading({
+  eyebrow,
+  title,
+  subtitle,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="page-heading">
+      <div>
+        <p className="eyebrow">
+          {eyebrow}
+          <i className="coral-dot" />
+        </p>
+        <h1>
+          {title} <span>*</span>
+        </h1>
+        <p>{subtitle}</p>
+      </div>
+      {action && <div className="heading-actions">{action}</div>}
+    </div>
+  );
+}
+function PanelTitle({
+  eyebrow,
+  title,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="panel-title">
+      <div>
+        <p className="eyebrow">{eyebrow}</p>
+        <h2>{title}</h2>
+      </div>
+      {action}
+    </div>
+  );
+}
+function Metric({
+  label,
+  value,
+  suffix,
+  change,
+  accent,
+}: {
+  label: string;
+  value: string;
+  suffix?: string;
+  change: string;
+  accent: string;
+}) {
+  return (
+    <article className={`metric ${accent}`}>
+      <p className="eyebrow">{label}</p>
+      <strong>
+        {value}
+        <small>{suffix}</small>
+      </strong>
+      <span>
+        up {change} <i>vs last year</i>
+      </span>
+    </article>
+  );
 }
 
-function Calendar({ role }: { role: "Professor" | "Admin" }) { return <><Heading eyebrow="RECRUITMENT PIPELINE" title="Drive calendar" subtitle="Upcoming companies, HR contacts and campus visits." action={role === "Admin" ? <button className="dark-button">Add drive</button> : undefined} /><div className="calendar-grid"><section className="panel month"><div className="month-title"><button>prev</button><h2>March 2026</h2><button>next</button></div><div className="weekdays">{["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((day) => <span key={day}>{day}</span>)}</div><div className="days">{Array.from({ length: 31 }, (_, index) => <div className={index + 1 === 24 ? "today" : ""} key={index}>{index + 1}{[24, 27].includes(index + 1) && <i />}</div>)}</div></section><section className="panel upcoming"><PanelTitle eyebrow="NEXT UP" title="Upcoming drives" /><div className="drive-list">{drives.map((drive) => <article key={drive.company}><b className={drive.tone}>{drive.day}<small>{drive.month}</small></b><span><strong>{drive.company}</strong><small>{drive.stream} - {drive.hr}</small><small>{drive.contact} - {drive.email}</small></span><em>{drive.status}</em></article>)}</div></section></div></>; }
+function Overview({
+  placed,
+  salaries,
+  average,
+  median,
+  mode,
+  breakdown,
+  dimension,
+  setDimension,
+  goToFiltered,
+  compareDate,
+  setCompareDate,
+  asOf,
+}: {
+  placed: Student[];
+  salaries: number[];
+  average: number;
+  median: number;
+  mode: number;
+  breakdown: [string, number][];
+  dimension: "Company" | "Stream";
+  setDimension: (value: "Company" | "Stream") => void;
+  goToFiltered: (value: string) => void;
+  compareDate: string;
+  setCompareDate: (value: string) => void;
+  asOf: number;
+}) {
+  const types = (["FTE", "PPO", "FTE + 6M"] as PlacementType[]).map(
+    (type) =>
+      [type, placed.filter((student) => student.type === type).length] as [
+        PlacementType,
+        number,
+      ],
+  );
+  return (
+    <>
+      <Heading
+        eyebrow="ACADEMIC YEAR 2025-26"
+        title="Good morning, Ananya"
+        subtitle="Here's how the placement season is shaping up."
+        action={
+          <>
+            <label>
+              YEAR
+              <select>
+                <option>2025-26</option>
+                <option>2024-25</option>
+              </select>
+            </label>
+            <button className="dark-button">Export report</button>
+          </>
+        }
+      />
+      <div className="metric-grid">
+        <Metric
+          label="PLACEMENT RATE"
+          value={`${Math.round((placed.length / 70) * 100)}%`}
+          change="8.4%"
+          accent="coral"
+        />
+        <Metric
+          label="STUDENTS PLACED"
+          value={`${placed.length}`}
+          suffix="/ 70"
+          change="12"
+          accent="yellow"
+        />
+        <Metric
+          label="AVERAGE CTC"
+          value={`Rs ${average.toFixed(1)}`}
+          suffix=" LPA"
+          change="2.1 LPA"
+          accent="blue"
+        />
+        <Metric
+          label="MEDIAN CTC"
+          value={`Rs ${median}`}
+          suffix=" LPA"
+          change="1.5 LPA"
+          accent="violet"
+        />
+      </div>
+      <div className="dashboard-grid">
+        <section className="panel chart-panel">
+          <PanelTitle eyebrow="PLACEMENT PROGRESS" title="Offers over time" />
+          <div className="fake-chart">
+            <span>70</span>
+            <span>50</span>
+            <span>30</span>
+            <span>10</span>
+            <svg viewBox="0 0 600 190" preserveAspectRatio="none">
+              <path d="M0 180 C80 170 120 140 180 150 S270 105 340 120 S430 70 510 92 S570 35 600 28" />
+              <path
+                className="secondary"
+                d="M0 180 C80 170 120 150 180 155 S270 125 340 130 S430 100 510 102 S570 80 600 74"
+              />
+            </svg>
+            <small>JAN 01 JAN 31 FEB 28 MAR 31</small>
+          </div>
+          <b className="chart-note">
+            58 placed<small>as of Mar 20, 2026</small>
+          </b>
+        </section>
+        <section className="panel">
+          <PanelTitle eyebrow="CLASS OF 2026" title="Placement split" />
+          <div className="split">
+            <div className="donut">
+              <b>{placed.length}</b>
+              <small>placed</small>
+            </div>
+            <div>
+              <p>
+                <i className="coral-dot" /> Placed <b>{placed.length}</b>
+              </p>
+              <p>
+                <i className="muted-dot" /> Unplaced <b>{70 - placed.length}</b>
+              </p>
+            </div>
+          </div>
+          <div className="ratio">
+            PLACED : UNPLACED{" "}
+            <b>
+              {placed.length} : {70 - placed.length}
+            </b>
+          </div>
+        </section>
+        <section className="panel">
+          <PanelTitle
+            eyebrow="WHERE OFFERS ARE"
+            title={`${dimension} performance`}
+            action={
+              <div className="toggle">
+                <button
+                  className={dimension === "Company" ? "selected" : ""}
+                  onClick={() => setDimension("Company")}
+                >
+                  Company
+                </button>
+                <button
+                  className={dimension === "Stream" ? "selected" : ""}
+                  onClick={() => setDimension("Stream")}
+                >
+                  Stream
+                </button>
+              </div>
+            }
+          />
+          <div className="bars">
+            {breakdown.map(([name, count]) => (
+              <button key={name} onClick={() => goToFiltered(name)}>
+                <span>{name}</span>
+                <i>
+                  <b style={{ width: `${Math.max(count * 10, 10)}%` }} />
+                </i>
+                <em>{count}</em>
+              </button>
+            ))}
+          </div>
+          <small className="hint">
+            Select a bar to inspect matching students.
+          </small>
+        </section>
+        <section className="panel compare">
+          <PanelTitle eyebrow="YEAR-ON-YEAR" title="Compare by date" />
+          <label>
+            AS OF{" "}
+            <input
+              type="date"
+              value={compareDate}
+              onChange={(event) => setCompareDate(event.target.value)}
+            />
+          </label>
+          <div>
+            <strong>{asOf}</strong>
+            <span>placed this year</span>
+            <b>to</b>
+            <strong>{Math.max(asOf - 7, 0)}</strong>
+            <span>last year</span>
+          </div>
+          <small className="positive">+7 students ahead of last year</small>
+        </section>
+        <section className="panel stats-panel">
+          <PanelTitle eyebrow="SALARY INTELLIGENCE" title="CTC snapshot" />
+          <div className="salary-stats">
+            <span>
+              <small>LOWEST</small>
+              <b>Rs {salaries[0]} LPA</b>
+            </span>
+            <span>
+              <small>HIGHEST</small>
+              <b>Rs {salaries[salaries.length - 1]} LPA</b>
+            </span>
+            <span>
+              <small>MODE</small>
+              <b>Rs {mode} LPA</b>
+            </span>
+          </div>
+          <div className="salary-bars">
+            {[
+              ["0-10", 12],
+              ["10-20", 42],
+              ["20-30", 21],
+              ["30+", 10],
+            ].map(([label, count]) => (
+              <div key={label}>
+                <span>{label}</span>
+                <i>
+                  <b style={{ width: `${Number(count) * 2}%` }} />
+                </i>
+                <em>{count}</em>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="panel type-panel">
+          <PanelTitle eyebrow="OFFER MIX" title="Placement types" />
+          <div className="type-list">
+            {types.map(([type, count]) => (
+              <button key={type} onClick={() => goToFiltered(type)}>
+                <span>{type}</span>
+                <b>{count}</b>
+                <i>
+                  <em style={{ width: `${(count / placed.length) * 100}%` }} />
+                </i>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+    </>
+  );
+}
+
+function Calendar({ role }: { role: "Professor" | "Admin" }) {
+  return (
+    <>
+      <Heading
+        eyebrow="RECRUITMENT PIPELINE"
+        title="Drive calendar"
+        subtitle="Upcoming companies, HR contacts and campus visits."
+        action={
+          role === "Admin" ? (
+            <button className="dark-button">Add drive</button>
+          ) : undefined
+        }
+      />
+      <div className="calendar-grid">
+        <section className="panel month">
+          <div className="month-title">
+            <button>prev</button>
+            <h2>March 2026</h2>
+            <button>next</button>
+          </div>
+          <div className="weekdays">
+            {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((day) => (
+              <span key={day}>{day}</span>
+            ))}
+          </div>
+          <div className="days">
+            {Array.from({ length: 31 }, (_, index) => (
+              <div className={index + 1 === 24 ? "today" : ""} key={index}>
+                {index + 1}
+                {[24, 27].includes(index + 1) && <i />}
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="panel upcoming">
+          <PanelTitle eyebrow="NEXT UP" title="Upcoming drives" />
+          <div className="drive-list">
+            {drives.map((drive) => (
+              <article key={drive.company}>
+                <b className={drive.tone}>
+                  {drive.day}
+                  <small>{drive.month}</small>
+                </b>
+                <span>
+                  <strong>{drive.company}</strong>
+                  <small>
+                    {drive.stream} - {drive.hr}
+                  </small>
+                  <small>
+                    {drive.contact} - {drive.email}
+                  </small>
+                </span>
+                <em>{drive.status}</em>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+    </>
+  );
+}
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function LegacyStudents({ role, data, filter, setFilter, query, setQuery, onUpdate, onImport, onClear, onAdd, onRemove }: { role: "Professor" | "Admin"; data: Student[]; filter: PlacementType | "All"; setFilter: (value: PlacementType | "All") => void; query: string; setQuery: (value: string) => void; onUpdate: (roll: string, changes: Partial<Student>) => void; onImport: (file: File) => void; onClear: () => void; onAdd: () => void; onRemove: (roll: string) => void }) {
-  return <><Heading eyebrow={role === "Admin" ? "ADMIN DATA ENTRY" : "READ-ONLY VIEW"} title="Student records" subtitle={role === "Admin" ? "Maintain placement outcomes for all 70 students." : "Placement outcomes for the class of 2026."} action={role === "Admin" ? <div className="admin-actions"><button className="dark-button" onClick={onAdd}>Add student</button><label className="upload-button">Upload CSV<input type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) onImport(file); event.currentTarget.value = ""; }} /></label><button className="clear-button" onClick={onClear}>Clear demo data</button></div> : undefined} /><section className="panel table-panel"><div className="table-tools"><label>Search <input placeholder="name, roll no, company" value={query} onChange={(event) => setQuery(event.target.value)} /></label><div>{["All", "FTE", "PPO", "FTE + 6M", "NA"].map((value) => <button className={filter === value ? "selected" : ""} onClick={() => setFilter(value as PlacementType | "All")} key={value}>{value}</button>)}</div></div>{role === "Admin" && <p className="table-hint">Add a student, upload CSV, or edit any row. CSV columns: roll, name, company, stream, type, ctc, offer_date.</p>}<div className="table"><div className="table-row head"><span>STUDENT</span><span>COMPANY</span><span>STREAM</span><span>TYPE</span><span>CTC</span><span>OFFER DATE</span></div>{data.map((student) => <div className="table-row" key={student.roll}><span>{role === "Admin" && student.isNew ? <input className="cell-input" value={student.name} onChange={(event) => onUpdate(student.roll, { name: event.target.value })} /> : <><b className="student-avatar">{student.name.split(" ").map((part) => part[0]).join("")}</b><strong>{student.name}<small>#{student.roll}</small></strong></>}</span>{role === "Admin" ? <><input className="cell-input" placeholder="Company" value={student.company} onChange={(event) => onUpdate(student.roll, { company: event.target.value })} /><input className="cell-input" placeholder="Stream" value={student.stream} onChange={(event) => onUpdate(student.roll, { stream: event.target.value })} /><select className="cell-input" value={student.type} onChange={(event) => { const type = event.target.value as PlacementType; onUpdate(student.roll, { type, ctc: type === "NA" ? null : student.ctc || 10, date: type === "NA" ? "" : student.date || "2026-03-20" }); }}><option>FTE</option><option>PPO</option><option>FTE + 6M</option><option>NA</option></select><input className="cell-input" type="number" placeholder="LPA" value={student.ctc ?? ""} disabled={student.type === "NA"} onChange={(event) => onUpdate(student.roll, { ctc: event.target.value ? Number(event.target.value) : null })} /><input className="cell-input" type="date" value={student.date} disabled={student.type === "NA"} onChange={(event) => onUpdate(student.roll, { date: event.target.value })} /></> : <><span>{student.company || "-"}</span><span>{student.stream || "-"}</span><span><i className={student.type === "NA" ? "na" : "placed-tag"}>{student.type}</i></span><span>{student.ctc ? `Rs ${student.ctc} LPA` : "-"}</span><span>{student.date || "-"}</span></>}</div>)}</div></section></>;
+function LegacyStudents({
+  role,
+  data,
+  filter,
+  setFilter,
+  query,
+  setQuery,
+  onUpdate,
+  onImport,
+  onClear,
+  onAdd,
+  onRemove,
+}: {
+  role: "Professor" | "Admin";
+  data: Student[];
+  filter: PlacementType | "All";
+  setFilter: (value: PlacementType | "All") => void;
+  query: string;
+  setQuery: (value: string) => void;
+  onUpdate: (roll: string, changes: Partial<Student>) => void;
+  onImport: (file: File) => void;
+  onClear: () => void;
+  onAdd: () => void;
+  onRemove: (roll: string) => void;
+}) {
+  return (
+    <>
+      <Heading
+        eyebrow={role === "Admin" ? "ADMIN DATA ENTRY" : "READ-ONLY VIEW"}
+        title="Student records"
+        subtitle={
+          role === "Admin"
+            ? "Maintain placement outcomes for all 70 students."
+            : "Placement outcomes for the class of 2026."
+        }
+        action={
+          role === "Admin" ? (
+            <div className="admin-actions">
+              <button className="dark-button" onClick={onAdd}>
+                Add student
+              </button>
+              <label className="upload-button">
+                Upload CSV
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) onImport(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+              <button className="clear-button" onClick={onClear}>
+                Clear demo data
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
+      <section className="panel table-panel">
+        <div className="table-tools">
+          <label>
+            Search{" "}
+            <input
+              placeholder="name, roll no, company"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <div>
+            {["All", "FTE", "PPO", "FTE + 6M", "NA"].map((value) => (
+              <button
+                className={filter === value ? "selected" : ""}
+                onClick={() => setFilter(value as PlacementType | "All")}
+                key={value}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+        </div>
+        {role === "Admin" && (
+          <p className="table-hint">
+            Add a student, upload CSV, or edit any row. CSV columns: roll, name,
+            company, stream, type, ctc, offer_date.
+          </p>
+        )}
+        <div className="table">
+          <div className="table-row head">
+            <span>STUDENT</span>
+            <span>COMPANY</span>
+            <span>STREAM</span>
+            <span>TYPE</span>
+            <span>CTC</span>
+            <span>OFFER DATE</span>
+          </div>
+          {data.map((student) => (
+            <div className="table-row" key={student.roll}>
+              <span>
+                {role === "Admin" && student.isNew ? (
+                  <input
+                    className="cell-input"
+                    value={student.name}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { name: event.target.value })
+                    }
+                  />
+                ) : (
+                  <>
+                    <b className="student-avatar">
+                      {student.name
+                        .split(" ")
+                        .map((part) => part[0])
+                        .join("")}
+                    </b>
+                    <strong>
+                      {student.name}
+                      <small>#{student.roll}</small>
+                    </strong>
+                  </>
+                )}
+              </span>
+              {role === "Admin" ? (
+                <>
+                  <input
+                    className="cell-input"
+                    placeholder="Company"
+                    value={student.company}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { company: event.target.value })
+                    }
+                  />
+                  <input
+                    className="cell-input"
+                    placeholder="Stream"
+                    value={student.stream}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { stream: event.target.value })
+                    }
+                  />
+                  <select
+                    className="cell-input"
+                    value={student.type}
+                    onChange={(event) => {
+                      const type = event.target.value as PlacementType;
+                      onUpdate(student.roll, {
+                        type,
+                        ctc: type === "NA" ? null : student.ctc || 10,
+                        date: type === "NA" ? "" : student.date || "2026-03-20",
+                      });
+                    }}
+                  >
+                    <option>FTE</option>
+                    <option>PPO</option>
+                    <option>FTE + 6M</option>
+                    <option>NA</option>
+                  </select>
+                  <input
+                    className="cell-input"
+                    type="number"
+                    placeholder="LPA"
+                    value={student.ctc ?? ""}
+                    disabled={student.type === "NA"}
+                    onChange={(event) =>
+                      onUpdate(student.roll, {
+                        ctc: event.target.value
+                          ? Number(event.target.value)
+                          : null,
+                      })
+                    }
+                  />
+                  <input
+                    className="cell-input"
+                    type="date"
+                    value={student.date}
+                    disabled={student.type === "NA"}
+                    onChange={(event) =>
+                      onUpdate(student.roll, { date: event.target.value })
+                    }
+                  />
+                </>
+              ) : (
+                <>
+                  <span>{student.company || "-"}</span>
+                  <span>{student.stream || "-"}</span>
+                  <span>
+                    <i className={student.type === "NA" ? "na" : "placed-tag"}>
+                      {student.type}
+                    </i>
+                  </span>
+                  <span>{student.ctc ? `Rs ${student.ctc} LPA` : "-"}</span>
+                  <span>{student.date || "-"}</span>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
 }

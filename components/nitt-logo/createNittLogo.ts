@@ -12,13 +12,13 @@
  * Every top surface is textured with the logo itself using planar UVs, so artwork and relief line up.
  */
 
-import * as THREE from 'three';
-import { EMBLEM, INNER_FIELD } from './outlines';
+import * as THREE from "three";
+import { EMBLEM, INNER_FIELD } from "./outlines";
 
 export const NITT_LOGO_COLORS = {
-  edge: '#9A5530',
-  ringSide: '#BCA289',
-  emblemSide: '#EDE6DC',
+  edge: "#9A5530",
+  ringSide: "#BCA289",
+  emblemSide: "#EDE6DC",
 } as const;
 
 export interface NittLogoOptions {
@@ -31,7 +31,9 @@ export interface NittLogoOptions {
   /** Repeat the relief on the back so the medallion reads correctly from both sides. Default true. */
   doubleSided?: boolean;
   /** Override the untextured side colours. */
-  colors?: Partial<Record<keyof typeof NITT_LOGO_COLORS, THREE.ColorRepresentation>>;
+  colors?: Partial<
+    Record<keyof typeof NITT_LOGO_COLORS, THREE.ColorRepresentation>
+  >;
 }
 
 export interface NittLogo {
@@ -47,19 +49,20 @@ const EMBLEM_HEIGHT = 0.045;
 
 function toPoints(flat: readonly number[]) {
   const points: THREE.Vector2[] = [];
-  for (let i = 0; i < flat.length; i += 2) points.push(new THREE.Vector2(flat[i], flat[i + 1]));
+  for (let i = 0; i < flat.length; i += 2)
+    points.push(new THREE.Vector2(flat[i], flat[i + 1]));
   return points;
 }
 
 /** Map x, y in logo space straight onto the logo texture, so every cap shows the right part of the artwork. */
 function planarUVs(geometry: THREE.BufferGeometry) {
-  const position = geometry.getAttribute('position');
+  const position = geometry.getAttribute("position");
   const uv = new Float32Array(position.count * 2);
   for (let i = 0; i < position.count; i++) {
     uv[i * 2] = (position.getX(i) + 1) / 2;
     uv[i * 2 + 1] = (position.getY(i) + 1) / 2;
   }
-  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
   return geometry;
 }
 
@@ -82,16 +85,36 @@ export function createNittLogo(options: NittLogoOptions = {}): NittLogo {
   const colors = { ...NITT_LOGO_COLORS, ...options.colors };
 
   const ownsTexture = !options.texture;
-  const texture = options.texture ?? new THREE.TextureLoader().load(options.textureUrl ?? '/nitt-logo.webp');
+  const texture =
+    options.texture ??
+    new THREE.TextureLoader().load(options.textureUrl ?? "/nitt-logo.webp");
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
 
   /* materials */
   // The artwork doubles as a bump map: dark lettering and line work read as lightly engraved.
-  const face = new THREE.MeshStandardMaterial({ map: texture, bumpMap: texture, bumpScale: 1.5, roughness: 0.55, metalness: 0.15 });
-  const edge = new THREE.MeshStandardMaterial({ color: colors.edge, metalness: 0.85, roughness: 0.35 });
-  const ringSide = new THREE.MeshStandardMaterial({ color: colors.ringSide, metalness: 0.5, roughness: 0.45 });
-  const emblemSide = new THREE.MeshStandardMaterial({ color: colors.emblemSide, metalness: 0.1, roughness: 0.6 });
+  const face = new THREE.MeshStandardMaterial({
+    map: texture,
+    bumpMap: texture,
+    bumpScale: 1.5,
+    roughness: 0.55,
+    metalness: 0.15,
+  });
+  const edge = new THREE.MeshStandardMaterial({
+    color: colors.edge,
+    metalness: 0.85,
+    roughness: 0.35,
+  });
+  const ringSide = new THREE.MeshStandardMaterial({
+    color: colors.ringSide,
+    metalness: 0.5,
+    roughness: 0.45,
+  });
+  const emblemSide = new THREE.MeshStandardMaterial({
+    color: colors.emblemSide,
+    metalness: 0.1,
+    roughness: 0.6,
+  });
 
   /* geometry, shared by front and back */
   const bodyShape = new THREE.Shape().absarc(0, 0, 1, 0, Math.PI * 2, false);
@@ -107,15 +130,26 @@ export function createNittLogo(options: NittLogoOptions = {}): NittLogo {
 
   const faceDisc = new THREE.CircleGeometry(1, 128);
 
-  const ringShape = new THREE.Shape().absarc(0, 0, 0.995, 0, Math.PI * 2, false);
+  const ringShape = new THREE.Shape().absarc(
+    0,
+    0,
+    0.995,
+    0,
+    Math.PI * 2,
+    false,
+  );
   ringShape.holes.push(new THREE.Path(toPoints(INNER_FIELD)));
   const ring = extrudeUp(ringShape, RING_HEIGHT, 0.006);
 
-  const emblem = extrudeUp(new THREE.Shape(toPoints(EMBLEM)), EMBLEM_HEIGHT, 0.008);
+  const emblem = extrudeUp(
+    new THREE.Shape(toPoints(EMBLEM)),
+    EMBLEM_HEIGHT,
+    0.008,
+  );
 
   /* assembly */
   const object = new THREE.Group();
-  object.name = 'NittLogo';
+  object.name = "NittLogo";
   object.add(new THREE.Mesh(body, edge));
 
   const makeFace = () => {
@@ -142,7 +176,9 @@ export function createNittLogo(options: NittLogoOptions = {}): NittLogo {
     object,
     dispose: () => {
       [body, faceDisc, ring, emblem].forEach((geometry) => geometry.dispose());
-      [face, edge, ringSide, emblemSide].forEach((material) => material.dispose());
+      [face, edge, ringSide, emblemSide].forEach((material) =>
+        material.dispose(),
+      );
       if (ownsTexture) texture.dispose();
     },
   };
