@@ -8,16 +8,11 @@ import {
   Playfair_Display,
   Roboto_Condensed,
 } from "next/font/google";
-import {
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type FormEvent,
-} from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import LoginLogo from "@/components/login/LoginLogo";
 import TnpTitle from "@/components/login/TnpTitle";
 import orionBackground from "@/components/login-form-background/orionimage.png";
+import AuthForms from "./AuthForms";
 import "./login.css";
 
 const heroSerif = Playfair_Display({
@@ -47,15 +42,13 @@ const subscribeToSearch = () => () => {};
 
 export default function LoginPage() {
   const glintLetterRef = useRef<HTMLSpanElement>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
   const search = useSyncExternalStore(
     subscribeToSearch,
     () => window.location.search,
     () => "",
   );
   const params = new URLSearchParams(search);
+  const callbackUrl = toSameOriginPath(params.get("callbackUrl"));
   const isNittPreview = params.get("heroWordmark") === "nitt";
   const heroWordmark = isNittPreview ? "NITT" : "NIT TRZ";
   const requestedFont = params.get("heroFont");
@@ -104,17 +97,6 @@ export default function LoginPage() {
     return () => media.revert();
   }, []);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    setIsSubmitting(true);
-    // TODO: Connect to the chosen authentication provider.
-    // The server must verify credentials and determine the user's role.
-    await new Promise((resolve) => window.setTimeout(resolve, 450));
-    setError("Sign-in is not connected yet.");
-    setIsSubmitting(false);
-  }
-
   return (
     <main className="login-page">
       <section className="login-formSection" aria-labelledby="login-title">
@@ -145,65 +127,7 @@ export default function LoginPage() {
               className="login-brandTitle"
             />
           </div>
-          <h1 id="login-title">Welcome back.</h1>
-          <p className="login-intro">
-            Sign in to explore MME placement records.
-          </p>
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="login-field">
-              <label htmlFor="email">Email address</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="username"
-                placeholder="Enter your email"
-                required
-              />
-            </div>
-            <div className="login-field">
-              <label htmlFor="password">Password</label>
-              <div className="login-passwordControl">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  required
-                />
-                <button
-                  type="button"
-                  className="login-passwordToggle"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  aria-pressed={showPassword}
-                  onClick={() => setShowPassword((visible) => !visible)}
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
-              </div>
-            </div>
-            <button
-              type="submit"
-              className="login-submit"
-              disabled={isSubmitting}
-              aria-busy={isSubmitting}
-            >
-              {isSubmitting ? "Signing in…" : "Sign in"}
-              {isSubmitting ? (
-                <span className="login-spinner" aria-hidden="true" />
-              ) : (
-                <span className="login-submitArrow" aria-hidden="true">
-                  ↗
-                </span>
-              )}
-            </button>
-            {error && (
-              <p className="login-message" role="alert">
-                {error}
-              </p>
-            )}
-          </form>
+          <AuthForms callbackUrl={callbackUrl} />
         </div>
       </section>
 
@@ -256,4 +180,17 @@ export default function LoginPage() {
       </section>
     </main>
   );
+}
+
+/** Where to go after signing in: a same-site path only (the server re-checks this). */
+function toSameOriginPath(value: string | null): string {
+  if (!value || typeof window === "undefined") return "/";
+  try {
+    const url = new URL(value, window.location.origin);
+    return url.origin === window.location.origin
+      ? `${url.pathname}${url.search}`
+      : "/";
+  } catch {
+    return "/";
+  }
 }

@@ -543,3 +543,155 @@
     filter: none;
   }
 }
+
+/* Sign in / Sign up tabs */
+.login-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 0 0 22px;
+  padding: 4px;
+  border: 1px solid #4b566a;
+  border-radius: 6px;
+  background: #121722;
+}
+.login-tab {
+  min-height: 38px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #969daa;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+.login-tab:hover {
+  color: #e8eefc;
+}
+.login-tab[aria-selected="true"] {
+  background: #222c3f;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(112, 160, 255, 0.35);
+}
+.login-tab:focus-visible {
+  outline: 2px solid #70a0ff;
+  outline-offset: 2px;
+}
+.login-field input[aria-invalid="true"] {
+  border-color: rgba(255, 126, 126, 0.7);
+}
+.login-fieldError {
+  margin: -4px 0 0;
+  color: #ffb4b4;
+  font-size: 12px;
+  line-height: 1.45;
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-tab {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Form spacing. globals.css still carries .login-field rules from the
+   earlier demo login (17px margins, 9px mono labels, underline inputs);
+   neutralise them on this page only.
+   ------------------------------------------------------------------ */
+.login-page .login-form {
+  gap: 14px;
+}
+.login-page .login-field {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+}
+.login-page .login-field label {
+  color: #cbd0da;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.login-page .login-field input {
+  min-height: 46px;
+  padding: 11px 14px;
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: normal;
+}
+.login-page .login-passwordControl input {
+  padding-right: 68px;
+}
+.login-page .login-submit {
+  min-height: 48px;
+  margin-top: 6px;
+}
+.login-page .login-tabs {
+  margin-bottom: 20px;
+}
+.login-page .login-intro {
+  margin-bottom: 20px;
+}
+.login-fieldHint {
+  margin: -2px 0 0;
+  color: #858c99;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Shared column for everything inside the form area. */
+.login-page .login-formContent > * {
+  width: 100%;
+  max-width: 390px;
+  margin-inline: auto;
+}
+
+/* ------------------------------------------------------------------
+   Desktop: the page itself never scrolls, so the hero keeps its size
+   whichever tab is open. Only the form column scrolls, with its own
+   scrollbar at the column edge; header and backdrop stay in place.
+   ------------------------------------------------------------------ */
+@media (min-width: 801px) {
+  .login-page {
+    grid-template-rows: 100svh;
+    overflow: hidden;
+  }
+  .login-hero {
+    height: 100svh;
+    min-height: 0;
+  }
+  .login-formSection {
+    --login-pad-x: clamp(24px, 3vw, 48px);
+    height: 100svh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .login-page .login-formContent {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    width: auto;
+    max-width: none;
+    min-height: 0;
+    margin-inline: calc(-1 * var(--login-pad-x));
+    padding: 16px var(--login-pad-x) 24px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(112, 160, 255, 0.28) transparent;
+  }
+  .login-page .login-formContent:hover {
+    scrollbar-color: rgba(112, 160, 255, 0.45) transparent;
+  }
+  /* Centred when it fits, top-aligned (never clipped) when it doesn't. */
+  .login-page .login-formContent > :first-child {
+    margin-top: auto;
+  }
+  .login-page .login-formContent > :last-child {
+    margin-bottom: auto;
+  }
+}

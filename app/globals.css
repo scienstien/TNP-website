@@ -1323,3 +1323,44 @@ nav em {
     display: none;
   }
 }
+
+/* Signed-in role (from the server session) and sign out */
+.role-switch .role-current {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 9px 0 0;
+  color: #f3eee5;
+  font-size: 13px;
+}
+.profile form {
+  margin-left: auto;
+}
+.signout-button {
+  border: 1px solid #4a4743;
+  border-radius: 3px;
+  background: transparent;
+  color: #bdb8af;
+  padding: 6px 8px;
+  font:
+    10px var(--font-geist-mono),
+    monospace;
+  cursor: pointer;
+}
+.signout-button:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+@media (max-width: 680px) {
+  .role-switch .role-current {
+    font-size: 0;
+    justify-content: center;
+  }
+  .profile {
+    flex-direction: column;
+  }
+  .profile form {
+    margin-left: 0;
+  }
+}

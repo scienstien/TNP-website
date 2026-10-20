@@ -221,11 +221,27 @@ The following remain unresolved:
   offer_date if that is all that is needed.
 - Validate import mappings, missing values, company-name normalization,
   and complete eligible rosters against actual historical source files.
-- Select and implement the Auth.js provider/session strategy and any
-  necessary adapter tables. The schema alone does not provide login,
-  sessions, or server-side authorization.
-- Configure the database connection and migration workflow before applying
-  the schema. Do not assume schema generation means a database was migrated.
+
+Authentication (implemented; see lib/auth/README.md):
+- Auth.js (NextAuth v5) Credentials provider, email + password against the
+  users table. Encrypted JWT session cookie, 8-hour lifetime. No adapter
+  tables are needed for this strategy.
+- Passwords are hashed with scrypt (lib/auth/password.ts); plaintext is
+  never stored or logged.
+- Self-service sign-up creates PROFESSOR accounts only, and only for email
+  domains listed in ALLOWED_SIGNUP_DOMAINS (default nitt.edu). ADMIN
+  accounts cannot be created through the UI.
+- A trial admin (admin@nitt.edu) is created automatically in development
+  on the first sign-in request; production creates it only with
+  SEED_TRIAL_ADMIN=true. db/seed.ts does not create users.
+- Authorization: proxy.ts redirects visitors without a session to /login
+  (optimistic check). Every page, Server Action and route handler that
+  reads protected data or changes anything must call requireUser() or
+  requireRole('ADMIN') from lib/auth/dal.ts, which re-reads the user and
+  role from the database. Hiding UI is not access control.
+- The app uses the shared connection in db/index.ts (DATABASE_URL). Run
+  the local PostgreSQL container and migrations as described in
+  db/README.md before signing in.
 
 When a decision changes, update this file and db/README.md along with any
 relevant implementation, and commit the shared documentation so every
