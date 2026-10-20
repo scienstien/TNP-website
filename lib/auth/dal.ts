@@ -24,11 +24,16 @@ export interface CurrentUser {
   role: Role;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The decoded session cookie (not yet checked against the database). Memoised per request. */
+const getSession = cache(() => auth());
+
 /** The signed-in user, verified against the database, or null. Memoised per request. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
-  const session = await auth();
+  const session = await getSession();
   const id = session?.user?.id;
-  if (!id) return null;
+  if (!id || !UUID.test(id)) return null;
 
   const db = await getDb();
   const [user] = await db
@@ -44,11 +49,16 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   return user ?? null;
 });
 
-/** For pages: signed-out visitors go to the login page. */
+/**
+ * For pages: signed-out visitors go to the login page. A session whose account no longer
+ * exists (deleted, or from another database) is cleared first; otherwise the proxy, which
+ * only sees a validly signed cookie, would send the visitor straight back here in a loop.
+ */
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  return user;
+  if (user) return user;
+  const session = await getSession();
+  redirect(session?.user?.id ? "/auth/session-expired" : "/login");
 }
 
 /**

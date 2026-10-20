@@ -7,7 +7,7 @@
 import type { NextAuthConfig } from "next-auth";
 
 /** Pages reachable without signing in. Everything else requires a session. */
-const PUBLIC_PATHS = ["/login", "/logo-preview"];
+const PUBLIC_PATHS = ["/login", "/logo-preview", "/auth/session-expired"];
 
 export const authConfig = {
   pages: { signIn: "/login" },
