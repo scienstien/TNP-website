@@ -1,8 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { validateStudent } from "./validation";
+import { validateCompany } from "./company-validation";
 
 const base = { rollNumber: "123456789", name: "Asha Example", batchYear: "2026" };
+test("company creation validates fields without inventing optional values", () => {
+  for (const name of ["", " ", "A", "a".repeat(121), 123, null]) {
+    assert.ok(validateCompany({ name }).fieldErrors.name);
+  }
+  assert.ok(validateCompany({ name: "Company", domain: 123 }).fieldErrors.domain);
+  assert.ok(validateCompany({ name: "Company", domain: "x".repeat(81) }).fieldErrors.domain);
+  assert.ok(validateCompany({ name: "Company", visitDate: "2026-01-01" }).fieldErrors.form);
+  assert.deepEqual(validateCompany({ name: "  3M   Example Ltd ", domain: "" }).data,
+    { name: "3M Example Ltd", domain: null });
+});
 test("strict roll parsing and immutable identity", () => {
   for (const rollNumber of ["012345678", "12345678", "1234567890", "1e8", "+123456789", "123456789.0", " 123456789", [], null, 1.2]) {
     assert.ok(validateStudent({ ...base, rollNumber }, true).fieldErrors.rollNumber);

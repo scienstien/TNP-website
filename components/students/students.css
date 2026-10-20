@@ -12,6 +12,7 @@
 .student-records button { cursor: pointer; }
 .student-records button:disabled { cursor: not-allowed; opacity: 0.5; }
 .student-offer-toggle { display: flex; align-items: center; gap: 8px; }
+.student-company-create { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #687181; border-radius: 5px; min-width: 0; }
 .student-table-scroll { overflow-x: auto; }
 .student-db-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
 .student-db-table th, .student-db-table td { padding: 14px 12px; border-bottom: 1px solid #68718155; vertical-align: top; }

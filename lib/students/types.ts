@@ -28,3 +28,6 @@ export interface StudentResult {
   error?: string;
   fieldErrors?: Record<string, string>;
 }
+export interface CompanyResult extends StudentResult {
+  company?: StudentData["companies"][number];
+}

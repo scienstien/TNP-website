@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createStudent, patchStudent, deleteStudent, removeStudentOffer } from "@/lib/students/actions";
+import { createStudent, patchStudent, deleteStudent, removeStudentOffer, createStudentCompany } from "@/lib/students/actions";
+import { validateCompany } from "@/lib/students/company-validation";
 import { validateStudent } from "@/lib/students/validation";
 import { OFFER_TYPES } from "@/lib/placements/types";
 import type { StudentData, StudentRecord, StudentResult } from "@/lib/students/types";
@@ -95,6 +96,13 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
   };
   const [draft, setDraft] = useState(baseline);
   const [hasOffer, setHasOffer] = useState(!!initial?.offer);
+  const [creatingCompany, setCreatingCompany] = useState(false);
+  const [companyDraft, setCompanyDraft] = useState({ name: "", domain: "" });
+  const [companyResult, setCompanyResult] = useState<StudentResult>({});
+  const [createdCompanies, setCreatedCompanies] = useState<StudentData["companies"]>([]);
+  const companyOptions = [...companies, ...createdCompanies.filter(created =>
+    !companies.some(company => company.name === created.name))]
+    .sort((a, b) => a.name.localeCompare(b.name));
   const [result, setResult] = useState<StudentResult>({});
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -120,6 +128,7 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
   }
   return <form className="panel student-editor" noValidate onSubmit={e => {
     e.preventDefault();
+    if (creatingCompany || pending) return;
     const complete = payload();
     const validated = validateStudent(complete, true);
     if (Object.keys(validated.fieldErrors).length) { setResult({ fieldErrors: validated.fieldErrors }); return; }
@@ -147,7 +156,7 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
       {field("batchYear", "Graduating batch", { inputMode: "numeric" })}
     </div>
     {!initial?.offer && <label className="student-offer-toggle"><input type="checkbox" checked={hasOffer} disabled={pending}
-      onChange={e => setHasOffer(e.target.checked)} /> Add an offer</label>}
+      onChange={e => { setHasOffer(e.target.checked); if (!e.target.checked) setCreatingCompany(false); }} /> Add an offer</label>}
     {hasOffer && <div className="student-fields">
       <div className="student-field">
         <label htmlFor="student-companyName">Company</label>
@@ -155,12 +164,53 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
           aria-describedby="student-error-companyName"
           onChange={e => { setDraft(d => ({ ...d, companyName: e.target.value })); setResult({}); }}>
           <option value="">Select an existing company</option>
-          {companies.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+          {companyOptions.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
         </select>
         <span className="student-field-error" id="student-error-companyName">{result.fieldErrors?.companyName}</span>
-        {!companies.length && <small>No companies available. Create a company before assigning an offer.</small>}
+        {!companyOptions.length && <small>No companies yet. Create one below to assign this offer.</small>}
+        {!creatingCompany && <button type="button" disabled={pending} onClick={() => {
+          setCreatingCompany(true); setCompanyResult({});
+        }}>Create new company</button>}
+        {creatingCompany && <fieldset disabled={pending} className="student-company-create">
+          <legend>Create new company</legend>
+          <p>The company is saved separately. Your student is saved when you click Save.</p>
+          <label htmlFor="new-company-name">Company name</label>
+          <input id="new-company-name" value={companyDraft.name}
+            aria-invalid={!!companyResult.fieldErrors?.name} aria-describedby="new-company-name-error"
+            onChange={e => { setCompanyDraft(d => ({ ...d, name: e.target.value })); setCompanyResult({}); }} />
+          <span id="new-company-name-error" className="student-field-error">{companyResult.fieldErrors?.name}</span>
+          <label htmlFor="new-company-sector">Company sector (optional)</label>
+          <input id="new-company-sector" value={companyDraft.domain}
+            aria-invalid={!!companyResult.fieldErrors?.domain} aria-describedby="new-company-sector-error"
+            onChange={e => { setCompanyDraft(d => ({ ...d, domain: e.target.value })); setCompanyResult({}); }} />
+          <span id="new-company-sector-error" className="student-field-error">{companyResult.fieldErrors?.domain}</span>
+          {(companyResult.error || companyResult.fieldErrors?.form) &&
+            <p role="alert">{companyResult.error || companyResult.fieldErrors?.form}</p>}
+          <div className="student-row-actions">
+            <button type="button" onClick={() => {
+              const { fieldErrors } = validateCompany(companyDraft);
+              if (Object.keys(fieldErrors).length) { setCompanyResult({ fieldErrors }); return; }
+              startTransition(async () => {
+                try {
+                  const saved = await createStudentCompany(companyDraft);
+                  setCompanyResult(saved);
+                  if (saved.ok && saved.company) {
+                    const company = saved.company;
+                    setCreatedCompanies(current => [...current, company]);
+                    setDraft(current => ({ ...current, companyName: company.name }));
+                    setResult({});
+                    setCreatingCompany(false);
+                    setCompanyDraft({ name: "", domain: "" });
+                    router.refresh();
+                  }
+                } catch { setCompanyResult({ error: "Unable to create company. Please retry." }); }
+              });
+            }}>{pending ? "Creating…" : "Create and select"}</button>
+            <button type="button" onClick={() => setCreatingCompany(false)}>Cancel company</button>
+          </div>
+        </fieldset>}
       </div>
-      <label className="student-field">Sector<input readOnly value={companies.find(c => c.name === draft.companyName)?.domain ?? ""} /></label>
+      <label className="student-field">Sector<input readOnly value={companyOptions.find(c => c.name === draft.companyName)?.domain ?? ""} /></label>
       {field("jobRole", "Job role (optional)")}
       {field("packageLpa", "Package in LPA (optional)", { inputMode: "decimal" })}
       <label className="student-field">Offer type (optional)
@@ -173,7 +223,7 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
     {(result.error || result.fieldErrors?.form || result.fieldErrors?.offer) &&
       <p role="alert">{result.error || result.fieldErrors?.form || result.fieldErrors?.offer}</p>}
     <div className="student-row-actions">
-      <button type="submit" className="dark-button" disabled={pending}>{pending ? "Saving…" : "Save"}</button>
+      <button type="submit" className="dark-button" disabled={pending || creatingCompany}>{pending ? "Saving…" : "Save"}</button>
       <button type="button" disabled={pending} onClick={onCancel}>Cancel</button>
     </div>
   </form>;

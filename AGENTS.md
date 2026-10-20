@@ -266,7 +266,9 @@ Student records (implemented; see lib/students/README.md):
 - Per-row Save/Cancel submits only changed fields. Unsaved drafts are separate
   from database rows; successful mutations refresh server data and analytics.
 - Names and graduating batches are required; the batch is a four-digit integer.
-- Optional offers select an existing company; sector is read-only company data.
+- Optional offers select an existing company or explicitly create one in the
+  student editor (name and optional sector). Creation is ADMIN-only and never
+  overwrites an existing company. Sector is otherwise read-only company data.
   Missing offer fields stay NULL. Removing an offer is explicit; a student with
   an offer cannot be deleted. No browser-only CSV importer remains.
 - Migration 0002 converts both roll columns to integers and adds constraints.

@@ -14,7 +14,14 @@ or zero-prefixed identifiers are accepted. Optional dates are real ISO dates.
 Package inputs are nonnegative plain-decimal strings, never parsed to floats for
 storage. Nullable offer fields can be explicitly cleared; omitted fields are untouched.
 
-Select an existing company; this editor never changes company profiles/sectors.
+Select an existing company or use **Create new company** beside the selector.
+`createStudentCompany` checks ADMIN and validates a 2–120 character company name
+and optional sector (up to 80 characters), then inserts without overwriting an
+existing company. Duplicate names return a field error. No contacts or visit date
+are invented. After the database confirms creation, the company is selected and
+the student draft remains intact. Company creation is a separate explicit save;
+cancelling the student draft does not delete the company.
+Existing company profiles/sectors cannot be edited here.
 Offer existence defines placement status, independently of nullable offer type.
 No package/date defaults are invented. Deleting an offer requires confirmation;
 deleting a student is blocked until there is no offer.
