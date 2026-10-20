@@ -40,8 +40,11 @@ than the original sketch. TypeScript properties use camelCase; SQL columns
 use snake_case. The table and column names below are SQL names.
 
 Student (`students`; export `students`)
-- roll_number: text primary key.
-- name: nullable text.
+- roll_number: integer primary key, strictly 100000000–999999999 (nine digits,
+  no leading zeros). Immutable through the student editor.
+- name: required text, 1–100 characters. Student input allows Unicode letters,
+  combining marks, spaces, apostrophes, periods and hyphens, with at least one
+  letter. Trim and normalize whitespace; reject digits and other symbols.
 - batch_year: required integer identifying the graduating batch.
 Only eligible MME students are recorded. A student has zero or one offer.
 Placement status is derived using offer existence: PLACED when an offer
@@ -63,7 +66,7 @@ infer additional behavior from it.
 
 Placement offer (`placement_offers`; export `placementOffers`)
 - company_name: required text foreign key referencing companies.name.
-- student_roll_number: required text foreign key referencing
+- student_roll_number: required integer foreign key referencing
   students.roll_number, with a separate UNIQUE constraint.
 - Composite primary key: (company_name, student_roll_number).
 - job_role: nullable text.
@@ -255,7 +258,20 @@ Analytics dashboard (implemented; see lib/placements/README.md):
 - Placement % is shown as placed / recorded students with a note that it assumes
   a complete roster; where roster completeness is recorded is still undecided.
 - Charts use Recharts. Local development data: npm run db:seed:dashboard
-  (fictional, DEMO-prefixed).
+  (fictional DEMO companies, nine-digit 9xx student rolls).
+
+Student records (implemented; see lib/students/README.md):
+- ADMIN-only server queries supply names and offers; professors receive only the
+  existing analytics contract. All mutations re-read the authenticated role.
+- Per-row Save/Cancel submits only changed fields. Unsaved drafts are separate
+  from database rows; successful mutations refresh server data and analytics.
+- Names and graduating batches are required; the batch is a four-digit integer.
+- Optional offers select an existing company; sector is read-only company data.
+  Missing offer fields stay NULL. Removing an offer is explicit; a student with
+  an offer cannot be deleted. No browser-only CSV importer remains.
+- Migration 0002 converts both roll columns to integers and adds constraints.
+  Invalid legacy records must be resolved before applying it; the migration
+  never deletes demo or other data automatically.
 
 Drive calendar (implemented; see lib/calendar/):
 - Visits are companies.visit_date (migration 0001); no separate table. Status

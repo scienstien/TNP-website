@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   integer,
   numeric,
@@ -14,12 +16,16 @@ export const userRole = pgEnum("user_role", ["ADMIN", "PROFESSOR"]);
 export const offerType = pgEnum("offer_type", ["PPO", "FTE", "FTE+6month"]);
 
 export const students = pgTable("students", {
-  rollNumber: text("roll_number").primaryKey(),
-  name: text("name"),
+  rollNumber: integer("roll_number").primaryKey(),
+  name: text("name").notNull(),
   batchYear: integer("batch_year").notNull(),
   // Derive placement_status using EXISTS on placement_offers:
   // an offer means PLACED; no offer means UNPLACED.
-});
+}, (table) => [
+  check("students_roll_number_nine_digits", sql`${table.rollNumber} between 100000000 and 999999999`),
+  check("students_name_required", sql`char_length(${table.name}) between 1 and 100 and ${table.name} = btrim(${table.name})`),
+  check("students_batch_year_four_digits", sql`${table.batchYear} between 1000 and 9999`),
+]);
 
 export const companies = pgTable("companies", {
   name: text("name").primaryKey(),
@@ -43,7 +49,7 @@ export const placementOffers = pgTable(
         onUpdate: "cascade",
         onDelete: "restrict",
       }),
-    studentRollNumber: text("student_roll_number")
+    studentRollNumber: integer("student_roll_number")
       .notNull()
       .unique()
       .references(() => students.rollNumber, {

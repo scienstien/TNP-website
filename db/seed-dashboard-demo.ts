@@ -1,9 +1,10 @@
 /**
  * FICTIONAL multi-batch dataset for developing the analytics dashboard locally.
  *
- * Every company, student, roll number and package here is invented. All records use the
- * "DEMO" prefix, so they are easy to recognise and remove, and the script is safe to rerun:
- * it is deterministic and upserts by primary key. A few values are deliberately left null
+ * Every company, student, roll number and package here is invented. Companies use the
+ * "DEMO" prefix and students use fixed nine-digit 9xx rolls. Do not run this against
+ * real students with those identifiers. It upserts by primary key on reruns.
+ * A few offer values are deliberately left null
  * to mirror incomplete historical records. Never run this against a production database.
  *
  *   npm run db:seed:dashboard
@@ -93,14 +94,11 @@ function build() {
   BATCHES.forEach((batchYear, b) => {
     const growth = 1 + b * 0.06;
     for (let i = 1; i <= BATCH_SIZE[b]; i++) {
-      const rollNumber = `DEMO-${batchYear}-${String(100 + i)}`;
+      const rollNumber = 900000000 + (batchYear % 100) * 1000000 + 100 + i;
       studentRows.push({
         rollNumber,
         batchYear,
-        name:
-          random() < 0.04
-            ? null
-            : `${FIRST[Math.floor(random() * FIRST.length)]} Example`,
+        name: `${FIRST[Math.floor(random() * FIRST.length)]} Example`,
       });
       if (random() > PLACEMENT_CHANCE[b]) continue;
 
@@ -220,7 +218,7 @@ async function seed() {
   });
 
   console.log(
-    `Seeded ${companyRows.length} companies, ${studentRows.length} students and ${offerRows.length} offers across batches ${BATCHES.join(", ")} (all fictional, DEMO-prefixed).`,
+    `Seeded ${companyRows.length} companies, ${studentRows.length} students and ${offerRows.length} offers across batches ${BATCHES.join(", ")} (all fictional, DEMO companies and 9xx roll numbers).`,
   );
 }
 

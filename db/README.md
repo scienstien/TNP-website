@@ -38,9 +38,12 @@ development, the connection is reused across hot reloads.
    npm run db:seed
    ```
 
-   The seed is safe to rerun: it updates only its `DEMO`-prefixed records and
-   preserves unrelated data. It creates two placed students and one unplaced
-   student. It does not create an authentication user.
+   The seed is safe to rerun: it updates only its fixed fictional records
+   (DEMO company names and nine-digit 9xx roll numbers) and
+   preserves unrelated data. On a fresh database it creates five companies,
+   seven placed students and four unplaced students in the 2026 batch.
+   All records are fictional; this is not a complete historical eligible roster.
+   It does not create an authentication user.
 5. Stop the container without removing its persisted data:
 
    ```sh
@@ -72,6 +75,10 @@ been applied by this setup.
   `students.batch_year` identifies the graduating batch.
 - Student roll number is the student primary key. Company name is the company
   primary key; imports must normalize names and review ambiguous matches.
+- Student roll numbers are nine-digit integers (100000000–999999999).
+  Names are required, trimmed, 1–100 characters; batches are four-digit integers.
+  The student editor's stricter natural-name validation rejects digits/symbols
+  other than spaces, apostrophes, periods and hyphens.
 - A student has zero or one offer. Each offer belongs to exactly one student
   and one company. A company can exist with zero offers and have many offers.
 - Offers use `(company_name, student_roll_number)` as their composite primary
@@ -86,7 +93,7 @@ been applied by this setup.
 - Keep offer date. Exclude company profile, joining date, and user is_active.
 - PVR status is a yes/no field. A missing source value remains NULL, not false.
 - Non-key source details are nullable to preserve missing historical data.
-  Batch year is required to assign a student to a historical batch.
+  Student names and batch years are exceptions: both are required.
 - Placement rate is students with offers divided by all recorded students in
   the batch. Publish it only after confirming the complete eligible roster;
   an empty batch has no defined percentage.
@@ -115,3 +122,16 @@ been applied by this setup.
 company visits campus, for the drive calendar. NULL means no visit is scheduled. It holds one
 date per company and is separate from historical offers. Clearing it removes the visit from the
 calendar without touching the company or its offers.
+
+## Student identity migration (0002)
+
+This migration converts student roll numbers and offer references from text to
+integer and adds roll-range, required-name and batch-range constraints. It preserves
+keys and foreign-key behavior. Preflight blocks invalid legacy rolls/names/years;
+resolve those explicitly before migration. Existing migration files remain intact.
+The approved local DEMO cleanup was a separate operation, not migration SQL.
+
+The seeds now use valid nine-digit fictional rolls and non-null names. They are
+optional and must not be run on a database containing real students in those ranges.
+No seed is run automatically after migration. Student editing is documented in
+`lib/students/README.md`.

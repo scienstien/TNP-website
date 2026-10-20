@@ -4,7 +4,7 @@ The "Dashboard" view (`components/dashboard/`) is computed from placement data i
 
 ## Data flow
 
-1. `app/page.tsx` (server) calls `getPlacementRecords()` from `lib/placements/queries.ts`. That query requires a signed-in user and returns one row per recorded student, with the offer (if any) and the company's sector. Student names are not sent to the browser.
+1. `app/page.tsx` (server) calls `getPlacementRecords()` from `lib/placements/queries.ts`. That query requires a signed-in user and returns one row per recorded student, with an integer roll number, the offer (if any) and the company's sector. Student names are excluded from analytics; they are provided separately only to the ADMIN student editor.
 2. `components/dashboard/PlacementAnalytics.tsx` keeps one shared filter state (`useDashboardFilters`). It derives every KPI and chart dataset through `lib/placements/analytics.ts`.
 3. Each chart (`components/dashboard/charts/*`) is an independent component. It receives prepared data and a selection callback, and contains no filtering logic.
 
@@ -27,4 +27,4 @@ The schema has no academic stream, so the stream chart uses the offering company
 
 ## Local data
 
-`npm run db:seed:dashboard` loads a **fictional** five-batch dataset. Every record is prefixed `DEMO`. The script is deterministic and safe to rerun. Never run it against a production database.
+`npm run db:seed:dashboard` loads a **fictional** five-batch dataset with DEMO company names and fixed nine-digit 9xx student rolls. Never run it against a production database or real records in that roll range.

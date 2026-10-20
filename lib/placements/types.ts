@@ -18,7 +18,7 @@ export interface PlacementOffer {
  * status is simply whether `offer` is present. Names are not sent to the dashboard.
  */
 export interface PlacementRecord {
-  rollNumber: string;
+  rollNumber: number;
   batchYear: number;
   offer: PlacementOffer | null;
 }

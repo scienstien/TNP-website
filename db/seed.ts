@@ -5,6 +5,30 @@ import { companies, placementOffers, students } from "./schema";
 
 const demoCompanies: (typeof companies.$inferInsert)[] = [
   {
+    name: "DEMO Precision Alloys",
+    domain: "Alloy manufacturing",
+    hrName: "Demo Alloy Recruiter",
+    email: "alloys@example.com",
+    phoneNumber: null,
+    pvrStatus: null,
+  },
+  {
+    name: "DEMO Ceramic Technologies",
+    domain: "Advanced ceramics",
+    hrName: "Demo Ceramic Recruiter",
+    email: "ceramics@example.com",
+    phoneNumber: null,
+    pvrStatus: null,
+  },
+  {
+    name: "DEMO Sustainable Materials",
+    domain: "Materials recycling",
+    hrName: null,
+    email: "materials@example.com",
+    phoneNumber: null,
+    pvrStatus: null,
+  },
+  {
     name: "DEMO Metals Ltd",
     domain: "Metals manufacturing",
     hrName: "Demo Recruiter",
@@ -23,15 +47,63 @@ const demoCompanies: (typeof companies.$inferInsert)[] = [
 ];
 
 const demoStudents: (typeof students.$inferInsert)[] = [
-  { rollNumber: "DEMO-2026-001", name: "Asha Example", batchYear: 2026 },
-  { rollNumber: "DEMO-2026-002", name: "Bala Example", batchYear: 2026 },
-  { rollNumber: "DEMO-2026-003", name: "Charu Example", batchYear: 2026 },
+  { rollNumber: 926000001, name: "Asha Example", batchYear: 2026 },
+  { rollNumber: 926000002, name: "Bala Example", batchYear: 2026 },
+  { rollNumber: 926000003, name: "Charu Example", batchYear: 2026 },
+  { rollNumber: 926000004, name: "Dev Example", batchYear: 2026 },
+  { rollNumber: 926000005, name: "Esha Example", batchYear: 2026 },
+  { rollNumber: 926000006, name: "Farid Example", batchYear: 2026 },
+  { rollNumber: 926000007, name: "Gita Example", batchYear: 2026 },
+  { rollNumber: 926000008, name: "Hari Example", batchYear: 2026 },
+  { rollNumber: 926000009, name: "Indu Example", batchYear: 2026 },
+  { rollNumber: 926000010, name: "Jai Example", batchYear: 2026 },
+  { rollNumber: 926000011, name: "Kavya Example", batchYear: 2026 },
 ];
 
 const demoOffers: (typeof placementOffers.$inferInsert)[] = [
   {
+    companyName: "DEMO Precision Alloys",
+    studentRollNumber: 926000004,
+    jobRole: "Process Engineer",
+    packageLpa: "10.50",
+    offerType: "FTE",
+    offerDate: "2025-10-20",
+  },
+  {
+    companyName: "DEMO Ceramic Technologies",
+    studentRollNumber: 926000005,
+    jobRole: "Materials Engineer",
+    packageLpa: "9.00",
+    offerType: "FTE+6month",
+    offerDate: "2025-11-12",
+  },
+  {
+    companyName: "DEMO Sustainable Materials",
+    studentRollNumber: 926000006,
+    jobRole: "Recycling Process Engineer",
+    packageLpa: "8.50",
+    offerType: "PPO",
+    offerDate: "2025-08-25",
+  },
+  {
+    companyName: "DEMO Precision Alloys",
+    studentRollNumber: 926000007,
+    jobRole: "Quality Engineer",
+    packageLpa: "11.00",
+    offerType: "FTE",
+    offerDate: "2026-01-14",
+  },
+  {
     companyName: "DEMO Metals Ltd",
-    studentRollNumber: "DEMO-2026-001",
+    studentRollNumber: 926000008,
+    jobRole: "Graduate Engineer",
+    packageLpa: "12.00",
+    offerType: "FTE",
+    offerDate: "2026-02-10",
+  },
+  {
+    companyName: "DEMO Metals Ltd",
+    studentRollNumber: 926000001,
     jobRole: "Graduate Engineer",
     packageLpa: "12.50",
     offerType: "FTE",
@@ -39,7 +111,7 @@ const demoOffers: (typeof placementOffers.$inferInsert)[] = [
   },
   {
     companyName: "DEMO Materials Labs",
-    studentRollNumber: "DEMO-2026-002",
+    studentRollNumber: 926000002,
     jobRole: "Research Associate",
     packageLpa: null,
     offerType: "PPO",

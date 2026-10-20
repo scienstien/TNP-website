@@ -15,6 +15,13 @@
       "when": 1792497906435,
       "tag": "0001_company_visit_date",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792502209280,
+      "tag": "0002_strict_student_identity",
+      "breakpoints": true
     }
   ]
 }
