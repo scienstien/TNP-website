@@ -53,6 +53,9 @@ Company (`companies`; export `companies`)
 - domain: nullable text.
 - hr_name, email, phone_number: nullable text contact fields.
 - pvr_status: nullable boolean; true/false means yes/no, NULL means unknown.
+- visit_date: nullable date of the company's campus visit, shown on the drive
+  calendar; NULL means none scheduled. One date per company. Only admins change
+  it (server-side); deleting a visit clears the date, never the company.
 A company can exist with zero offers and can make offers to many students.
 Company profile is excluded. Compensation belongs to the individual offer,
 not the company. PVR's exact business meaning remains unresolved; do not
@@ -242,6 +245,25 @@ Authentication (implemented; see lib/auth/README.md):
 - The app uses the shared connection in db/index.ts (DATABASE_URL). Run
   the local PostgreSQL container and migrations as described in
   db/README.md before signing in.
+
+Analytics dashboard (implemented; see lib/placements/README.md):
+- KPIs and the four charts are computed from the database through
+  lib/placements/analytics.ts; filtering and counting rules live there only.
+- The schema has no academic stream. The stream-wise chart uses the company
+  sector (companies.domain) until a stream field is decided by the database
+  owner; unplaced students are reported separately because they have no sector.
+- Placement % is shown as placed / recorded students with a note that it assumes
+  a complete roster; where roster completeness is recorded is still undecided.
+- Charts use Recharts. Local development data: npm run db:seed:dashboard
+  (fictional, DEMO-prefixed).
+
+Drive calendar (implemented; see lib/calendar/):
+- Visits are companies.visit_date (migration 0001); no separate table. Status
+  (Upcoming / Today / Completed) is derived from the date, never stored.
+- "Upcoming" lists visits dated today or later, and a company leaves it once its
+  date passes. Today is computed in Asia/Kolkata.
+- Limitation: one visit date per company at a time.
+- lib/calendar/actions.ts authorises every change as ADMIN on the server.
 
 When a decision changes, update this file and db/README.md along with any
 relevant implementation, and commit the shared documentation so every

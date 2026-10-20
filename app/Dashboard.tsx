@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import DriveCalendar from "@/components/calendar/DriveCalendar";
+import PlacementAnalytics from "@/components/dashboard/PlacementAnalytics";
 import { signOutAction } from "@/lib/auth/actions";
+import type { CalendarData } from "@/lib/calendar/types";
+import type { PlacementRecord } from "@/lib/placements/types";
 
 type PlacementType = "FTE" | "PPO" | "FTE + 6M" | "NA";
 type Student = {
@@ -13,18 +17,6 @@ type Student = {
   ctc: number | null;
   date: string;
   isNew?: boolean;
-};
-type Drive = {
-  date: string;
-  day: string;
-  month: string;
-  company: string;
-  stream: string;
-  hr: string;
-  contact: string;
-  email: string;
-  status: string;
-  tone: string;
 };
 type View = "Home" | "Overview" | "Calendar" | "Students";
 
@@ -96,57 +88,6 @@ const students: Student[] = Array.from({ length: 70 }, (_, index) => {
       : `2026-03-${String((index % 28) + 1).padStart(2, "0")}`,
   };
 });
-const drives: Drive[] = [
-  {
-    date: "2026-03-24",
-    day: "24",
-    month: "MAR",
-    company: "Zomato",
-    stream: "Consumer",
-    hr: "Radhika Menon",
-    contact: "+91 98100 44012",
-    email: "radhika@zomato.com",
-    status: "Confirmed",
-    tone: "coral",
-  },
-  {
-    date: "2026-03-27",
-    day: "27",
-    month: "MAR",
-    company: "Deloitte",
-    stream: "Consulting",
-    hr: "Vikram Shah",
-    contact: "+91 98990 22110",
-    email: "vikram@deloitte.com",
-    status: "Upcoming",
-    tone: "yellow",
-  },
-  {
-    date: "2026-04-02",
-    day: "02",
-    month: "APR",
-    company: "Amazon",
-    stream: "Technology",
-    hr: "Neha Gupta",
-    contact: "+91 98200 88012",
-    email: "neha@amazon.com",
-    status: "Upcoming",
-    tone: "blue",
-  },
-  {
-    date: "2026-04-08",
-    day: "08",
-    month: "APR",
-    company: "Barclays",
-    stream: "Finance",
-    hr: "Mihir Kapoor",
-    contact: "+91 98700 22110",
-    email: "mihir@barclays.com",
-    status: "Proposed",
-    tone: "violet",
-  },
-];
-
 export interface DashboardUser {
   name: string | null;
   email: string;
@@ -154,10 +95,24 @@ export interface DashboardUser {
 }
 
 /** Rendered by app/page.tsx with the user verified on the server; the role cannot be switched here. */
-export default function Dashboard({ user }: { user: DashboardUser }) {
+export default function Dashboard({
+  user,
+  placementRecords,
+  calendar,
+  today,
+}: {
+  user: DashboardUser;
+  placementRecords: PlacementRecord[];
+  calendar: CalendarData;
+  /** Today's date at the institute (YYYY-MM-DD), computed on the server. */
+  today: string;
+}) {
   const [view, setView] = useState<View>("Home");
   const role: "Professor" | "Admin" =
     user.role === "ADMIN" ? "Admin" : "Professor";
+  const upcomingCount = calendar.visits.filter(
+    (visit) => visit.visitDate >= today,
+  ).length;
   const displayName = user.name?.trim() || user.email;
   const firstName = displayName.split(/[\s@]/)[0];
   const initials = displayName
@@ -167,25 +122,8 @@ export default function Dashboard({ user }: { user: DashboardUser }) {
     .slice(0, 2)
     .toUpperCase();
   const [records, setRecords] = useState(students);
-  const [dimension, setDimension] = useState<"Company" | "Stream">("Company");
   const [filter, setFilter] = useState<PlacementType | "All">("All");
   const [query, setQuery] = useState("");
-  const [compareDate, setCompareDate] = useState("2026-03-20");
-  const placed = records.filter((student) => student.type !== "NA");
-  const salaries = placed
-    .map((student) => student.ctc as number)
-    .sort((a, b) => a - b);
-  const average =
-    salaries.reduce((sum, value) => sum + value, 0) / salaries.length;
-  const median = salaries[Math.floor(salaries.length / 2)];
-  const mode = salaries.reduce(
-    (best, value) =>
-      salaries.filter((item) => item === value).length >
-      salaries.filter((item) => item === best).length
-        ? value
-        : best,
-    salaries[0],
-  );
   const visibleStudents = useMemo(
     () =>
       records.filter(
@@ -197,29 +135,6 @@ export default function Dashboard({ user }: { user: DashboardUser }) {
       ),
     [filter, query, records],
   );
-  const asOf = placed.filter((student) => student.date <= compareDate).length;
-  const breakdown =
-    dimension === "Company"
-      ? companyData
-          .slice(0, 5)
-          .map(
-            ([name]) =>
-              [
-                name,
-                placed.filter((student) => student.company === name).length,
-              ] as [string, number],
-          )
-      : ["Technology", "Consulting", "Finance", "Consumer"].map(
-          (name) =>
-            [
-              name,
-              placed.filter((student) => student.stream === name).length,
-            ] as [string, number],
-        );
-  const goToFiltered = (value: string) => {
-    setQuery(value);
-    setView("Students");
-  };
 
   const updateStudent = (roll: string, changes: Partial<Student>) =>
     setRecords((current) =>
@@ -328,7 +243,7 @@ export default function Dashboard({ user }: { user: DashboardUser }) {
             onClick={() => setView("Calendar")}
             icon="[]"
           >
-            Drive calendar <small>4</small>
+            Drive calendar {upcomingCount > 0 && <small>{upcomingCount}</small>}
           </NavButton>
           {role === "Admin" && (
             <NavButton
@@ -368,28 +283,28 @@ export default function Dashboard({ user }: { user: DashboardUser }) {
           <HomeView
             role={role}
             firstName={firstName}
+            upcomingCount={upcomingCount}
             onDashboard={() => setView("Overview")}
             onCalendar={() => setView("Calendar")}
           />
         )}
         {view === "Overview" && (
-          <Overview
-            firstName={firstName}
-            placed={placed}
-            salaries={salaries}
-            average={average}
-            median={median}
-            mode={mode}
-            breakdown={breakdown}
-            dimension={dimension}
-            setDimension={setDimension}
-            goToFiltered={goToFiltered}
-            compareDate={compareDate}
-            setCompareDate={setCompareDate}
-            asOf={asOf}
-          />
+          <PlacementAnalytics records={placementRecords} role={role} />
         )}
-        {view === "Calendar" && <CalendarEditor role={role} />}
+        {view === "Calendar" && (
+          <>
+            <Heading
+              eyebrow="RECRUITMENT PIPELINE"
+              title="Drive calendar"
+              subtitle="Companies visiting campus. Select a day to see who is coming."
+            />
+            <DriveCalendar
+              data={calendar}
+              today={today}
+              isAdmin={role === "Admin"}
+            />
+          </>
+        )}
         {view === "Students" && (
           <Students
             role={role}
@@ -413,11 +328,13 @@ export default function Dashboard({ user }: { user: DashboardUser }) {
 function HomeView({
   role,
   firstName,
+  upcomingCount,
   onDashboard,
   onCalendar,
 }: {
   role: "Professor" | "Admin";
   firstName: string;
+  upcomingCount: number;
   onDashboard: () => void;
   onCalendar: () => void;
 }) {
@@ -476,7 +393,11 @@ function HomeView({
           <strong>
             <i className="green-dot" /> Season in motion
           </strong>
-          <p>4 recruiting drives are scheduled next. Last sync 4 min ago.</p>
+          <p>
+            {upcomingCount === 0
+              ? "No company visits are scheduled."
+              : `${upcomingCount} company ${upcomingCount === 1 ? "visit is" : "visits are"} scheduled from today onwards.`}
+          </p>
         </div>
       </div>
     </section>
@@ -484,219 +405,6 @@ function HomeView({
 }
 
 // Retained from the dashboard branch as a reference while its newer row editor is active.
-function CalendarEditor({ role }: { role: "Professor" | "Admin" }) {
-  const [calendarDrives, setCalendarDrives] = useState(drives);
-  const [month, setMonth] = useState(2);
-  const [year, setYear] = useState(2026);
-  const [selectedDate, setSelectedDate] = useState("2026-03-24");
-  const isAdmin = role === "Admin";
-  const monthName = new Date(year, month, 1).toLocaleString("en-US", {
-    month: "long",
-  });
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
-  const selectedDrive = calendarDrives.find(
-    (drive) => drive.date === selectedDate,
-  );
-  const updateDrive = (index: number, changes: Partial<Drive>) =>
-    setCalendarDrives((current) =>
-      current.map((drive, driveIndex) =>
-        driveIndex === index ? { ...drive, ...changes } : drive,
-      ),
-    );
-  const changeMonth = (offset: number) => {
-    const next = new Date(year, month + offset, 1);
-    setMonth(next.getMonth());
-    setYear(next.getFullYear());
-  };
-  const selectDate = (day: number) =>
-    setSelectedDate(
-      `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-    );
-  const addDrive = () =>
-    setCalendarDrives((current) => [
-      ...current,
-      {
-        date: selectedDate,
-        day: selectedDate.slice(-2),
-        month: monthName.slice(0, 3).toUpperCase(),
-        company: "New company",
-        stream: "Technology",
-        hr: "HR contact",
-        contact: "+91 00000 00000",
-        email: "hr@company.com",
-        status: "Proposed",
-        tone: "blue",
-      },
-    ]);
-  const displayDrives = selectedDrive
-    ? [selectedDrive]
-    : calendarDrives.filter((drive) => drive.date >= selectedDate).slice(0, 4);
-  const selectedIndex = selectedDrive
-    ? calendarDrives.indexOf(selectedDrive)
-    : -1;
-
-  return (
-    <>
-      <Heading
-        eyebrow="RECRUITMENT PIPELINE"
-        title="Drive calendar"
-        subtitle="Select any date to schedule a company, HR contact and campus visit."
-        action={
-          isAdmin ? (
-            <button className="dark-button" onClick={addDrive}>
-              Add drive on selected date
-            </button>
-          ) : undefined
-        }
-      />
-      <div className="calendar-grid">
-        <section className="panel month">
-          <div className="month-title">
-            <button onClick={() => changeMonth(-1)}>prev</button>
-            <h2>
-              {monthName} {year}
-            </h2>
-            <button onClick={() => changeMonth(1)}>next</button>
-          </div>
-          <div className="weekdays">
-            {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((day) => (
-              <span key={day}>{day}</span>
-            ))}
-          </div>
-          <div className="days">
-            {Array.from({ length: firstDay + daysInMonth }, (_, index) => {
-              const day = index < firstDay ? 0 : index - firstDay + 1;
-              if (!day)
-                return <div className="empty-day" key={`empty-${index}`} />;
-              const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const hasDrive = calendarDrives.some(
-                (drive) => drive.date === date,
-              );
-              return (
-                <button
-                  className={`${date === selectedDate ? "selected-day " : ""}${hasDrive ? "scheduled " : ""}`}
-                  onClick={() => selectDate(day)}
-                  key={date}
-                >
-                  {day}
-                  {hasDrive && <i />}
-                </button>
-              );
-            })}
-          </div>
-          <p className="calendar-selection">
-            Selected: <strong>{selectedDate}</strong>
-            {selectedDrive
-              ? ` · ${selectedDrive.company}`
-              : " · no drive scheduled"}
-          </p>
-        </section>
-        <section className="panel upcoming">
-          <PanelTitle
-            eyebrow={selectedDrive ? "SELECTED DATE" : "NEXT UP"}
-            title={selectedDrive ? selectedDrive.company : "Upcoming drives"}
-          />
-          <div className="drive-list">
-            {displayDrives.map((drive) => {
-              const index = calendarDrives.indexOf(drive);
-              return (
-                <article key={`${drive.date}-${index}`}>
-                  <b className={drive.tone}>
-                    {isAdmin && index === selectedIndex ? (
-                      <input
-                        aria-label="Drive date"
-                        type="date"
-                        value={drive.date}
-                        onChange={(event) =>
-                          updateDrive(index, { date: event.target.value })
-                        }
-                      />
-                    ) : (
-                      drive.date.slice(-2)
-                    )}
-                    <small>
-                      {drive.date.slice(5, 7)}/{drive.date.slice(0, 4)}
-                    </small>
-                  </b>
-                  <span>
-                    {isAdmin && index === selectedIndex ? (
-                      <div className="drive-edit-fields">
-                        <input
-                          aria-label="Company"
-                          value={drive.company}
-                          onChange={(event) =>
-                            updateDrive(index, { company: event.target.value })
-                          }
-                        />
-                        <input
-                          aria-label="Sector"
-                          value={drive.stream}
-                          onChange={(event) =>
-                            updateDrive(index, { stream: event.target.value })
-                          }
-                        />
-                        <input
-                          aria-label="HR contact"
-                          value={drive.hr}
-                          onChange={(event) =>
-                            updateDrive(index, { hr: event.target.value })
-                          }
-                        />
-                        <input
-                          aria-label="Phone"
-                          value={drive.contact}
-                          onChange={(event) =>
-                            updateDrive(index, { contact: event.target.value })
-                          }
-                        />
-                        <input
-                          aria-label="Email"
-                          value={drive.email}
-                          onChange={(event) =>
-                            updateDrive(index, { email: event.target.value })
-                          }
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <strong>{drive.company}</strong>
-                        <small>
-                          {drive.stream} - {drive.hr}
-                        </small>
-                        <small>
-                          {drive.contact} - {drive.email}
-                        </small>
-                      </>
-                    )}
-                  </span>
-                  {isAdmin && index === selectedIndex ? (
-                    <input
-                      className="drive-status-input"
-                      aria-label="Status"
-                      value={drive.status}
-                      onChange={(event) =>
-                        updateDrive(index, { status: event.target.value })
-                      }
-                    />
-                  ) : (
-                    <em>{drive.status}</em>
-                  )}
-                </article>
-              );
-            })}
-            {!displayDrives.length && (
-              <p className="calendar-empty">
-                No drive on this date. Admins can add one with the button above.
-              </p>
-            )}
-          </div>
-        </section>
-      </div>
-    </>
-  );
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function LegacyStudents2({
   role,
@@ -1166,474 +874,6 @@ function Heading({
     </div>
   );
 }
-function PanelTitle({
-  eyebrow,
-  title,
-  action,
-}: {
-  eyebrow: string;
-  title: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="panel-title">
-      <div>
-        <p className="eyebrow">{eyebrow}</p>
-        <h2>{title}</h2>
-      </div>
-      {action}
-    </div>
-  );
-}
-function Metric({
-  label,
-  value,
-  suffix,
-  change,
-  accent,
-}: {
-  label: string;
-  value: string;
-  suffix?: string;
-  change: string;
-  accent: string;
-}) {
-  return (
-    <article className={`metric ${accent}`}>
-      <p className="eyebrow">{label}</p>
-      <strong>
-        {value}
-        <small>{suffix}</small>
-      </strong>
-      <span>
-        up {change} <i>vs last year</i>
-      </span>
-    </article>
-  );
-}
-
-function Overview({
-  firstName,
-  placed,
-  salaries,
-  average,
-  median,
-  mode,
-  breakdown,
-  dimension,
-  setDimension,
-  goToFiltered,
-  compareDate,
-  setCompareDate,
-  asOf,
-}: {
-  firstName: string;
-  placed: Student[];
-  salaries: number[];
-  average: number;
-  median: number;
-  mode: number;
-  breakdown: [string, number][];
-  dimension: "Company" | "Stream";
-  setDimension: (value: "Company" | "Stream") => void;
-  goToFiltered: (value: string) => void;
-  compareDate: string;
-  setCompareDate: (value: string) => void;
-  asOf: number;
-}) {
-  const types = (["FTE", "PPO", "FTE + 6M"] as PlacementType[]).map(
-    (type) =>
-      [type, placed.filter((student) => student.type === type).length] as [
-        PlacementType,
-        number,
-      ],
-  );
-  return (
-    <>
-      <Heading
-        eyebrow="ACADEMIC YEAR 2025-26"
-        title={`Good morning, ${firstName}`}
-        subtitle="Here's how the placement season is shaping up."
-        action={
-          <>
-            <label>
-              YEAR
-              <select>
-                <option>2025-26</option>
-                <option>2024-25</option>
-              </select>
-            </label>
-            <button className="dark-button">Export report</button>
-          </>
-        }
-      />
-      <div className="metric-grid">
-        <Metric
-          label="PLACEMENT RATE"
-          value={`${Math.round((placed.length / 70) * 100)}%`}
-          change="8.4%"
-          accent="coral"
-        />
-        <Metric
-          label="STUDENTS PLACED"
-          value={`${placed.length}`}
-          suffix="/ 70"
-          change="12"
-          accent="yellow"
-        />
-        <Metric
-          label="AVERAGE CTC"
-          value={`Rs ${average.toFixed(1)}`}
-          suffix=" LPA"
-          change="2.1 LPA"
-          accent="blue"
-        />
-        <Metric
-          label="MEDIAN CTC"
-          value={`Rs ${median}`}
-          suffix=" LPA"
-          change="1.5 LPA"
-          accent="violet"
-        />
-      </div>
-      <div className="dashboard-grid">
-        <section className="panel chart-panel">
-          <PanelTitle eyebrow="PLACEMENT PROGRESS" title="Offers over time" />
-          <div className="fake-chart">
-            <span>70</span>
-            <span>50</span>
-            <span>30</span>
-            <span>10</span>
-            <svg viewBox="0 0 600 190" preserveAspectRatio="none">
-              <path d="M0 180 C80 170 120 140 180 150 S270 105 340 120 S430 70 510 92 S570 35 600 28" />
-              <path
-                className="secondary"
-                d="M0 180 C80 170 120 150 180 155 S270 125 340 130 S430 100 510 102 S570 80 600 74"
-              />
-            </svg>
-            <small>
-              {["JAN 01", "JAN 31", "FEB 28", "MAR 31"].map((label) => (
-                <span key={label}>{label}</span>
-              ))}
-            </small>
-          </div>
-          <b className="chart-note">
-            58 placed<small>as of Mar 20, 2026</small>
-          </b>
-        </section>
-        <section className="panel">
-          <PanelTitle eyebrow="CLASS OF 2026" title="Placement split" />
-          <div className="split">
-            <div
-              className="donut"
-              style={
-                {
-                  "--share": `${Math.round((placed.length / 70) * 100)}%`,
-                } as React.CSSProperties
-              }
-            >
-              <b>{placed.length}</b>
-              <small>placed</small>
-            </div>
-            <div>
-              <p>
-                <i className="coral-dot" /> Placed <b>{placed.length}</b>
-              </p>
-              <p>
-                <i className="muted-dot" /> Unplaced <b>{70 - placed.length}</b>
-              </p>
-            </div>
-          </div>
-          <div className="ratio">
-            PLACED : UNPLACED{" "}
-            <b>
-              {placed.length} : {70 - placed.length}
-            </b>
-          </div>
-        </section>
-        <section className="panel">
-          <PanelTitle
-            eyebrow="WHERE OFFERS ARE"
-            title={`${dimension} performance`}
-            action={
-              <div className="toggle">
-                <button
-                  className={dimension === "Company" ? "selected" : ""}
-                  onClick={() => setDimension("Company")}
-                >
-                  Company
-                </button>
-                <button
-                  className={dimension === "Stream" ? "selected" : ""}
-                  onClick={() => setDimension("Stream")}
-                >
-                  Stream
-                </button>
-              </div>
-            }
-          />
-          <div className="bars">
-            {breakdown.map(([name, count]) => (
-              <button key={name} onClick={() => goToFiltered(name)}>
-                <span>{name}</span>
-                <i>
-                  <b style={{ width: `${Math.max(count * 10, 10)}%` }} />
-                </i>
-                <em>{count}</em>
-              </button>
-            ))}
-          </div>
-          <small className="hint">
-            Select a bar to inspect matching students.
-          </small>
-        </section>
-        <section className="panel compare">
-          <PanelTitle eyebrow="YEAR-ON-YEAR" title="Compare by date" />
-          <label>
-            AS OF{" "}
-            <input
-              type="date"
-              value={compareDate}
-              onChange={(event) => setCompareDate(event.target.value)}
-            />
-          </label>
-          <div>
-            <strong>{asOf}</strong>
-            <span>placed this year</span>
-            <b>to</b>
-            <strong>{Math.max(asOf - 7, 0)}</strong>
-            <span>last year</span>
-          </div>
-          <small className="positive">+7 students ahead of last year</small>
-        </section>
-        <section className="panel stats-panel">
-          <PanelTitle eyebrow="SALARY INTELLIGENCE" title="CTC snapshot" />
-          <div className="salary-stats">
-            <span>
-              <small>LOWEST</small>
-              <b>Rs {salaries[0]} LPA</b>
-            </span>
-            <span>
-              <small>HIGHEST</small>
-              <b>Rs {salaries[salaries.length - 1]} LPA</b>
-            </span>
-            <span>
-              <small>MODE</small>
-              <b>Rs {mode} LPA</b>
-            </span>
-          </div>
-          <div className="salary-bars">
-            {[
-              ["0-10", 12],
-              ["10-20", 42],
-              ["20-30", 21],
-              ["30+", 10],
-            ].map(([label, count]) => (
-              <div key={label}>
-                <span>{label}</span>
-                <i>
-                  <b style={{ width: `${Number(count) * 2}%` }} />
-                </i>
-                <em>{count}</em>
-              </div>
-            ))}
-          </div>
-        </section>
-        <section className="panel type-panel">
-          <PanelTitle eyebrow="OFFER MIX" title="Placement types" />
-          <div className="type-list">
-            {types.map(([type, count]) => (
-              <button key={type} onClick={() => goToFiltered(type)}>
-                <span>{type}</span>
-                <b>{count}</b>
-                <i>
-                  <em style={{ width: `${(count / placed.length) * 100}%` }} />
-                </i>
-              </button>
-            ))}
-          </div>
-        </section>
-      </div>
-    </>
-  );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function LegacyCalendar({ role }: { role: "Professor" | "Admin" }) {
-  const [calendarDrives, setCalendarDrives] = useState(drives);
-  const isAdmin = role === "Admin";
-  const updateDrive = (index: number, changes: Partial<Drive>) =>
-    setCalendarDrives((current) =>
-      current.map((drive, driveIndex) =>
-        driveIndex === index ? { ...drive, ...changes } : drive,
-      ),
-    );
-  const addDrive = () =>
-    setCalendarDrives((current) => [
-      ...current,
-      {
-        date: "2026-04-15",
-        day: "15",
-        month: "APR",
-        company: "New company",
-        stream: "Technology",
-        hr: "HR contact",
-        contact: "+91 00000 00000",
-        email: "hr@company.com",
-        status: "Proposed",
-        tone: "blue",
-      },
-    ]);
-  const scheduledDays = new Set(
-    calendarDrives.map((drive) => Number(drive.day)),
-  );
-
-  return (
-    <>
-      <Heading
-        eyebrow="RECRUITMENT PIPELINE"
-        title="Drive calendar"
-        subtitle="Upcoming companies, HR contacts and campus visits."
-        action={
-          isAdmin ? (
-            <button className="dark-button" onClick={addDrive}>
-              Add drive
-            </button>
-          ) : undefined
-        }
-      />
-      <div className="calendar-grid">
-        <section className="panel month">
-          <div className="month-title">
-            <button>prev</button>
-            <h2>March 2026</h2>
-            <button>next</button>
-          </div>
-          <div className="weekdays">
-            {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((day) => (
-              <span key={day}>{day}</span>
-            ))}
-          </div>
-          <div className="days">
-            {Array.from({ length: 31 }, (_, index) => {
-              const day = index + 1;
-              return (
-                <div
-                  className={`${day === 24 ? "today " : ""}${scheduledDays.has(day) ? "scheduled" : ""}`}
-                  key={day}
-                >
-                  {day}
-                  {scheduledDays.has(day) && <i />}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-        <section className="panel upcoming">
-          <PanelTitle eyebrow="NEXT UP" title="Upcoming drives" />
-          <div className="drive-list">
-            {calendarDrives.map((drive, index) => (
-              <article key={`${drive.company}-${index}`}>
-                <b className={drive.tone}>
-                  {isAdmin ? (
-                    <input
-                      aria-label="Drive day"
-                      value={drive.day}
-                      onChange={(event) =>
-                        updateDrive(index, { day: event.target.value })
-                      }
-                    />
-                  ) : (
-                    drive.day
-                  )}
-                  <small>
-                    {isAdmin ? (
-                      <input
-                        aria-label="Drive month"
-                        value={drive.month}
-                        onChange={(event) =>
-                          updateDrive(index, {
-                            month: event.target.value.toUpperCase(),
-                          })
-                        }
-                      />
-                    ) : (
-                      drive.month
-                    )}
-                  </small>
-                </b>
-                <span>
-                  {isAdmin ? (
-                    <div className="drive-edit-fields">
-                      <input
-                        aria-label="Company"
-                        value={drive.company}
-                        onChange={(event) =>
-                          updateDrive(index, { company: event.target.value })
-                        }
-                      />
-                      <input
-                        aria-label="Sector"
-                        value={drive.stream}
-                        onChange={(event) =>
-                          updateDrive(index, { stream: event.target.value })
-                        }
-                      />
-                      <input
-                        aria-label="HR contact"
-                        value={drive.hr}
-                        onChange={(event) =>
-                          updateDrive(index, { hr: event.target.value })
-                        }
-                      />
-                      <input
-                        aria-label="Phone"
-                        value={drive.contact}
-                        onChange={(event) =>
-                          updateDrive(index, { contact: event.target.value })
-                        }
-                      />
-                      <input
-                        aria-label="Email"
-                        value={drive.email}
-                        onChange={(event) =>
-                          updateDrive(index, { email: event.target.value })
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <strong>{drive.company}</strong>
-                      <small>
-                        {drive.stream} - {drive.hr}
-                      </small>
-                      <small>
-                        {drive.contact} - {drive.email}
-                      </small>
-                    </>
-                  )}{" "}
-                </span>
-                {isAdmin ? (
-                  <input
-                    className="drive-status-input"
-                    aria-label="Status"
-                    value={drive.status}
-                    onChange={(event) =>
-                      updateDrive(index, { status: event.target.value })
-                    }
-                  />
-                ) : (
-                  <em>{drive.status}</em>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-      </div>
-    </>
-  );
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function LegacyStudents({
   role,

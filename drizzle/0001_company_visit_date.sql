@@ -1,0 +1,1 @@
+ALTER TABLE "companies" ADD COLUMN "visit_date" date;

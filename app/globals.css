@@ -2476,3 +2476,83 @@ nav em {
   color: #f3f7ff;
   font: 12px "DM Sans", var(--font-geist-sans), sans-serif;
 }
+
+/* Fixed sidebar. Two theme rules stopped `position: sticky` on .sidebar from working,
+   so the sidebar scrolled away with the page:
+   1. `.portal-shell > * { position: relative }` overrode the sidebar's `sticky`.
+   2. `overflow: hidden` on .portal-shell made the shell a scroll container, so sticky
+      stuck to the shell (which never scrolls). `clip` clips the same way without
+      creating a scroll container.
+   Now the sidebar stays pinned to the viewport and only the content area scrolls. */
+.portal-shell {
+  overflow: clip;
+}
+.portal-shell > .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Phones and small tablets: the 238px sidebar left only ~150px for the content, so every
+   view was squeezed and clipped. Below 800px the sidebar becomes a compact top bar
+   (logo, scrollable nav tabs, sign out) that stays pinned to the top while the page scrolls. */
+@media (max-width: 800px) {
+  .portal-shell {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .portal-shell > .sidebar {
+    z-index: 30;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .portal-shell .sidebar::after,
+  .portal-shell .sidebar .role-switch,
+  .portal-shell .sidebar .wordmark span,
+  .portal-shell .sidebar .profile > span {
+    display: none;
+  }
+  .portal-shell .sidebar .wordmark {
+    flex-shrink: 0;
+  }
+  .portal-shell .sidebar nav {
+    display: flex;
+    flex: 1;
+    gap: 4px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .portal-shell .sidebar nav button {
+    flex-shrink: 0;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+  .portal-shell .sidebar nav button > span {
+    display: none;
+  }
+  .portal-shell .sidebar .profile {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .portal-shell .content-area {
+    padding: 0 16px 40px;
+  }
+  /* Wide tables scroll inside their panel instead of spilling out of the page. */
+  .portal-shell .table-panel {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}

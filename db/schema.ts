@@ -29,6 +29,9 @@ export const companies = pgTable("companies", {
   phoneNumber: text("phone_number"),
   // NULL preserves an unknown source value instead of assuming "no".
   pvrStatus: boolean("pvr_status"),
+  // Date of the company's campus visit, shown on the placement calendar. NULL means no
+  // visit is scheduled. One date per company; it is not part of the historical offers.
+  visitDate: date("visit_date", { mode: "string" }),
 });
 
 export const placementOffers = pgTable(

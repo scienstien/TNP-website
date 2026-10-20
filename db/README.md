@@ -108,3 +108,10 @@ been applied by this setup.
   must select the provider/session strategy and integrate the required tables.
 - Schema exports use camelCase TypeScript property names and snake_case SQL
   column names. Database deployment and UI integration remain separate work.
+
+## Company visit date
+
+`companies.visit_date` (nullable `date`, migration `0001_company_visit_date`) records when a
+company visits campus, for the drive calendar. NULL means no visit is scheduled. It holds one
+date per company and is separate from historical offers. Clearing it removes the visit from the
+calendar without touching the company or its offers.
