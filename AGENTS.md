@@ -1,106 +1,144 @@
-AGENTS.md --- MME TNP Placement Dashboard
+AGENTS.md --- NIT Tiruchirappalli TNP Placement Dashboard
 1. Project context
-Build a departmental Training and Placement (TNP) dashboard for the
-Metallurgical and Materials Engineering (MME) department at NIT
-Tiruchirappalli.
+Build a Training and Placement (TNP) dashboard for twenty years of historical
+placement data across all departments at NIT Tiruchirappalli, including UG and PG
+programmes and PG specializations. This institute-wide scope supersedes the
+original six-year, MME-only scope.
 
-The website is for viewing and managing historical placement data from
-the previous six years. It is not a college-wide placement portal and is
-not a live recruitment-management system.
+The dashboard generates charts, KPIs, filters, comparisons and reports dynamically
+from stored historical data. The process calendar records drive stages; this is
+not authorization to add live recruitment-management workflows.
 
-The dashboard must generate its charts, KPIs, filters, comparisons, and
-reports dynamically from the stored historical data.
+This file is shared project context for agents and developers on every laptop.
+Use committed documentation, the current repository and migration history rather
+than private chat history or local memory. The target schema and deployed
+migration state are distinct during the staged transition below.
 
-This file is the shared project context for every coding agent and every
-developer working on the repository, including developers using
-different laptops. Treat the committed version of this file and the
-current repository code as the source of truth. Do not depend on private
-chat history, local agent memory, or assumptions that are not documented
-here.
 2. Scope boundaries
 There are two application roles:
-- ADMIN: Can manage historical placement data and perform
-  authorized administrative actions.
-- PROFESSOR: Can access the dashboard. Default permission is
-  read-only unless the project owner explicitly changes this rule.
-The users table exists only for authentication and role-based access
-control. It is not a student or placement-data table.
+- ADMIN: Manages historical placement data and authorized administrative actions.
+- PROFESSOR: Has read-only dashboard access unless the project owner changes it.
+The users table exists only for authentication and role-based access control.
+Students and academic enrollments are placement data, not login accounts.
 
-Do not add features or tables for: - Other departments or department
-management. - Student or recruiter login accounts. - Job postings,
-applications, shortlisting, interviews, or live recruitment workflows. -
-A college-wide placement portal.
+The approved scope includes all departments, academic programmes, graduating
+cohorts, explicit placement cycles, repeated company drives, roles, individual
+final offers and drive-stage events. Do not add student/recruiter login accounts,
+job applications, shortlisting decisions, interview evaluation or other live
+recruitment workflows without an explicit requirement. Scheduled process stages
+do not imply those workflows.
 
-Do not expand the project beyond this scope without an explicit
-requirement.
-3. Current implemented data model
-`db/schema.ts` is the canonical Drizzle PostgreSQL schema. `db/README.md`
-documents its decisions and integration limitations. Use this model rather
-than the original sketch. TypeScript properties use camelCase; SQL columns
-use snake_case. The table and column names below are SQL names.
+3. Approved target data model and staged delivery
+`db/schema.ts` is the canonical Drizzle PostgreSQL target definition.
+`db/README.md` documents keys, relationships, units and enforcement boundaries.
+TypeScript properties use camelCase; SQL tables/columns use snake_case.
 
-Student (`students`; export `students`)
-- roll_number: integer primary key, strictly 100000000–999999999 (nine digits,
-  no leading zeros). Immutable through the student editor.
-- name: required text, 1–100 characters. Student input allows Unicode letters,
+Current delivery is schema-only:
+- Legacy migrations 0000-0004 remain unchanged. No target migration is generated
+  or applied, and no database is reset or seeded by this task.
+- Existing analytics, student/company/calendar queries and actions, seed scripts
+  and UI contracts are not migrated to the new columns. Full-application type
+  checks are expected to fail at these legacy references until integration.
+- Calendar UI persistence remains browser local storage. Target event tables do
+  not mean the calendar is connected to PostgreSQL.
+- Do not run legacy seed scripts against the target schema or claim the complete
+  application works with it. Existing database migration state remains legacy.
+
+Academic identity:
+- `departments`: UUID department_id PK, required unique code and required name.
+- `degrees`: UUID degree_id PK, required unique code and level (UG/PG).
+- `programmes`: UUID programme_id PK, department_id FK, degree_id FK and nullable
+  specialization. The department/degree/specialization combination is unique,
+  including unspecialized programmes. PG specialization is a required business
+  rule whose cross-table enforcement is pending.
+- `cohorts`: UUID cohort_id PK, programme_id FK and required four-digit
+  graduation_year; unique (programme_id, graduation_year).
+- `gender_types` and `reservation_categories`: controlled code PK/label
+  reference tables. Do not invent or seed missing source classifications.
+- `students`: UUID student_id PK, required name and nullable gender_code FK.
+  This is a person; UG and later PG may use separate enrollments for that person.
+- `enrollments`: UUID enrollment_id PK, student_id FK, required unique
+  roll_number, cohort_id FK, nullable admission_year and reservation_category_code
+  FK. Rolls remain nine-digit integers, 100000000-999999999, and immutable through
+  editing. Category is recorded for the enrollment.
+- Names remain trimmed, 1-100 characters. Student input permits Unicode letters,
   combining marks, spaces, apostrophes, periods and hyphens, with at least one
-  letter. Trim and normalize whitespace; reject digits and other symbols.
-- batch_year: required integer identifying the graduating batch.
-Only eligible MME students are recorded. A student has zero or one offer.
-Placement status is derived using offer existence: PLACED when an offer
-exists, otherwise UNPLACED. Do not add an independently stored
-placement_status or a company reference to students.
+  letter; normalize whitespace and reject digits/other symbols.
+- Programme and cohort IDs are generated internally. Imports match confirmed
+  department/degree/specialization and graduation-year combinations to existing
+  records; roll number identifies an enrollment, not the person's UUID.
+- Delayed graduation/cohort changes are explicitly nonblocking for this delivery;
+  no academic-progression history model is included.
 
-Company (`companies`; export `companies`)
-- name: text primary key; there is no company_id.
-- domain: nullable text.
-- hr_name, email, phone_number: nullable text contact fields.
-- pvr_status: nullable boolean; true/false means yes/no, NULL means unknown.
-- visit_date: nullable date of the company's campus visit, shown on the drive
-  calendar; NULL means none scheduled. One date per company. Only admins change
-  it (server-side); deleting a visit clears the date, never the company.
-A company can exist with zero offers and can make offers to many students.
-Company profile is excluded. Compensation belongs to the individual offer,
-not the company. PVR's exact business meaning remains unresolved; do not
-infer additional behavior from it.
+Cycles and participation:
+- `placement_cycles`: UUID cycle_id PK, required unique code; optional starts_on
+  and ends_on. Overlapping cycles and missing cycle dates are allowed.
+- `cycle_cohorts`: composite PK/FKs (cycle_id, cohort_id), resolving the cycle/
+  cohort many-to-many relationship.
+- `student_cycles`: composite PK (cycle_id, enrollment_id), required cohort_id
+  and registration_status (REGISTERED/UNREGISTERED) with no default. Composite
+  FKs require the enrollment's cohort and an existing cycle/cohort association.
+- UNREGISTERED includes opt-outs and academically ineligible students. There is
+  no separate eligibility model, roster-completeness field or import-audit model;
+  college-provided complete data is trusted. Required registration still cannot
+  be fabricated: missing historical registration is flagged before import.
+- Placement status is derived per student-cycle: an offer means PLACED;
+  REGISTERED without an offer means UNPLACED; UNREGISTERED has no offer.
+  Do not store an independent placement_status.
+- Cycle membership is explicit. Never infer it from calendar year, offer date,
+  event date or a mandatory cycle date range.
 
-Placement offer (`placement_offers`; export `placementOffers`)
-- company_name: required text foreign key referencing companies.name.
-- student_roll_number: required integer foreign key referencing
-  students.roll_number, with a separate UNIQUE constraint.
-- Composite primary key: (company_name, student_roll_number).
-- job_role: nullable text.
-- package_lpa: nullable PostgreSQL numeric, in lakhs per annum. Drizzle
-  returns this value as a string to preserve precision.
-- offer_type: nullable offer_type enum: PPO, FTE, or FTE+6month.
-- offer_date: nullable date, represented as a string by Drizzle.
-Every offer belongs to exactly one student and one company. The unique
-student_roll_number constraint enforces at most one offer per student;
-the composite primary key alone does not enforce that rule.
-Both foreign keys use ON UPDATE CASCADE and ON DELETE RESTRICT.
-There is no offer_id, offer_status, joining_date, or placement_year column.
-Keep offer_date even though missing historical values are permitted.
+Companies, drives and final offers:
+- `companies`: UUID company_id PK; required unique name; nullable domain,
+  hr_name, email, phone_number, pvr_status and remarks. Stable company IDs replace
+  name-based offer references. Contacts remain global company data.
+- `drives`: UUID drive_id PK, required company_id FK and cycle_id FK, optional
+  reference. One company may have many drives in the same cycle, with no
+  uniqueness on company/year/date.
+- `drive_roles`: UUID role_id PK, drive_id FK and nullable job_title. Repeated
+  titles and multiple roles per drive are allowed.
+- `placement_offers`: UUID offer_id PK; required unique enrollment_id, required
+  cycle_id and company_id; nullable drive_id, role_id, package_lpa,
+  monthly_stipend_inr, offer_type and offer_date.
+- Each offer belongs to one student-cycle and company. Optional drive/role
+  references must agree with company, cycle and parent drive; a role needs a drive.
+  Historical offers/PPOs do not require an invented drive or role.
+- One final reported offer is allowed per enrollment/roll across all cycles.
+  This is not one offer per person for life. Revocation clears the final offer.
+  Report conflicting source offers; do not silently discard them or relax the key.
+- Actual annual compensation is numeric INR LPA; actual monthly stipend is
+  numeric INR. Drizzle returns numeric as strings. Missing values remain NULL.
+  Offer type remains nullable PPO/FTE/FTE+6month; offer date remains nullable.
+- No advertised-package variants or role-target associations are included.
+  PVR remains nullable yes/no/unknown; its exact meaning is unresolved.
 
-User (`users`; export `users`)
-- id: UUID primary key, generated randomly by default.
-- name: nullable text.
-- email: required unique text.
-- password_hash: nullable text for compatibility with provider-based auth;
-  never store plaintext passwords.
-- role: required user_role enum, ADMIN or PROFESSOR; defaults to PROFESSOR.
-Users exist only for authentication and role-based access. Do not add
-student placement details, placement relationships, or is_active to users.
-Professor permissions remain read-only. The users table is not a complete
-Auth.js adapter implementation; authentication integration is separate.
+Drive-stage events:
+- `drive_events`: UUID event_id PK, drive_id FK, required process_type and scope,
+  nullable scheduled_date and label. Stages: PPT, OT, GD, RESUME_SHORTLISTING, PI.
+  Scope: WHOLE_DRIVE or SELECTED_ROLES. A drive may have repeated/undated events.
+- `event_roles`: composite PK (event_id, role_id), required drive_id; composite
+  FKs require the selected event and role to belong to that same drive.
+- WHOLE_DRIVE events have zero role links; SELECTED_ROLES events have at least
+  one. This rule requires coordinated transactional enforcement.
+- Target companies have no visit_date. Dates belong to drive events. Preserve
+  legacy visit-date values in the eventual reviewed migration; do not discard
+  them or fabricate their drive/cycle mapping. Calendar UI integration is pending.
 
-Historical data
-All six years share these tables, with graduating batches identified by
-students.batch_year. Do not create per-year tables or a department table.
-Non-key historical details remain nullable where the schema permits;
-never fabricate missing source values. Inspect actual source files before
-implementing imports. If source rows appear to contain multiple offers for
-one student, report the conflict with the confirmed one-offer rule rather
-than silently dropping records or relaxing the constraint.
+Enforcement boundaries:
+- Keys, local checks and composite FKs do not enforce every business rule.
+  PG specialization, no offer for unregistered participation, event scope/link
+  cardinality and roll immutability need future triggers or coordinated
+  transactional write paths, including later updates/deletes.
+- Do not claim those cross-table rules are implemented by schema.ts alone.
+  Authorization must always be enforced separately on the server.
+
+Users and historical data:
+- `users` remains unchanged: UUID id PK, nullable name, required unique email,
+  nullable password_hash, required ADMIN/PROFESSOR role defaulting to PROFESSOR.
+  Never store plaintext passwords, student relationships or is_active here.
+- All twenty years and departments share these tables; never create per-year or
+  per-department placement tables. Preserve nullable historical details and
+  inspect actual source files before implementing imports.
 
 4. Shared engineering rules
 1. Inspect before editing. Read the relevant existing files,
@@ -177,34 +215,29 @@ One person or agent may own multiple areas if the team is small, but
 each file and shared contract must have a clear owner. Do not ask every
 agent to independently build the entire website.
 7. Database and analytics rules
-- Use PostgreSQL and Drizzle ORM as defined in db/schema.ts. Do not
-  replace the database engine or ORM without explicit approval.
-- Keep historical years in shared tables.
-- Use foreign keys and appropriate unique constraints.
-- Store compensation in placement_offers.package_lpa as numeric LPA.
-  Convert source values only when the unit and amount are reliable.
-- Preserve missing or uncertain source values as missing; do not
-  fabricate them.
-- Normalize company names carefully during imports and retain a way to
-  review ambiguous matches.
-- Only eligible students are recorded. For a batch, placement rate is
-  students with an offer divided by all recorded students in that batch,
-  multiplied by 100. Publish the rate only when the complete eligible
-  roster has been entered. An empty batch has an undefined rate, not 0%.
-  No separate eligible-count field is currently required.
-- Under the unique student constraint, each offer represents one placed
-  student. Avoid double-counting through joins; flag source data that
-  contradicts the one-offer rule.
-- Derive placement status from offer existence. Offer type describes
-  PPO/FTE/FTE+6month and is not a separate placement-status field.
-- Compute dashboard statistics from the data, using SQL aggregation or
-  an existing query layer. Do not store derived KPIs as manually
-  maintained values.
-- Apply server-side authorization to data-changing operations. Hiding
-  a button in the UI is not access control.
-- Keep student-level data restricted to authorized users; aggregate
-  dashboard views should expose only the data needed for their
-  purpose.
+- Use PostgreSQL and Drizzle ORM as defined in db/schema.ts.
+- Use the academic hierarchy and explicit cycle associations above. Do not infer
+  placement cycles or graduation cohorts solely from event/offer dates.
+- Store actual compensation on the final offer, in INR LPA and monthly INR.
+  Convert values only when source currency, period and amount are reliable.
+- Preserve missing source values; resolve missing required fields before import.
+  Normalize company names and review ambiguous matches without silently merging.
+- College roster data is trusted; no completeness or separate eligibility audit
+  is part of this model. UNREGISTERED includes ineligible students and opt-outs.
+- Placement status is derived per student-cycle. Offer type is not status.
+  Keep the one-final-reported-offer-per-enrollment rule across cycles.
+- For a report choosing registered-student placement percentage, divide placed
+  enrollments by registered enrollments within the same filtered population.
+  An empty denominator is undefined, not 0%. State other denominators explicitly.
+  Final analytics integration/metric presentation is separate from schema work.
+- Avoid multiplying student/offer counts when joining events or roles. Calculate
+  statistics through SQL aggregation or the existing agreed query layer rather
+  than storing manually maintained KPIs.
+- Professors remain read-only. Protected reads and every mutation require
+  server-side authorization; hidden UI controls are not access control.
+- Keep student-level information restricted to authorized users and expose only
+  the aggregates needed by dashboard/report consumers.
+
 8. Definition of done
 A task is complete only when: - It satisfies the assigned scope and this
 project context. - It integrates with the current codebase and agreed
@@ -214,19 +247,23 @@ limitation is clearly reported. - Documentation is updated if a shared
 assumption, contract, or workflow changed. - The handoff states exactly
 what changed and what remains.
 9. Remaining decisions and integration work
-The database engine, keys, one-offer rule, offer-level compensation,
-eligible-student model, and read-only professor permissions are settled
-as described above. Do not treat them as open questions.
+Settled: twenty-year/all-department coverage, UG/PG programme hierarchy, generated
+UUID identities, explicit cycles, registration including ineligible opt-outs,
+trusted source rosters, one final offer per enrollment, actual offer compensation
+in INR, optional drive/role context, drive events and read-only professors.
+Do not reopen these as unresolved requirements.
 
-The following remain unresolved:
-- What exactly does PVR mean, and does it describe the company or its
-  contact? Retain the nullable boolean in companies without inventing
-  additional semantics.
-- Is a distinct placement cycle needed beyond graduating batch and offer
-  date? placement_year is currently omitted; derive calendar year from
-  offer_date if that is all that is needed.
-- Validate import mappings, missing values, company-name normalization,
-  and complete eligible rosters against actual historical source files.
+Remaining work:
+- Review actual historical files, missing required registration, category values,
+  globally unique rolls and programme/cohort/company mappings before imports.
+- Prepare a reviewed, data-preserving forward migration from the unchanged
+  legacy history. Do not rewrite migrations 0000-0004 or reset shared databases.
+- Port existing queries/actions, analytics contracts, editors, seeds and calendar
+  persistence to the target. Implement the pending cross-table rules before
+  production integration.
+- Resolve PVR semantics without inferring behavior from the nullable field.
+- Update module-specific READMEs when their implementations are ported; existing
+  legacy module contracts are not evidence of target-schema compatibility.
 
 Authentication (implemented; see lib/auth/README.md):
 - Auth.js (NextAuth v5) Credentials provider, email + password against the
@@ -249,56 +286,35 @@ Authentication (implemented; see lib/auth/README.md):
   the local PostgreSQL container and migrations as described in
   db/README.md before signing in.
 
-Analytics dashboard (implemented; see lib/placements/README.md):
-- KPIs and the four charts are computed from the database through
-  lib/placements/analytics.ts; filtering and counting rules live there only.
-- The schema has no academic stream. The stream-wise chart uses the company
-  sector (companies.domain) until a stream field is decided by the database
-  owner; unplaced students are reported separately because they have no sector.
-- Placement % is shown as placed / recorded students with a note that it assumes
-  a complete roster; where roster completeness is recorded is still undecided.
-- Charts use Recharts. Local development data: npm run db:seed:dashboard
-  (fictional DEMO companies, nine-digit 9xx student rolls).
-
-Student records (implemented; see lib/students/README.md):
-- ADMIN-only server queries supply names and offers; professors receive only the
-  existing analytics contract. All mutations re-read the authenticated role.
-- Per-row Save/Cancel submits only changed fields. Unsaved drafts are separate
-  from database rows; successful mutations refresh server data and analytics.
-- Names and graduating batches are required; the batch is a four-digit integer.
-- Optional offers select an existing company or explicitly create one in the
-  student editor (name and optional sector). Creation is ADMIN-only and never
-  overwrites an existing company. Sector is otherwise read-only company data.
-  Missing offer fields stay NULL. Removing an offer is explicit; a student with
-  an offer cannot be deleted. No browser-only CSV importer remains.
-- Migration 0002 converts both roll columns to integers and adds constraints.
-  Invalid legacy records must be resolved before applying it; the migration
-  never deletes demo or other data automatically.
+Legacy analytics and student/company integration:
+- lib/placements/analytics.ts, lib/students/ and lib/companies/ still implement
+  the previous MME model and use columns removed from the target. Their existing
+  module READMEs describe that legacy implementation until integration updates.
+- Legacy student editors remain ADMIN-only, with role rechecks on mutation.
+  Preserve the same authorization, explicit offer removal, draft Save/Cancel and
+  no-overwrite company creation requirements when porting their data contracts.
+- Recharts remain the current chart library; the historical company-sector chart
+  must not be mistaken for the new academic department/programme dimension.
+- db/seed.ts and db/seed-dashboard-demo.ts contain fictional legacy examples.
+  They are not migrated; do not run them against the target schema.
 
 Process calendar (temporary client-only mode):
-- The dashboard Calendar view is currently disconnected from PostgreSQL and does
-  not call `lib/calendar/queries.ts` or `lib/calendar/actions.ts`.
-- Admins can add, edit and remove dated process entries for PPT, OT, Group
-  Discussion, Resume Shortlisting and PI. Entries are retained in browser local
-  storage across reloads but are not shared between browsers or stored in PostgreSQL.
-- Professors can view entries created during the current browser session but
-  cannot edit them. The older company visit-date query/action files remain
-  dormant for a future persistence decision.
+- The dashboard calendar does not call lib/calendar/queries.ts or
+  lib/calendar/actions.ts. Admins add/edit/remove process entries in browser
+  local storage; entries are not shared between browsers or stored in PostgreSQL.
+- Professors remain read-only. The dormant company visit-date query/action files
+  use the old schema and must be ported or replaced when persistence is integrated.
+- Target drive_events/event_roles describe the future persistence contract,
+  not an already connected calendar feature.
 
-Company directory (see lib/companies/README.md):
-- ADMIN users can add companies directly, without creating offers or students.
-- The directory includes current-batch companies and companies with no offers
-  in any batch. Companies linked only to other batches remain hidden.
-- Contacts remain global company fields; explicit batch associations and
-  per-batch contact details are deferred. Creation never overwrites duplicates.
-
-Outreach contact tracker (explicitly approved; see lib/outreach/):
+Outreach contact tracker (unchanged; see lib/outreach/):
 - Signed-in PROFESSOR users have read-only access. ADMIN users can create,
-  edit and delete standalone contact/to-do records in `outreach_contacts`.
-- Outreach records have no foreign key or synchronization with companies,
-  students, placement offers, analytics, or the process calendar.
-- PVR defaults to No and `updated_at` is refreshed by the server on edits.
+  edit and delete standalone outreach_contacts records.
+- There is no FK or synchronization with companies, students, offers, analytics
+  or the process calendar.
+- PVR defaults to No; updated_at is maintained by the server on edits.
 
-When a decision changes, update this file and db/README.md along with any
-relevant implementation, and commit the shared documentation so every
-laptop and agent receives the same context.
+When a shared decision changes, update this file, db/README.md and relevant
+module documentation with the implementation, and commit shared documentation
+with the reviewed changes so every laptop receives the same context. Never
+commit credentials or real student records.

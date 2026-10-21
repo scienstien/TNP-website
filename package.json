@@ -20,6 +20,7 @@
   "dependencies": {
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
+    "codex": "^0.2.3",
     "drizzle-orm": "^0.45.4",
     "gsap": "^3.15.0",
     "lucide-react": "^1.60.0",
