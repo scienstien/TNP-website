@@ -108,14 +108,6 @@ export default function LoginPage() {
             sizes="(max-width: 800px) 100vw, 40vw"
           />
         </div>
-        <div className="login-brand">
-          <span className="login-institute">
-            NIT TIRUCHIRAPPALLI
-            <span className="login-department">
-              METALLURGICAL &amp; MATERIALS ENGINEERING
-            </span>
-          </span>
-        </div>
 
         <div className="login-formContent">
           <div className="login-identity">

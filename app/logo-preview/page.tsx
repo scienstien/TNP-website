@@ -10,7 +10,7 @@ export default function LogoPreview() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 overflow-x-clip bg-[#0F0E0D] px-4 py-12 text-center text-[#F3EDE7]">
       <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#C9A98B]">
-        NIT Tiruchirappalli · MME
+        NIT Tiruchirappalli
       </p>
       <LoginLogo />
       <TnpTitle className="text-[clamp(1.35rem,5.8vw,3.25rem)]" />
