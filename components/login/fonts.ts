@@ -7,3 +7,4 @@ export const display = localFont({
   style: "normal",
   display: "swap",
 });
+

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import Image from "next/image";
 import {
   Building2,
   CalendarDays,
+  ClipboardList,
   GraduationCap,
   Home as HomeIcon,
   LayoutDashboard,
@@ -15,12 +16,30 @@ import type { StudentData } from "@/lib/students/types";
 import DriveCalendar from "@/components/calendar/DriveCalendar";
 import PlacementAnalytics from "@/components/dashboard/PlacementAnalytics";
 import { signOutAction } from "@/lib/auth/actions";
-import type { CalendarData } from "@/lib/calendar/types";
 import type { PlacementRecord } from "@/lib/placements/types";
 import Companies from "@/components/companies/Companies";
 import type { CompanyRecord } from "@/lib/companies/types";
+import OutreachTracker from "@/components/outreach/OutreachTracker";
+import type { OutreachRecord } from "@/lib/outreach/types";
+import PlacedSoFar from "@/components/home/PlacedSoFar";
+import { batchYearForDate } from "@/lib/placements/year-to-date";
+import "@/components/home/home.css";
 
-type View = "Home" | "Overview" | "Calendar" | "Companies" | "Students";
+type View = "Home" | "Overview" | "Calendar" | "Companies" | "Outreach" | "Students";
+const VIEW_STORAGE_KEY = "mme-dashboard-active-view";
+const VIEW_CHANGE_EVENT = "mme-dashboard-view-change";
+
+const subscribeToView = (callback: () => void) => {
+  window.addEventListener("storage", callback);
+  window.addEventListener(VIEW_CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(VIEW_CHANGE_EVENT, callback);
+  };
+};
+
+const getStoredView = () =>
+  window.localStorage.getItem(VIEW_STORAGE_KEY) ?? "Home";
 
 export interface DashboardUser {
   name: string | null;
@@ -32,25 +51,32 @@ export interface DashboardUser {
 export default function Dashboard({
   user,
   placementRecords,
-  calendar,
   studentData,
   companies,
+  outreachContacts,
   today,
 }: {
   user: DashboardUser;
   placementRecords: PlacementRecord[];
-  calendar: CalendarData;
   studentData: StudentData | null;
   companies: CompanyRecord[];
+  outreachContacts: OutreachRecord[];
   /** Today's date at the institute (YYYY-MM-DD), computed on the server. */
   today: string;
 }) {
-  const [view, setView] = useState<View>("Home");
   const role: "Professor" | "Admin" =
     user.role === "ADMIN" ? "Admin" : "Professor";
-  const upcomingCount = calendar.visits.filter(
-    (visit) => visit.visitDate >= today,
-  ).length;
+  const storedView = useSyncExternalStore(subscribeToView, getStoredView, () => "Home");
+  const allowedViews: View[] = role === "Admin"
+    ? ["Home", "Overview", "Calendar", "Companies", "Outreach", "Students"]
+    : ["Home", "Overview", "Calendar", "Outreach"];
+  const view: View = allowedViews.includes(storedView as View)
+    ? storedView as View
+    : "Home";
+  const setView = (next: View) => {
+    window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+    window.dispatchEvent(new Event(VIEW_CHANGE_EVENT));
+  };
   const displayName = user.name?.trim() || user.email;
   const firstName = displayName.split(/[\s@]/)[0];
   const initials = displayName
@@ -90,14 +116,23 @@ export default function Dashboard({
             onClick={() => setView("Calendar")}
             icon={CalendarDays}
           >
-            Calendar {upcomingCount > 0 && <small aria-label={`${upcomingCount} upcoming visits`}>{upcomingCount}</small>}
+            Calendar
           </NavButton>
+          {role === "Admin" && (
+            <NavButton
+              active={view === "Companies"}
+              onClick={() => setView("Companies")}
+              icon={Building2}
+            >
+              Companies
+            </NavButton>
+          )}
           <NavButton
-            active={view === "Companies"}
-            onClick={() => setView("Companies")}
-            icon={Building2}
+            active={view === "Outreach"}
+            onClick={() => setView("Outreach")}
+            icon={ClipboardList}
           >
-            Companies
+            Outreach
           </NavButton>
           {role === "Admin" && (
             <NavButton
@@ -113,9 +148,7 @@ export default function Dashboard({
           <b>{initials}</b>
           <span>
             {displayName}
-            <small>
-              {role === "Admin" ? "Administrator" : "Faculty · read-only"}
-            </small>
+            {role === "Admin" && <small>Administrator</small>}
           </span>
           <form action={signOutAction}>
             <button type="submit" className="signout-button">
@@ -127,8 +160,9 @@ export default function Dashboard({
       <section className="content-area">
         {view === "Home" && (
           <HomeView
-            role={role}
             firstName={firstName}
+            placementRecords={placementRecords}
+            today={today}
             onDashboard={() => setView("Overview")}
             onCalendar={() => setView("Calendar")}
           />
@@ -140,17 +174,21 @@ export default function Dashboard({
           <>
             <Heading
               eyebrow="RECRUITMENT PIPELINE"
-              title="Drive calendar"
-              subtitle="Companies visiting campus. Select a day to see who is coming."
+              title="Process calendar"
+              subtitle="Plan and track OT, group discussions, resume shortlisting and PI rounds."
             />
             <DriveCalendar
-              data={calendar}
               today={today}
               isAdmin={role === "Admin"}
             />
           </>
         )}
-        {view === "Companies" && <Companies data={companies} isAdmin={role === "Admin"} />}
+        {view === "Companies" && role === "Admin" && (
+          <Companies data={companies} isAdmin />
+        )}
+        {view === "Outreach" && (
+          <OutreachTracker data={outreachContacts} isAdmin={role === "Admin"} />
+        )}
         {view === "Students" && role === "Admin" && studentData && (
           <StudentRecords data={studentData} />
         )}
@@ -160,41 +198,54 @@ export default function Dashboard({
 }
 
 function HomeView({
-  role,
   firstName,
+  placementRecords,
+  today,
   onDashboard,
   onCalendar,
 }: {
-  role: "Professor" | "Admin";
   firstName: string;
+  placementRecords: PlacementRecord[];
+  today: string;
   onDashboard: () => void;
   onCalendar: () => void;
 }) {
+  const offers = useMemo(
+    () => placementRecords.flatMap((record) => record.offer ? [{
+      batchYear: record.batchYear,
+      offerDate: record.offer.offerDate,
+    }] : []),
+    [placementRecords],
+  );
+  const batchStats = useMemo(() => {
+    const batchYear = batchYearForDate(today);
+    const batchRecords = placementRecords.filter((record) => record.batchYear === batchYear);
+    const placed = batchRecords.filter((record) => record.offer !== null).length;
+    return { batchYear, placed, unplaced: batchRecords.length - placed };
+  }, [placementRecords, today]);
   return (
-    <section className="home-view">
-      <div className="home-hero">
-        <p className="eyebrow">
-          {role === "Admin"
-            ? "CIC REPRESENTATIVE WORKSPACE"
-            : "FACULTY WORKSPACE"}
-        </p>
-        <h1>
-          Hello,
-          <br />
-          <em>{firstName}.</em>
-        </h1>
-        <div className="home-actions">
-          <button className="dark-button" onClick={onDashboard}>
-            Open dashboard <span>{"->"}</span>
-          </button>
-          <button className="light-button" onClick={onCalendar}>
-            View drive calendar
-          </button>
+    <section className="home-view home-view--comparison">
+      <div className="home-intro">
+        <div className="home-hero">
+          <h1>
+            Hello,{" "}
+            <br />
+            <em>{firstName}.</em>
+          </h1>
+          <div className="home-actions">
+            <button className="dark-button" onClick={onDashboard}>
+              Open dashboard <span>{"->"}</span>
+            </button>
+            <button className="light-button" onClick={onCalendar}>
+              View drive calendar
+            </button>
+          </div>
         </div>
+        <PlacedSoFar offers={offers} batchStats={batchStats} today={today} />
       </div>
       <div className="home-grid">
         <button className="home-card coral-card" onClick={onDashboard}>
-          <span>01 / SIGNAL</span>
+          <span>01</span>
           <strong>
             Placement
             <br />
@@ -202,7 +253,7 @@ function HomeView({
           </strong>
         </button>
         <button className="home-card dark-card" onClick={onCalendar}>
-          <span>02 / PIPELINE</span>
+          <span>02</span>
           <strong>
             Drive
             <br />

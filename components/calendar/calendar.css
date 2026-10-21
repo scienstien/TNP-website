@@ -24,6 +24,11 @@
   color: #edf3ff;
   font-size: 22px;
 }
+.cal-local-note {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
 .cal-nav {
   display: flex;
   gap: 6px;
@@ -85,7 +90,9 @@
   cursor: wait;
 }
 .cal button:focus-visible,
-.cal input:focus-visible {
+.cal input:focus-visible,
+.cal select:focus-visible,
+.cal textarea:focus-visible {
   outline: 2px solid #70a0ff;
   outline-offset: 2px;
 }
@@ -276,6 +283,22 @@
   color: var(--muted);
   font-size: 12px;
 }
+.cal-stage {
+  padding: 4px 8px;
+  border: 1px solid rgba(112, 160, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(58, 114, 230, 0.18);
+  color: #bcd2ff;
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.cal-process-notes {
+  margin: 10px 0 0;
+  color: #aebbd0;
+  font-size: 12px;
+  line-height: 1.5;
+}
 .cal-contact {
   display: grid;
   gap: 4px;
@@ -414,16 +437,21 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.cal-form input {
+.cal-form input,
+.cal-form select,
+.cal-form textarea {
   width: 100%;
-  height: 38px;
-  padding: 0 10px;
+  min-height: 38px;
+  padding: 8px 10px;
   border: 1px solid #354d76;
   border-radius: 6px;
   background: #121d30;
   color: #dbe7fc;
   font-size: 13px;
   color-scheme: dark;
+}
+.cal-form textarea {
+  resize: vertical;
 }
 .cal-form input[readonly] {
   opacity: 0.7;

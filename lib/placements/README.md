@@ -25,6 +25,12 @@ The "Dashboard" view (`components/dashboard/`) is computed from placement data i
 
 The schema has no academic stream, so the stream chart uses the offering company's sector (`companies.domain`). Unplaced students have no company, so they belong to no sector. They are reported in that chart's footnote instead of being stacked into a sector.
 
+## Home comparison
+
+Home uses `components/home/PlacedSoFar.tsx`, adapted from the supplied handoff, with the existing authenticated placement records and server-computed institute date. The ignored handoff folder is not a runtime dependency.
+
+`lib/placements/year-to-date.ts` compares offers dated from the most recent 1 July through the selected date (inclusive) with the same period one year earlier, across all graduating batches. January–June dates start on 1 July of the preceding calendar year; cross-year labels show both years. Unplaced students are excluded; offers without dates are excluded and reported separately. February 29 compares with February 28 in the previous year. An earlier July–June period without any dated offers is shown as missing, not zero; a zero baseline never produces a percentage change. This is a dated-offer comparison, not a batch placement rate, and does not introduce a stored placement-cycle field.
+
 ## Local data
 
 `npm run db:seed:dashboard` loads a **fictional** five-batch dataset with DEMO company names and fixed nine-digit 9xx student rolls. Never run it against a production database or real records in that roll range.

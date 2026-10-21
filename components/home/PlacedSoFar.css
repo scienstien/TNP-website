@@ -1,0 +1,257 @@
+/*
+ * PlacedSoFar styles. Every class starts with "psf-", so nothing here touches the rest of
+ * the app. Change the look through the custom properties on .psf.
+ */
+.psf {
+  --psf-bg: #121a2a;
+  --psf-border: rgba(112, 160, 255, 0.22);
+  --psf-tile-bg: rgba(13, 21, 36, 0.6);
+  --psf-tile-border: rgba(112, 160, 255, 0.16);
+  --psf-lead-bg: rgba(36, 84, 197, 0.14);
+  --psf-lead-border: rgba(76, 127, 228, 0.55);
+  --psf-input-bg: #121d30;
+  --psf-input-border: #354d76;
+  --psf-accent: #4c7fe4;
+  --psf-focus: #70a0ff;
+  --psf-text: #f1f5ff;
+  --psf-text-dim: #b9c6dc;
+  --psf-muted: #8f9bb0;
+  --psf-good: #75c7a6;
+  --psf-bad: #ff9a8a;
+  --psf-flat: #c4d0e4;
+  --psf-sans:
+    "Geist", "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 22px 24px 0;
+  border: 1px solid var(--psf-border);
+  border-radius: 8px;
+  background: var(--psf-bg);
+  color: var(--psf-text);
+  font-family: var(--psf-sans);
+}
+.psf *,
+.psf *::before,
+.psf *::after {
+  box-sizing: inherit;
+}
+
+.psf .psf-title {
+  margin: 0;
+  color: var(--psf-text);
+  font: 700 clamp(28px, 3vw, 34px)/0.95 "Playfair Display", Georgia, serif;
+  letter-spacing: -0.045em;
+}
+.psf-comparison-heading {
+  color: var(--psf-text-dim);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Date picker */
+.psf-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.psf-picker label {
+  color: var(--psf-muted);
+  font-size: 13px;
+}
+.psf-picker input {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--psf-input-border);
+  border-radius: 6px;
+  background: var(--psf-input-bg);
+  color: var(--psf-text);
+  font: inherit;
+  font-size: 13px;
+  color-scheme: dark;
+}
+.psf-picker input:hover,
+.psf-today:hover {
+  border-color: var(--psf-accent);
+}
+.psf-today {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--psf-input-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--psf-text-dim);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.psf-picker input:focus-visible,
+.psf-today:focus-visible {
+  outline: 2px solid var(--psf-focus);
+  outline-offset: 2px;
+}
+
+/* The two year tiles and the change line */
+.psf-figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.psf-figure {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--psf-tile-border);
+  border-radius: 6px;
+  background: var(--psf-tile-bg);
+}
+.psf-figure.is-lead {
+  border-color: var(--psf-lead-border);
+  background: var(--psf-lead-bg);
+}
+.psf .psf-figure span {
+  color: var(--psf-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.psf .psf-figure strong {
+  margin: 0;
+  color: var(--psf-text-dim);
+  font:
+    600 32px/1.1 var(--psf-sans);
+  letter-spacing: -0.02em;
+}
+.psf .psf-figure.is-lead strong {
+  color: var(--psf-text);
+}
+.psf .psf-change {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--psf-flat);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.psf .psf-change--good {
+  color: var(--psf-good);
+}
+.psf .psf-change--bad {
+  color: var(--psf-bad);
+}
+.psf .psf-note {
+  margin: 0;
+  color: var(--psf-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Current-batch placement mix */
+.psf-placement {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 8px;
+  min-width: 0;
+  margin: auto -24px 0;
+}
+.psf-placement-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 16px;
+  padding: 0 16px;
+  color: var(--psf-text-dim);
+  font-size: 14px;
+}
+.psf-placement-summary strong {
+  width: 100%;
+  color: var(--psf-text);
+  font-size: 15px;
+  text-align: center;
+}
+.psf-placement-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.psf-donut-wrap {
+  position: relative;
+  width: min(320px, 100%);
+  aspect-ratio: 320 / 176;
+}
+.psf-donut {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.psf-donut-track,
+.psf-donut-fill {
+  fill: none;
+  stroke-width: 24;
+  stroke-linecap: butt;
+}
+.psf-donut-track { stroke: #788496; }
+.psf-donut-fill {
+  stroke: #4c7fe4;
+  stroke-dasharray: var(--psf-filled-arc) 100;
+  animation: psf-water-rise 3.5s cubic-bezier(.15, .85, .2, 1) both;
+}
+.psf-donut-value {
+  position: absolute;
+  right: 0;
+  bottom: 18%;
+  left: 0;
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+}
+.psf-donut-value strong {
+  color: var(--psf-text);
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.psf-slot-number {
+  display: inline-flex;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.psf-slot-window {
+  display: inline-block;
+  width: .64em;
+  height: 1em;
+  overflow: hidden;
+  text-align: center;
+}
+.psf-slot-reel {
+  display: block;
+  transform: translateY(var(--psf-slot-end));
+  animation-name: psf-slot-spin;
+  animation-timing-function: cubic-bezier(.15, .85, .2, 1);
+  animation-fill-mode: both;
+}
+.psf-slot-reel > span { display: block; height: 1em; line-height: 1; }
+.psf-slot-punctuation { display: inline-block; }
+.psf-placement-summary i { width: 10px; height: 10px; border-radius: 50%; }
+.psf-legend-placed { background: #4c7fe4; }
+.psf-legend-unplaced { background: #788496; }
+@keyframes psf-water-rise {
+  from { clip-path: polygon(0 100%, 25% 100%, 50% 100%, 75% 100%, 100% 100%, 100% 100%, 0 100%); }
+  to { clip-path: polygon(0 0, 25% 0, 50% 0, 75% 0, 100% 0, 100% 100%, 0 100%); }
+}
+@keyframes psf-slot-spin {
+  from { transform: translateY(0); }
+  to { transform: translateY(var(--psf-slot-end)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .psf-donut-fill { animation: none; }
+  .psf-slot-reel { animation: none; }
+}

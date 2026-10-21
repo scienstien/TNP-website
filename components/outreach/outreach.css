@@ -1,0 +1,37 @@
+.portal-shell .content-area:has(.outreach-view) { height:100dvh; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior-y:contain; scrollbar-gutter:stable; }
+.outreach-view { min-width:0; padding:42px 0 48px; }
+.outreach-view .section-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:24px; }
+.outreach-view .section-heading > div { min-width:0; }
+.outreach-view h1 { margin:6px 0; }
+.outreach-message { color:#82d8b5; font-size:13px; }
+.outreach-panel { padding:0; overflow:hidden; }
+.outreach-tools { display:grid; grid-template-columns:auto minmax(180px,420px) 1fr; align-items:center; gap:12px; padding:18px 20px; border-bottom:1px solid var(--line); color:var(--muted); font-size:12px; }
+.outreach-tools input { min-width:0; padding:10px 12px; border:1px solid #354d76; border-radius:5px; background:#101b2d; color:#e6efff; }
+.outreach-tools span { justify-self:end; }
+.outreach-list { display:grid; gap:12px; padding:18px; }
+.outreach-card { padding:18px; border:1px solid rgba(112,160,255,.2); border-radius:8px; background:rgba(13,22,38,.72); }
+.outreach-card-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+.outreach-card h2 { margin:8px 0 0; font-size:20px; }
+.outreach-pvr { display:inline-flex; border:1px solid; border-radius:999px; padding:4px 8px; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+.outreach-pvr--yes { border-color:rgba(117,199,166,.45); color:#75c7a6; background:rgba(48,125,94,.16); }
+.outreach-pvr--no { border-color:rgba(242,139,130,.4); color:#f2a29a; background:rgba(134,40,52,.14); }
+.outreach-details { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin:20px 0 0; }
+.outreach-details div { min-width:0; }
+.outreach-details dt { margin-bottom:5px; color:var(--muted); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+.outreach-details dd { margin:0; color:#dbe6fa; font-size:13px; overflow-wrap:anywhere; }
+.outreach-details a { color:#8fb4ff; }
+.outreach-remarks { grid-column:span 2; }
+.outreach-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.outreach-actions button { padding:7px 11px; border:1px solid #52617a; border-radius:5px; background:transparent; color:inherit; }
+.outreach-empty { margin:0; padding:28px 20px; color:var(--muted); }
+.outreach-editor { display:grid; gap:18px; margin-bottom:24px; padding:22px; }
+.outreach-editor h2 { margin:6px 0 0; }
+.outreach-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.outreach-field { display:flex; min-width:0; flex-direction:column; gap:7px; color:#b9c8df; font-size:12px; }
+.outreach-field--wide { grid-column:span 2; }
+.outreach-field input,.outreach-field select,.outreach-field textarea { width:100%; min-width:0; border:1px solid #354d76; border-radius:5px; background:#101b2d; color:#e6efff; padding:9px 10px; resize:vertical; }
+.outreach-field select option { color:#111; background:#fff; }
+.outreach-field small { min-height:1em; color:#f28b82; }
+.outreach-error { color:#f28b82; }
+@media (max-width:900px) { .outreach-details { grid-template-columns:repeat(2,minmax(0,1fr)); }.outreach-fields { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:700px) { .portal-shell .content-area:has(.outreach-view) { height:calc(100dvh - 61px); padding-bottom:0; }.outreach-view { padding-top:24px; }.outreach-view .section-heading,.outreach-card-heading { flex-direction:column; }.outreach-view .section-heading > .dark-button { width:100%; }.outreach-tools { grid-template-columns:1fr; }.outreach-tools span { justify-self:start; }.outreach-details,.outreach-fields { grid-template-columns:1fr; }.outreach-remarks,.outreach-field--wide { grid-column:auto; } }

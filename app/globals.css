@@ -1,5 +1,42 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Space+Grotesk:wght@500;600;700&display=swap");
 @import "tailwindcss";
+
+/* Shared calendar-only control used by editable date fields. */
+.date-picker {
+  display: flex;
+  align-items: stretch;
+  min-height: 38px;
+  overflow: hidden;
+  border: 1px solid #687181;
+  border-radius: 6px;
+  background: #131c2b;
+}
+.date-picker input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  outline: 0;
+}
+.date-picker:focus-within {
+  border-color: #9eb9ff;
+  box-shadow: 0 0 0 3px rgb(91 132 255 / .18);
+}
+.date-picker-trigger {
+  display: grid;
+  flex: 0 0 38px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid #687181;
+  background: rgb(29 52 92 / .35);
+  color: #cfe0ff;
+  cursor: pointer;
+}
+.date-picker-trigger:hover:not(:disabled) { background: rgb(49 92 164 / .4); }
+.date-picker-trigger:disabled { cursor: not-allowed; opacity: .5; }
 .table-row:has(.cell-input) {
   grid-template-columns: 1.5fr 1fr 1fr 0.85fr 0.75fr 0.9fr 28px !important;
 }
@@ -524,6 +561,7 @@
     margin-top: 20px;
   }
 }
+
 :root {
   --ink: #151515;
   --paper: #f5f3ee;

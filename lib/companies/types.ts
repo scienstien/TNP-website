@@ -6,15 +6,14 @@ export interface CompanyRecord {
   hrName: string | null;
   email: string | null;
   phoneNumber: string | null;
+  remarks: string | null;
   pvrStatus: PvrStatus;
   visitDate: string | null;
-  /** Derived from placement_offers; never manually stored on a company. */
-  offerCount: number;
 }
 
 export interface CompanyResult {
   ok?: boolean;
-  company?: Omit<CompanyRecord, "offerCount">;
+  company?: CompanyRecord;
   error?: string;
-  fieldErrors?: Partial<Record<"name" | "domain" | "hrName" | "email" | "phoneNumber" | "pvrStatus" | "visitDate" | "form", string>>;
+  fieldErrors?: Partial<Record<"name" | "domain" | "hrName" | "email" | "phoneNumber" | "remarks" | "pvrStatus" | "visitDate" | "form", string>>;
 }

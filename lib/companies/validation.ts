@@ -1,7 +1,22 @@
 import { isValidIsoDate } from "@/lib/calendar/dates";
 import type { PvrStatus } from "./types";
+import { validateCompany } from "@/lib/students/company-validation";
 
 const clean = (value: string) => value.trim().replace(/\s+/gu, " ");
+
+/** Reuse the student editor's name rules and the directory's contact validation. */
+export function validateCompanyCreate(input: unknown) {
+  const values = input && typeof input === "object" && !Array.isArray(input)
+    ? input as Record<string, unknown> : {};
+  const { name, ...fields } = values;
+  const identity = validateCompany({ name });
+  const details = validateCompanyUpdate({ ...fields, pvrStatus: fields.pvrStatus === undefined ? "no" : fields.pvrStatus }, identity.data.name);
+  const fieldErrors: Record<string, string> = { ...identity.fieldErrors, ...details.fieldErrors };
+  return {
+    data: { name: identity.data.name, ...details.data },
+    fieldErrors,
+  };
+}
 
 export function pvrStatusFromDatabase(value: boolean | null): PvrStatus {
   return value === true ? "yes" : value === false ? "no" : "unknown";
@@ -19,6 +34,7 @@ export function validateCompanyUpdate(input: unknown, companyName: string) {
     hrName: null as string | null,
     email: null as string | null,
     phoneNumber: null as string | null,
+    remarks: null as string | null,
     pvrStatus: null as boolean | null,
     visitDate: null as string | null,
   };
@@ -26,11 +42,11 @@ export function validateCompanyUpdate(input: unknown, companyName: string) {
     return { data, fieldErrors: { form: "Invalid company data." } };
   }
   const values = input as Record<string, unknown>;
-  const allowed = ["domain", "hrName", "email", "phoneNumber", "pvrStatus", "visitDate"];
+  const allowed = ["domain", "hrName", "email", "phoneNumber", "remarks", "pvrStatus", "visitDate"];
   if (Object.keys(values).some((key) => !allowed.includes(key))) {
     fieldErrors.form = "Company name is immutable and cannot be changed.";
   }
-  const text = (key: "domain" | "hrName" | "email" | "phoneNumber", max: number) => {
+  const text = (key: "domain" | "hrName" | "email" | "phoneNumber" | "remarks", max: number) => {
     const value = values[key];
     if (value !== undefined && value !== null && typeof value !== "string") {
       fieldErrors[key] = "Enter text or leave this field blank.";
@@ -44,6 +60,7 @@ export function validateCompanyUpdate(input: unknown, companyName: string) {
   text("hrName", 100);
   text("email", 254);
   text("phoneNumber", 30);
+  text("remarks", 1000);
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     fieldErrors.email = "Enter a valid email address.";
   } else if (data.email) data.email = data.email.toLowerCase();

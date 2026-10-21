@@ -9,6 +9,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -33,6 +34,7 @@ export const companies = pgTable("companies", {
   hrName: text("hr_name"),
   email: text("email"),
   phoneNumber: text("phone_number"),
+  remarks: text("remarks"),
   // NULL preserves an unknown source value instead of assuming "no".
   pvrStatus: boolean("pvr_status"),
   // Date of the company's campus visit, shown on the placement calendar. NULL means no
@@ -66,6 +68,21 @@ export const placementOffers = pgTable(
     primaryKey({ columns: [table.companyName, table.studentRollNumber] }),
   ],
 );
+
+// Independent outreach/contact checklist. Deliberately has no foreign key to
+// companies or placement records so prospective contacts can be tracked freely.
+export const outreachContacts = pgTable("outreach_contacts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyName: text("company_name").notNull(),
+  hrName: text("hr_name"),
+  phoneNumber: text("phone_number"),
+  email: text("email"),
+  pvrStatus: boolean("pvr_status").notNull().default(false),
+  remarks: text("remarks"),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+    .defaultNow()
+    .notNull(),
+});
 
 // Authentication only; no student or placement fields belong here.
 // Auth.js provider/adapter integration is a separate task.

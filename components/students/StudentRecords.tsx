@@ -1,25 +1,57 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  BriefcaseBusiness,
+  ChevronDown,
+  CircleSlash2,
+  Pencil,
+  Search,
+  Trash2,
+  UsersRound,
+} from "lucide-react";
 import { createStudent, patchStudent, deleteStudent, removeStudentOffer, createStudentCompany } from "@/lib/students/actions";
 import { validateCompany } from "@/lib/students/company-validation";
 import { validateStudent } from "@/lib/students/validation";
 import { OFFER_TYPES } from "@/lib/placements/types";
 import type { StudentData, StudentRecord, StudentResult } from "@/lib/students/types";
+import { DatePicker } from "@/components/ui/date-picker";
 import "./students.css";
 
 export default function StudentRecords({ data }: { data: StudentData }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [batchFilter, setBatchFilter] = useState("All");
+  const [companyFilter, setCompanyFilter] = useState("All");
   const [editing, setEditing] = useState<StudentRecord | "new" | null>(null);
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const batches = [...new Set(data.students.map(s => s.batchYear))]
+    .sort((a, b) => b - a);
+  const companies = [...new Set(data.students.flatMap(s => s.offer ? [s.offer.companyName] : []))]
+    .sort((a, b) => a.localeCompare(b));
+  const placedCount = data.students.filter((student) => student.offer).length;
+  const unplacedCount = data.students.length - placedCount;
   const visible = data.students.filter(s =>
     `${s.rollNumber} ${s.name} ${s.batchYear} ${s.offer?.companyName ?? ""}`.toLowerCase().includes(query.toLowerCase()) &&
-    (filter === "All" || (filter === "Unplaced" ? !s.offer :
-      filter === "Placed" ? !!s.offer : s.offer?.offerType === filter)));
+    (batchFilter === "All" || s.batchYear === Number(batchFilter)) &&
+    (companyFilter === "All" || s.offer?.companyName === companyFilter) &&
+    (statusFilter === "All" || (statusFilter === "Unplaced" ? !s.offer :
+      statusFilter === "Placed" ? !!s.offer : s.offer?.offerType === statusFilter)));
+  const clearFilters = () => {
+    setQuery("");
+    setBatchFilter("All");
+    setCompanyFilter("All");
+    setStatusFilter("All");
+  };
+  const activeFilters = [
+    query && { label: `Search: ${query}`, clear: () => setQuery("") },
+    batchFilter !== "All" && { label: `Batch: ${batchFilter}`, clear: () => setBatchFilter("All") },
+    companyFilter !== "All" && { label: `Company: ${companyFilter}`, clear: () => setCompanyFilter("All") },
+    statusFilter !== "All" && { label: `Status: ${statusFilter}`, clear: () => setStatusFilter("All") },
+  ].filter(Boolean) as { label: string; clear: () => void }[];
   function remove(student: StudentRecord, offer: boolean) {
     if (!window.confirm(offer
       ? `Remove the offer for ${student.name}? The student will become unplaced.`
@@ -35,23 +67,62 @@ export default function StudentRecords({ data }: { data: StudentData }) {
   return (
     <section className="student-records">
       <div className="section-heading">
-        <div><p className="eyebrow">ADMIN DATA ENTRY</p><h1>Student records</h1>
+        <div><p className="student-breadcrumb">Dashboard / Student records</p><h1>Student records</h1>
           <p>Saved students and offers from the database. Save each edit to update dashboard statistics.</p></div>
         <button className="dark-button" disabled={pending || editing !== null}
           onClick={() => { setEditing("new"); setMessage(""); }}>Add student</button>
       </div>
       {message && <p role="status">{message}</p>}
-      {editing && <StudentEditor key={editing === "new" ? "new" : editing.rollNumber}
-        initial={editing === "new" ? null : editing} companies={data.companies}
-        onCancel={() => { setEditing(null); router.refresh(); }}
-        onSaved={() => { setEditing(null); setMessage("Saved to the database."); }} />}
-      <section className="panel table-panel">
-        <div className="table-tools">
-          <label>Search <input value={query} placeholder="Name, roll, batch or company"
-            onChange={e => setQuery(e.target.value)} /></label>
-          <label>Filter <select value={filter} onChange={e => setFilter(e.target.value)}>
-            {["All", "Placed", "Unplaced", ...OFFER_TYPES].map(f => <option key={f}>{f}</option>)}
-          </select></label>
+      {editing && <StudentEditorModal onClose={() => { setEditing(null); router.refresh(); }}>
+        <StudentEditor key={editing === "new" ? "new" : editing.rollNumber}
+          initial={editing === "new" ? null : editing} companies={data.companies}
+          onCancel={() => { setEditing(null); router.refresh(); }}
+          onSaved={() => { setEditing(null); setMessage("Saved to the database."); }} />
+      </StudentEditorModal>}
+      <section className="panel table-panel student-table-card">
+        <div className="student-table-card-header">
+          <div>
+            <p className="student-table-kicker">PLACEMENT ROSTER</p>
+            <h2>Student directory</h2>
+            <p>Search, filter, and update each student&apos;s recorded offer.</p>
+          </div>
+          <div className="student-table-stats" aria-label="Student record summary">
+            <Stat label="Recorded" value={data.students.length} icon={UsersRound} />
+            <Stat label="Placed" value={placedCount} icon={BriefcaseBusiness} tone="placed" />
+            <Stat label="Unplaced" value={unplacedCount} icon={CircleSlash2} tone="unplaced" />
+          </div>
+        </div>
+        <div className="student-toolbar">
+          <div className="student-toolbar-controls">
+            <label className="student-search">
+              <Search size={17} aria-hidden="true" />
+              <span className="sr-only">Search students</span>
+              <input value={query} placeholder="Search name, roll number or company"
+                onChange={e => setQuery(e.target.value)} />
+            </label>
+            <FilterSelect label="Batch" value={batchFilter} onChange={setBatchFilter}>
+              <option value="All">All batches</option>
+              {batches.map(batch => <option key={batch} value={batch}>{batch}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Company" value={companyFilter} onChange={setCompanyFilter}>
+              <option value="All">All companies</option>
+              {companies.map(company => <option key={company} value={company}>{company}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter}>
+              {["All", "Placed", "Unplaced", ...OFFER_TYPES].map(status => <option key={status}>{status}</option>)}
+            </FilterSelect>
+          </div>
+          <div className="student-toolbar-summary">
+            <div className="student-active-filters" aria-label="Active filters">
+              {activeFilters.map(filter => <button key={filter.label} type="button" className="student-filter-chip" onClick={filter.clear}>
+                {filter.label} <span aria-hidden="true">×</span>
+              </button>)}
+              {activeFilters.length > 0 && <button type="button" className="student-clear-filters" onClick={clearFilters}>Clear all</button>}
+            </div>
+            <span className="student-result-count" role="status">
+              {visible.length ? `Showing 1–${visible.length} of ${data.students.length}` : `Showing 0 of ${data.students.length}`}
+            </span>
+          </div>
         </div>
         {!visible.length && <p className="table-hint" role="status">{data.students.length
           ? "No students match the current filters." : "No student records loaded."}</p>}
@@ -61,17 +132,21 @@ export default function StudentRecords({ data }: { data: StudentData }) {
               .map(h => <th key={h}>{h}</th>)}</tr></thead>
             <tbody>{visible.map(s => <tr key={s.rollNumber}>
               <td>{s.rollNumber}</td><td>{s.name}</td><td>{s.batchYear}</td>
-              <td>{s.offer ? "Placed" : "Unplaced"}</td>
+              <td><span className={`student-status student-status--${s.offer ? "placed" : "unplaced"}`}>
+                {s.offer ? "Placed" : "Unplaced"}
+              </span></td>
               <td>{s.offer?.companyName ?? "—"}</td>
               <td>{data.companies.find(c => c.name === s.offer?.companyName)?.domain ?? "—"}</td>
               <td>{s.offer?.jobRole ?? "—"}</td><td>{s.offer?.offerType ?? "—"}</td>
               <td>{s.offer?.packageLpa ?? "—"}</td><td>{s.offer?.offerDate ?? "—"}</td>
               <td><div className="student-row-actions">
-                <button disabled={pending || editing !== null} onClick={() => { setEditing(s); setMessage(""); }}>Edit</button>
-                {s.offer && <button disabled={pending || editing !== null} onClick={() => remove(s, true)}>Remove offer</button>}
-                <button disabled={pending || editing !== null || !!s.offer}
-                  title={s.offer ? "Remove the offer before deleting this student." : undefined}
-                  onClick={() => remove(s, false)}>Delete student</button>
+                <button className="student-icon-button" type="button" title={`Edit ${s.name}`} aria-label={`Edit ${s.name}`}
+                  disabled={pending || editing !== null} onClick={() => { setEditing(s); setMessage(""); }}><Pencil size={15} /></button>
+                {s.offer && <button className="student-icon-button student-icon-button--warning" type="button" title={`Remove ${s.name}'s offer`} aria-label={`Remove ${s.name}'s offer`}
+                  disabled={pending || editing !== null} onClick={() => remove(s, true)}><BriefcaseBusiness size={15} /></button>}
+                <button className="student-icon-button student-icon-button--danger" type="button" title={s.offer ? "Remove the offer before deleting this student." : `Delete ${s.name}`}
+                  aria-label={`Delete ${s.name}`} disabled={pending || editing !== null || !!s.offer}
+                  onClick={() => remove(s, false)}><Trash2 size={15} /></button>
               </div></td>
             </tr>)}</tbody>
           </table>
@@ -79,6 +154,54 @@ export default function StudentRecords({ data }: { data: StudentData }) {
       </section>
     </section>
   );
+}
+
+function Stat({
+  icon: Icon,
+  label,
+  tone,
+  value,
+}: {
+  icon: typeof UsersRound;
+  label: string;
+  tone?: "placed" | "unplaced";
+  value: number;
+}) {
+  return <div className={`student-stat${tone ? ` student-stat--${tone}` : ""}`}>
+    <Icon size={15} aria-hidden="true" />
+    <span><strong>{value}</strong>{label}</span>
+  </div>;
+}
+
+function FilterSelect({ label, value, onChange, children }: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}) {
+  return <label className="student-filter-select">
+    <span>{label}</span>
+    <select value={value} onChange={(event) => onChange(event.target.value)}>{children}</select>
+    <ChevronDown size={15} aria-hidden="true" />
+  </label>;
+}
+
+function StudentEditorModal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  return <div className="student-modal-backdrop" onMouseDown={(event) => {
+    if (event.target === event.currentTarget) onClose();
+  }}>
+    <section className="student-modal" role="dialog" aria-modal="true" aria-labelledby="student-editor-title">
+      {children}
+    </section>
+  </div>;
 }
 
 function StudentEditor({ initial, companies, onCancel, onSaved }: {
@@ -149,7 +272,10 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
       } catch { setResult({ error: "Unable to save. Your draft is preserved; try again." }); }
     });
   }}>
-    <h2>{initial ? `Edit ${initial.rollNumber}` : "Add student — unsaved draft"}</h2>
+    <div className="student-editor-heading">
+      <h2 id="student-editor-title">{initial ? `Edit ${initial.rollNumber}` : "Add student — unsaved draft"}</h2>
+      <button type="button" className="student-editor-close" onClick={onCancel} disabled={pending} aria-label="Close editor">×</button>
+    </div>
     <div className="student-fields">
       {field("rollNumber", "Roll number (9 digits)", { inputMode: "numeric", readOnly: !!initial })}
       {field("name", "Student name")}
@@ -218,10 +344,13 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
           <option value="">Not recorded</option>{OFFER_TYPES.map(t => <option key={t}>{t}</option>)}
         </select><span className="student-field-error">{result.fieldErrors?.offerType}</span>
       </label>
-      {field("offerDate", "Offer date (optional)", {
-        type: "date",
-        min: companyOptions.find(c => c.name === draft.companyName)?.visitDate ?? undefined,
-      })}
+      <div className="student-field">
+        <label htmlFor="student-offerDate">Offer date (optional)</label>
+        <DatePicker id="student-offerDate" value={draft.offerDate} disabled={pending}
+          min={companyOptions.find(c => c.name === draft.companyName)?.visitDate ?? undefined}
+          onChange={(value) => { setDraft((current) => ({ ...current, offerDate: value })); setResult({}); }} />
+        <span className="student-field-error">{result.fieldErrors?.offerDate}</span>
+      </div>
     </div>}
     {(result.error || result.fieldErrors?.form || result.fieldErrors?.offer) &&
       <p role="alert">{result.error || result.fieldErrors?.form || result.fieldErrors?.offer}</p>}

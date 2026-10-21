@@ -21,3 +21,4 @@ export default function LoginLogo({ className = "" }: { className?: string }) {
     </div>
   );
 }
+
