@@ -12,7 +12,7 @@ type Mode = "signin" | "signup";
 const COPY: Record<Mode, { title: string; intro: string }> = {
   signin: {
     title: "Welcome back.",
-    intro: "Sign in with your NIT Trichy institute email to explore MME placement records.",
+    intro: "Sign in to explore MME placement records.",
   },
   signup: {
     title: "Get started.",
@@ -95,20 +95,12 @@ function SignInForm({ callbackUrl }: { callbackUrl: string }) {
         autoComplete="current-password"
         placeholder="Enter your password"
       />
-      <div className="login-formMeta">
-        <a href="mailto:tnp@nitt.edu?subject=Password%20reset%20request">
-          Forgot password?
-        </a>
-      </div>
       <Submit pending={pending} idle="Sign in" busy="Signing in…" />
       {state.error && (
         <p className="login-message" role="alert">
           {state.error}
         </p>
       )}
-      <p className="login-accessHelp">
-        Need access? Contact the MME Training &amp; Placement office.
-      </p>
     </form>
   );
 }
@@ -290,3 +282,4 @@ function Submit({
     </button>
   );
 }
+

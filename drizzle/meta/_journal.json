@@ -22,6 +22,20 @@
       "when": 1792502209280,
       "tag": "0002_strict_student_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792518401965,
+      "tag": "0003_company_remarks",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792524391255,
+      "tag": "0004_outreach_contacts",
+      "breakpoints": true
     }
   ]
 }

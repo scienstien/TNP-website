@@ -92,7 +92,8 @@ been applied by this setup.
   preserves precision; Drizzle reads it as a string.
 - Keep offer date. Exclude company profile, joining date, and user is_active.
 - PVR status is a yes/no field. A missing source value remains NULL, not false.
-- Non-key source details are nullable to preserve missing historical data.
+- Non-key source details, including the admin-editable company `remarks` field,
+  are nullable to preserve missing historical data.
   Student names and batch years are exceptions: both are required.
 - Placement rate is students with offers divided by all recorded students in
   the batch. Publish it only after confirming the complete eligible roster;
@@ -122,6 +123,28 @@ been applied by this setup.
 company visits campus, for the drive calendar. NULL means no visit is scheduled. It holds one
 date per company and is separate from historical offers. Clearing it removes the visit from the
 calendar without touching the company or its offers.
+
+## Company remarks
+
+The ADMIN company directory can create standalone `companies` rows with no
+offers. It lists current-batch companies alongside companies with no offers in
+any batch. Contact fields remain global; explicit batch associations and
+batch-specific contact storage are deferred. This behavior requires no schema
+change and does not create student, offer, or outreach records.
+
+`companies.remarks` (nullable `text`, migration `0003_company_remarks`) stores optional admin
+notes about a company. It is editable only through the admin Companies view and is not used in
+placement analytics. The PVR editor presents `No` first while preserving `Unknown` for an
+explicitly unresolved value.
+
+## Outreach contacts
+
+`outreach_contacts` is a contact/to-do list that is deliberately independent of
+`companies`, students, offers, analytics and the process calendar. Signed-in
+professors can read it; only administrators can create, edit or delete entries.
+It stores a free-form company name, optional HR contact details, PVR status,
+remarks and an automatically maintained `updated_at` timestamp. PVR defaults to
+false (No). No foreign keys connect these records to placement data.
 
 ## Student identity migration (0002)
 

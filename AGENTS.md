@@ -275,13 +275,29 @@ Student records (implemented; see lib/students/README.md):
   Invalid legacy records must be resolved before applying it; the migration
   never deletes demo or other data automatically.
 
-Drive calendar (implemented; see lib/calendar/):
-- Visits are companies.visit_date (migration 0001); no separate table. Status
-  (Upcoming / Today / Completed) is derived from the date, never stored.
-- "Upcoming" lists visits dated today or later, and a company leaves it once its
-  date passes. Today is computed in Asia/Kolkata.
-- Limitation: one visit date per company at a time.
-- lib/calendar/actions.ts authorises every change as ADMIN on the server.
+Process calendar (temporary client-only mode):
+- The dashboard Calendar view is currently disconnected from PostgreSQL and does
+  not call `lib/calendar/queries.ts` or `lib/calendar/actions.ts`.
+- Admins can add, edit and remove dated process entries for PPT, OT, Group
+  Discussion, Resume Shortlisting and PI. Entries are retained in browser local
+  storage across reloads but are not shared between browsers or stored in PostgreSQL.
+- Professors can view entries created during the current browser session but
+  cannot edit them. The older company visit-date query/action files remain
+  dormant for a future persistence decision.
+
+Company directory (see lib/companies/README.md):
+- ADMIN users can add companies directly, without creating offers or students.
+- The directory includes current-batch companies and companies with no offers
+  in any batch. Companies linked only to other batches remain hidden.
+- Contacts remain global company fields; explicit batch associations and
+  per-batch contact details are deferred. Creation never overwrites duplicates.
+
+Outreach contact tracker (explicitly approved; see lib/outreach/):
+- Signed-in PROFESSOR users have read-only access. ADMIN users can create,
+  edit and delete standalone contact/to-do records in `outreach_contacts`.
+- Outreach records have no foreign key or synchronization with companies,
+  students, placement offers, analytics, or the process calendar.
+- PVR defaults to No and `updated_at` is refreshed by the server on edits.
 
 When a decision changes, update this file and db/README.md along with any
 relevant implementation, and commit the shared documentation so every

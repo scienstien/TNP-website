@@ -58,6 +58,7 @@ desktop.ini
 # temporary files and reports
 /logs/
 /reports/
+/placed-so-far-handoff/
 /.nyc_output/
 *.tmp
 *.temp
