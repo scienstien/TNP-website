@@ -1,4 +1,4 @@
-/** A company with a scheduled campus visit (companies.visit_date is not null). */
+/** A company with a scheduled campus visit (a dated PPT drive event this cycle). */
 export interface CompanyVisit {
   company: string;
   sector: string | null;

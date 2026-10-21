@@ -3,7 +3,8 @@
 import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
-import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { departments, users } from "@/db/schema";
 import { getDb } from "@/lib/db";
 import { hashPassword } from "./password";
 import { clientIp, takeAttempt } from "./rate-limit";
@@ -18,9 +19,9 @@ import {
 export interface AuthFormState {
   error?: string;
   fieldErrors?: Partial<
-    Record<"name" | "email" | "password" | "confirmPassword", string>
+    Record<"name" | "email" | "department" | "password" | "confirmPassword", string>
   >;
-  values?: { name?: string; email?: string };
+  values?: { name?: string; email?: string; department?: string };
 }
 
 /** Only same-site paths, so a crafted link cannot bounce users to another site after login. */
@@ -65,7 +66,7 @@ export async function signInAction(
   _previous: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const email = normalizeEmail(formData.get("email"));
+  const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   if (!email || !password)
     return { values: { email }, error: "Enter your email and password." };
@@ -82,7 +83,8 @@ export async function signUpAction(
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
-  const values = { name, email };
+  const departmentCode = String(formData.get("department") ?? "").trim().toLowerCase();
+  const values = { name, email, department: departmentCode };
 
   const fieldErrors: AuthFormState["fieldErrors"] = {};
   if (name.length < 2 || name.length > 100)
@@ -108,6 +110,12 @@ export async function signUpAction(
   }
 
   const db = await getDb();
+  const [department] = await db
+    .select({ departmentId: departments.departmentId })
+    .from(departments)
+    .where(eq(departments.code, departmentCode))
+    .limit(1);
+  if (!department) return { values, fieldErrors: { department: "Choose your department." } };
   // The role is fixed here: self-service accounts are always read-only professors.
   const created = await db
     .insert(users)
@@ -116,6 +124,7 @@ export async function signUpAction(
       email,
       passwordHash: await hashPassword(password),
       role: "PROFESSOR",
+      departmentId: department.departmentId,
     })
     .onConflictDoNothing({ target: users.email })
     .returning({ id: users.id });

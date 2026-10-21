@@ -76,6 +76,7 @@ export default function StudentRecords({ data }: { data: StudentData }) {
       {editing && <StudentEditorModal onClose={() => { setEditing(null); router.refresh(); }}>
         <StudentEditor key={editing === "new" ? "new" : editing.rollNumber}
           initial={editing === "new" ? null : editing} companies={data.companies}
+          currentBatchYear={data.currentBatchYear}
           onCancel={() => { setEditing(null); router.refresh(); }}
           onSaved={() => { setEditing(null); setMessage("Saved to the database."); }} />
       </StudentEditorModal>}
@@ -204,9 +205,10 @@ function StudentEditorModal({ children, onClose }: { children: React.ReactNode; 
   </div>;
 }
 
-function StudentEditor({ initial, companies, onCancel, onSaved }: {
+function StudentEditor({ initial, companies, currentBatchYear, onCancel, onSaved }: {
   initial: StudentRecord | null;
   companies: StudentData["companies"];
+  currentBatchYear: number;
   onCancel: () => void;
   onSaved: () => void;
 }) {
@@ -347,7 +349,9 @@ function StudentEditor({ initial, companies, onCancel, onSaved }: {
       <div className="student-field">
         <label htmlFor="student-offerDate">Offer date (optional)</label>
         <DatePicker id="student-offerDate" value={draft.offerDate} disabled={pending}
-          min={companyOptions.find(c => c.name === draft.companyName)?.visitDate ?? undefined}
+          min={Number(draft.batchYear) === currentBatchYear
+            ? companyOptions.find(c => c.name === draft.companyName)?.visitDate ?? undefined
+            : undefined}
           onChange={(value) => { setDraft((current) => ({ ...current, offerDate: value })); setResult({}); }} />
         <span className="student-field-error">{result.fieldErrors?.offerDate}</span>
       </div>

@@ -17,7 +17,7 @@
   --psf-text-dim: #b9c6dc;
   --psf-muted: #8f9bb0;
   --psf-good: #75c7a6;
-  --psf-bad: #ff9a8a;
+  --psf-bad: #ff4d4f;
   --psf-flat: #c4d0e4;
   --psf-sans:
     "Geist", "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -63,6 +63,7 @@
   color: var(--psf-muted);
   font-size: 13px;
 }
+.psf-picker select,
 .psf-picker input {
   height: 34px;
   padding: 0 10px;
@@ -74,6 +75,7 @@
   font-size: 13px;
   color-scheme: dark;
 }
+.psf-picker select:hover,
 .psf-picker input:hover,
 .psf-today:hover {
   border-color: var(--psf-accent);
@@ -89,6 +91,7 @@
   font-size: 12px;
   cursor: pointer;
 }
+.psf-picker select:focus-visible,
 .psf-picker input:focus-visible,
 .psf-today:focus-visible {
   outline: 2px solid var(--psf-focus);
@@ -254,4 +257,298 @@
 @media (prefers-reduced-motion: reduce) {
   .psf-donut-fill { animation: none; }
   .psf-slot-reel { animation: none; }
+}
+
+/* Companies that had come (made a dated offer) by the cutoff, under each tile's count */
+.psf .psf-figure-caption {
+  color: var(--psf-muted);
+  font-size: 12px;
+}
+.psf .psf-figure-companies {
+  margin: 6px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--psf-tile-border);
+  color: var(--psf-text-dim);
+  font-size: 13px;
+}
+.psf .psf-figure-companies b {
+  color: var(--psf-text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Companies came: plain figure on each tile, one button that opens the comparison */
+.psf .psf-companies-open {
+  grid-column: 1 / -1;
+  justify-self: start;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--psf-input-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--psf-text-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.psf .psf-companies-open:hover {
+  border-color: var(--psf-accent);
+  color: var(--psf-text);
+}
+.psf .psf-companies-open:focus-visible,
+.psf-dialog-close:focus-visible,
+.psf-tab:focus-visible {
+  outline: 2px solid var(--psf-focus);
+  outline-offset: 2px;
+}
+
+/*
+ * Pop-up. Centred explicitly: the global CSS reset zeroes <dialog> margins, which pins it
+ * to the top-left corner otherwise. Colours come from the .psf variables.
+ */
+.psf-dialog {
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(78vh, 620px);
+  padding: 22px 24px;
+  overflow: hidden;
+  border: 1px solid var(--psf-border);
+  border-radius: 8px;
+  background: var(--psf-bg);
+  color: var(--psf-text);
+  font-family: var(--psf-sans);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.psf-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.psf-dialog::backdrop {
+  background: rgba(5, 9, 18, 0.72);
+  backdrop-filter: blur(2px);
+}
+.psf-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.psf-dialog-head h3 {
+  margin: 0;
+  font: 700 24px/1 "Playfair Display", Georgia, serif;
+  letter-spacing: -0.03em;
+}
+.psf-dialog-head p {
+  margin: 6px 0 0;
+  color: var(--psf-muted);
+  font-size: 13px;
+}
+.psf-dialog-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--psf-input-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--psf-text-dim);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.psf-dialog-close:hover {
+  border-color: var(--psf-accent);
+}
+.psf-dialog-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.psf-tab {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--psf-input-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--psf-text-dim);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.psf-tab span {
+  margin-left: 4px;
+  color: var(--psf-muted);
+}
+.psf-tab:hover {
+  border-color: var(--psf-accent);
+}
+.psf-tab.is-active {
+  border-color: var(--psf-lead-border);
+  background: var(--psf-lead-bg);
+  color: var(--psf-text);
+}
+.psf-tab--new.is-active {
+  border-color: var(--psf-good);
+  color: var(--psf-good);
+}
+.psf-tab--missed.is-active {
+  border-color: var(--psf-bad);
+  color: var(--psf-bad);
+}
+.psf-dialog-legend,
+.psf-company {
+  display: grid;
+  grid-template-columns: 1fr 64px 64px;
+  align-items: center;
+  gap: 8px;
+}
+.psf-dialog-legend {
+  margin-bottom: -8px;
+  padding: 0 12px;
+}
+.psf-dialog-legend b {
+  color: var(--psf-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+.psf-dialog-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0 2px 2px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.psf-company {
+  padding: 8px 12px;
+  border: 1px solid var(--psf-tile-border);
+  border-left-width: 3px;
+  border-radius: 6px;
+  background: var(--psf-tile-bg);
+}
+.psf-company-name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.psf-company-name small {
+  color: var(--psf-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.psf-mark {
+  text-align: center;
+  color: var(--psf-muted);
+  font-size: 15px;
+}
+.psf-company--new {
+  border-color: rgba(117, 199, 166, 0.45);
+  border-left-color: var(--psf-good);
+  background: rgba(117, 199, 166, 0.09);
+}
+.psf-company--new .psf-company-name,
+.psf-company--new .psf-company-name small,
+.psf-company--new .psf-mark {
+  color: var(--psf-good);
+}
+.psf-company--missed {
+  border-color: rgba(255, 77, 79, 0.5);
+  border-left-color: var(--psf-bad);
+  background: rgba(255, 77, 79, 0.1);
+}
+.psf-company--missed .psf-company-name,
+.psf-company--missed .psf-company-name small,
+.psf-company--missed .psf-mark {
+  color: var(--psf-bad);
+}
+.psf-dialog-empty {
+  margin: 0;
+  color: var(--psf-muted);
+  font-size: 13px;
+}
+@media (max-width: 420px) {
+  .psf-dialog-legend,
+  .psf-company {
+    grid-template-columns: 1fr 48px 48px;
+  }
+}
+.psf .psf-picker .psf-vs {
+  color: var(--psf-muted);
+  font-size: 12px;
+}
+
+/* Last-20-batches pop-up */
+.psf-trend-legend,
+.psf-trend-row {
+  display: grid;
+  grid-template-columns: 76px 1fr 72px;
+  align-items: center;
+  gap: 10px;
+}
+.psf-trend-legend {
+  padding: 0 12px;
+  margin-bottom: -8px;
+  color: var(--psf-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.psf-trend-legend span:last-child,
+.psf-trend-companies {
+  text-align: center;
+}
+.psf-trend-row {
+  padding: 7px 12px;
+  border: 1px solid var(--psf-tile-border);
+  border-left-width: 3px;
+  border-radius: 6px;
+  background: var(--psf-tile-bg);
+}
+.psf-trend-row--main {
+  border-color: var(--psf-lead-border);
+  background: var(--psf-lead-bg);
+}
+.psf-trend-row--compare {
+  border-color: var(--psf-lead-border);
+  border-left-color: var(--psf-accent);
+}
+.psf-trend-year {
+  display: grid;
+  font-size: 14px;
+  font-weight: 600;
+}
+.psf-trend-year small {
+  color: var(--psf-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+.psf-trend-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 22px;
+  border-radius: 4px;
+  background: rgba(112, 160, 255, 0.07);
+}
+.psf-trend-bar i {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--psf-accent);
+}
+.psf-trend-bar b {
+  position: absolute;
+  left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.psf-trend-companies {
+  color: var(--psf-text-dim);
+  font-size: 13px;
 }

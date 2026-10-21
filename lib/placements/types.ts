@@ -18,6 +18,8 @@ export interface PlacementOffer {
  * status is simply whether `offer` is present. Names are not sent to the dashboard.
  */
 export interface PlacementRecord {
+  /** Lower-case department code, e.g. "mme". */
+  department: string;
   rollNumber: number;
   batchYear: number;
   offer: PlacementOffer | null;

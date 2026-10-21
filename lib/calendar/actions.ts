@@ -4,7 +4,11 @@ import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { companies, placementOffers } from "@/db/schema";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { setVisitDate } from "@/lib/companies/visit";
+import { findCycleId } from "@/lib/placements/cycles";
+import { batchYearForDate } from "@/lib/placements/year-to-date";
+import { todayInInstituteZone } from "./dates";
+import { getCurrentUser, isAdminRole } from "@/lib/auth/dal";
 import { validateCompanyUpdate } from "@/lib/companies/validation";
 
 export interface VisitFormState {
@@ -35,7 +39,7 @@ const clean = (value: FormDataEntryValue | null, max: number) =>
 async function requireAdmin(): Promise<string | null> {
   const user = await getCurrentUser();
   if (!user) return "Your session has expired. Sign in again.";
-  if (user.role !== "ADMIN")
+  if (!isAdminRole(user.role))
     return "Only administrators can change the calendar.";
   return null;
 }
@@ -68,15 +72,21 @@ export async function saveVisit(
   Object.assign(fieldErrors, parsed.fieldErrors);
   if (Object.keys(fieldErrors).length > 0) return { values, fieldErrors };
 
-  const conflictingOffer = await db
-    .select({ studentRollNumber: placementOffers.studentRollNumber })
-    .from(placementOffers)
-    .where(and(
-      eq(placementOffers.companyName, company),
-      isNotNull(placementOffers.offerDate),
-      lt(placementOffers.offerDate, visitDate),
-    ))
-    .limit(1);
+  const batchYear = batchYearForDate(todayInInstituteZone());
+  const cycleId = await findCycleId(db, batchYear);
+  const conflictingOffer = cycleId
+    ? await db
+        .select({ offerId: placementOffers.offerId })
+        .from(placementOffers)
+        .innerJoin(companies, eq(companies.companyId, placementOffers.companyId))
+        .where(and(
+          eq(companies.name, company),
+          eq(placementOffers.cycleId, cycleId),
+          isNotNull(placementOffers.offerDate),
+          lt(placementOffers.offerDate, visitDate),
+        ))
+        .limit(1)
+    : [];
   if (conflictingOffer.length) {
     return {
       values,
@@ -91,21 +101,25 @@ export async function saveVisit(
     hrName: parsed.data.hrName,
     phoneNumber: parsed.data.phoneNumber,
     email: parsed.data.email,
-    visitDate: parsed.data.visitDate,
   };
 
-  await db
-    .insert(companies)
-    .values({ name: company, ...record })
-    .onConflictDoUpdate({ target: companies.name, set: record });
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(companies)
+      .values({ name: company, ...record })
+      .onConflictDoUpdate({ target: companies.name, set: record })
+      .returning({ companyId: companies.companyId });
+    await setVisitDate(tx, row.companyId, batchYear, parsed.data.visitDate);
+  });
 
   revalidatePath("/");
   return { ok: true };
 }
 
 /**
- * Removes a visit from the calendar. Only the date is cleared: the company, its contacts
- * and any placement offers stay, because historical offers depend on the company.
+ * Removes a visit from the calendar. Only the date is cleared (the company's PPT events become
+ * unscheduled): the company, its contacts and any placement offers stay, because historical
+ * offers depend on the company.
  */
 export async function deleteVisit(company: string): Promise<VisitFormState> {
   const denied = await requireAdmin();
@@ -117,10 +131,13 @@ export async function deleteVisit(company: string): Promise<VisitFormState> {
   )
     return { error: "Unknown company." };
 
-  await db
-    .update(companies)
-    .set({ visitDate: null })
-    .where(eq(companies.name, company));
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ companyId: companies.companyId })
+      .from(companies)
+      .where(eq(companies.name, company));
+    if (row) await setVisitDate(tx, row.companyId, batchYearForDate(todayInInstituteZone()), null);
+  });
   revalidatePath("/");
   return { ok: true };
 }

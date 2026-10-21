@@ -2808,3 +2808,27 @@ body:has(.home-view) {
     padding: 30px 24px;
   }
 }
+
+/*
+ * Static text shows the normal arrow, not the text-selection I-beam; only fields you can
+ * type into keep the I-beam. Text can still be selected and copied.
+ */
+.portal-shell,
+.login-page {
+  cursor: default;
+}
+.portal-shell :is(input, textarea, [contenteditable="true"]),
+.login-page :is(input, textarea) {
+  cursor: text;
+}
+.portal-shell :is(input[type="checkbox"], input[type="radio"], input[type="button"], input[type="submit"], input[type="range"]),
+.login-page :is(input[type="checkbox"], input[type="radio"], input[type="submit"]) {
+  cursor: pointer;
+}
+.portal-shell :is(button, select, summary, label[for], [role="button"], [role="tab"]):not(:disabled),
+.login-page :is(button, select, label[for]):not(:disabled) {
+  cursor: pointer;
+}
+.portal-shell :is(button, select):disabled {
+  cursor: not-allowed;
+}

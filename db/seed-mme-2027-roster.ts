@@ -5,13 +5,17 @@
  * Import:  npx tsx db/seed-mme-2027-roster.ts
  *
  * This script creates student rows only. Existing rows are never changed.
+ *
+ * LEGACY: it writes the preserved legacy_students table (see db/legacy-schema.ts), not the
+ * institute-wide schema. It has not been ported: the target needs a confirmed registration
+ * status for every student-cycle and a department/programme/cohort mapping.
  */
 import "dotenv/config";
 
 import { count, inArray, sql } from "drizzle-orm";
 
 import { db, postgresClient } from "./index";
-import { students } from "./schema";
+import { legacyStudents as students } from "./legacy-schema";
 
 const BATCH_YEAR = 2027;
 

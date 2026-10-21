@@ -1,24 +1,37 @@
 import "server-only";
-import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, placementOffers, students } from "@/db/schema";
-import { requireRole } from "@/lib/auth/dal";
+import { companies } from "@/db/schema";
+import { requireRole, resolveDepartment } from "@/lib/auth/dal";
+import { visitDatesByCompany } from "@/lib/companies/visit";
+import { todayInInstituteZone } from "@/lib/calendar/dates";
+import { findCycleId } from "@/lib/placements/cycles";
+import { batchYearForDate } from "@/lib/placements/year-to-date";
+import { readStudents } from "./read";
 import type { StudentData } from "./types";
 
-export async function getStudentData(): Promise<StudentData> {
-  await requireRole("ADMIN");
-  const [rows, companyRows] = await Promise.all([
-    db.select({ student: students, offer: placementOffers }).from(students)
-      .leftJoin(placementOffers, eq(students.rollNumber, placementOffers.studentRollNumber))
-      .orderBy(students.batchYear, students.rollNumber),
-    db.select({ name: companies.name, domain: companies.domain, visitDate: companies.visitDate })
-      .from(companies).orderBy(companies.name),
+/** The signed-in admin's department, or the one a super admin chose; null when none is chosen. */
+export async function getStudentData(): Promise<StudentData | null> {
+  const user = await requireRole("ADMIN");
+  const department = await resolveDepartment(user);
+  if (!department) return null;
+  const currentBatchYear = batchYearForDate(todayInInstituteZone());
+  const cycleId = await findCycleId(db, currentBatchYear);
+  const [studentRows, companyRows, visits] = await Promise.all([
+    readStudents(db, department.departmentId),
+    db
+      .select({ companyId: companies.companyId, name: companies.name, domain: companies.domain })
+      .from(companies)
+      .orderBy(companies.name),
+    visitDatesByCompany(db, cycleId),
   ]);
   return {
-    companies: companyRows,
-    students: rows.map(({ student, offer }) => ({ ...student, offer: offer ? {
-      companyName: offer.companyName, jobRole: offer.jobRole, packageLpa: offer.packageLpa,
-      offerType: offer.offerType, offerDate: offer.offerDate,
-    } : null })),
+    students: studentRows,
+    currentBatchYear,
+    companies: companyRows.map(({ companyId, name, domain }) => ({
+      name,
+      domain,
+      // The current cycle's campus visit (earliest PPT event), as in the company directory.
+      visitDate: visits.get(companyId) ?? null,
+    })),
   };
 }

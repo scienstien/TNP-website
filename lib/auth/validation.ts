@@ -9,6 +9,15 @@ export function normalizeEmail(value: unknown): string {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+/**
+ * What the sign-in form accepts: a full address, or a bare username such as "superadmin" or
+ * "admin123mme", which belongs to the first allowed domain (nitt.edu by default).
+ */
+export function loginEmail(value: unknown): string {
+  const text = normalizeEmail(value);
+  return text && !text.includes("@") ? `${text}@${allowedSignupDomains()[0] ?? "nitt.edu"}` : text;
+}
+
 export function isValidEmail(email: string): boolean {
   return email.length <= 254 && EMAIL.test(email);
 }

@@ -31,6 +31,16 @@ Home uses `components/home/PlacedSoFar.tsx`, adapted from the supplied handoff, 
 
 `lib/placements/year-to-date.ts` compares offers dated from the most recent 1 July through the selected date (inclusive) with the same period one year earlier, across all graduating batches. January–June dates start on 1 July of the preceding calendar year; cross-year labels show both years. Unplaced students are excluded; offers without dates are excluded and reported separately. February 29 compares with February 28 in the previous year. An earlier July–June period without any dated offers is shown as missing, not zero; a zero baseline never produces a percentage change. This is a dated-offer comparison, not a batch placement rate, and does not introduce a stored placement-cycle field.
 
+Admins (and only admins) get a Batch selector listing every batch that has recorded students; the cutoff date moves into that batch's July–June season, and a second selector picks which batch to compare against (default: the batch before it), cut off at the same day and month of its own season. Professors always see today's batch against the one before.
+
+The admin-only "Last 20 batches" pop-up (`batchTrend`) applies the same day and month cutoff to the 20 batches ending at the selected one and shows students placed and companies that came for each; a batch without dated offers shows "—", not 0.
+
+Each side also reports "companies came": the distinct companies (names are listed in one comparison pop-up: green when they came only to the current batch, red when only to the previous one) with a dated offer to that batch through the cutoff. A company that visited but made no offer, or whose offers have no date, is not counted, because a company has only one `visit_date` and it is not tied to a batch.
+
+## Departments
+
+Records come from the institute-wide schema (see `db/README.md`): one row per undergraduate (B.Tech) enrollment, with `batchYear` taken from the cohort's graduation year and `department` the lower-case department code. A department user receives only their own department; a super admin receives the department chosen in the department navbar, or every department. M.Tech cohorts exist in the schema but are not included. The placement percentage still divides by all recorded students; `AGENTS.md` describes the registered-student denominator the new schema allows, which is not applied yet.
+
 ## Local data
 
-`npm run db:seed:dashboard` loads a **fictional** five-batch dataset with DEMO company names and fixed nine-digit 9xx student rolls. Never run it against a production database or real records in that roll range.
+`npm run db:seed:departments` loads a **fictional** four-department, twenty-batch (2008–2027) dataset (DEMO companies, roll numbers starting with 9). It refuses to run over real enrollments or non-DEMO companies. Never run it against a production database.

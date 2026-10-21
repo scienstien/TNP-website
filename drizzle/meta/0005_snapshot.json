@@ -1,0 +1,1739 @@
+{
+  "id": "a96c2633-e91a-4b03-a7d3-4ef71a604f56",
+  "prevId": "7ca4dc50-8331-43b5-9162-ccd70767452f",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.cohorts": {
+      "name": "cohorts",
+      "schema": "",
+      "columns": {
+        "cohort_id": {
+          "name": "cohort_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "programme_id": {
+          "name": "programme_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "graduation_year": {
+          "name": "graduation_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "cohorts_graduation_year_idx": {
+          "name": "cohorts_graduation_year_idx",
+          "columns": [
+            {
+              "expression": "graduation_year",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cohorts_programme_id_programmes_programme_id_fk": {
+          "name": "cohorts_programme_id_programmes_programme_id_fk",
+          "tableFrom": "cohorts",
+          "tableTo": "programmes",
+          "columnsFrom": [
+            "programme_id"
+          ],
+          "columnsTo": [
+            "programme_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "cohorts_programme_year_unique": {
+          "name": "cohorts_programme_year_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "programme_id",
+            "graduation_year"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "cohorts_graduation_year_four_digits": {
+          "name": "cohorts_graduation_year_four_digits",
+          "value": "\"cohorts\".\"graduation_year\" between 1000 and 9999"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.companies": {
+      "name": "companies",
+      "schema": "",
+      "columns": {
+        "company_id": {
+          "name": "company_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domain": {
+          "name": "domain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hr_name": {
+          "name": "hr_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remarks": {
+          "name": "remarks",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pvr_status": {
+          "name": "pvr_status",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "companies_name_unique": {
+          "name": "companies_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "companies_name_required": {
+          "name": "companies_name_required",
+          "value": "char_length(\"companies\".\"name\") > 0 and \"companies\".\"name\" = btrim(\"companies\".\"name\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.cycle_cohorts": {
+      "name": "cycle_cohorts",
+      "schema": "",
+      "columns": {
+        "cycle_id": {
+          "name": "cycle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cohort_id": {
+          "name": "cohort_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "cycle_cohorts_cohort_idx": {
+          "name": "cycle_cohorts_cohort_idx",
+          "columns": [
+            {
+              "expression": "cohort_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cycle_cohorts_cycle_id_placement_cycles_cycle_id_fk": {
+          "name": "cycle_cohorts_cycle_id_placement_cycles_cycle_id_fk",
+          "tableFrom": "cycle_cohorts",
+          "tableTo": "placement_cycles",
+          "columnsFrom": [
+            "cycle_id"
+          ],
+          "columnsTo": [
+            "cycle_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "cycle_cohorts_cohort_id_cohorts_cohort_id_fk": {
+          "name": "cycle_cohorts_cohort_id_cohorts_cohort_id_fk",
+          "tableFrom": "cycle_cohorts",
+          "tableTo": "cohorts",
+          "columnsFrom": [
+            "cohort_id"
+          ],
+          "columnsTo": [
+            "cohort_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "cycle_cohorts_pk": {
+          "name": "cycle_cohorts_pk",
+          "columns": [
+            "cycle_id",
+            "cohort_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.degrees": {
+      "name": "degrees",
+      "schema": "",
+      "columns": {
+        "degree_id": {
+          "name": "degree_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "level": {
+          "name": "level",
+          "type": "degree_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "degrees_code_unique": {
+          "name": "degrees_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "degrees_code_required": {
+          "name": "degrees_code_required",
+          "value": "char_length(\"degrees\".\"code\") > 0 and \"degrees\".\"code\" = btrim(\"degrees\".\"code\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.departments": {
+      "name": "departments",
+      "schema": "",
+      "columns": {
+        "department_id": {
+          "name": "department_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "departments_code_unique": {
+          "name": "departments_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "departments_code_required": {
+          "name": "departments_code_required",
+          "value": "char_length(\"departments\".\"code\") > 0 and \"departments\".\"code\" = btrim(\"departments\".\"code\")"
+        },
+        "departments_name_required": {
+          "name": "departments_name_required",
+          "value": "char_length(btrim(\"departments\".\"name\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.drive_events": {
+      "name": "drive_events",
+      "schema": "",
+      "columns": {
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "drive_id": {
+          "name": "drive_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "process_type": {
+          "name": "process_type",
+          "type": "process_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduled_date": {
+          "name": "scheduled_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "event_scope",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "drive_events_drive_idx": {
+          "name": "drive_events_drive_idx",
+          "columns": [
+            {
+              "expression": "drive_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "drive_events_date_idx": {
+          "name": "drive_events_date_idx",
+          "columns": [
+            {
+              "expression": "scheduled_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "drive_events_drive_id_drives_drive_id_fk": {
+          "name": "drive_events_drive_id_drives_drive_id_fk",
+          "tableFrom": "drive_events",
+          "tableTo": "drives",
+          "columnsFrom": [
+            "drive_id"
+          ],
+          "columnsTo": [
+            "drive_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "drive_events_id_drive_unique": {
+          "name": "drive_events_id_drive_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "event_id",
+            "drive_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.drive_roles": {
+      "name": "drive_roles",
+      "schema": "",
+      "columns": {
+        "role_id": {
+          "name": "role_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "drive_id": {
+          "name": "drive_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "job_title": {
+          "name": "job_title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "drive_roles_drive_idx": {
+          "name": "drive_roles_drive_idx",
+          "columns": [
+            {
+              "expression": "drive_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "drive_roles_drive_id_drives_drive_id_fk": {
+          "name": "drive_roles_drive_id_drives_drive_id_fk",
+          "tableFrom": "drive_roles",
+          "tableTo": "drives",
+          "columnsFrom": [
+            "drive_id"
+          ],
+          "columnsTo": [
+            "drive_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "drive_roles_id_drive_unique": {
+          "name": "drive_roles_id_drive_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "role_id",
+            "drive_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "drive_roles_title_nonblank": {
+          "name": "drive_roles_title_nonblank",
+          "value": "char_length(\"drive_roles\".\"job_title\") > 0 and \"drive_roles\".\"job_title\" = btrim(\"drive_roles\".\"job_title\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.drives": {
+      "name": "drives",
+      "schema": "",
+      "columns": {
+        "drive_id": {
+          "name": "drive_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cycle_id": {
+          "name": "cycle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reference": {
+          "name": "reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "drives_company_cycle_idx": {
+          "name": "drives_company_cycle_idx",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cycle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "drives_cycle_idx": {
+          "name": "drives_cycle_idx",
+          "columns": [
+            {
+              "expression": "cycle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "drives_company_id_companies_company_id_fk": {
+          "name": "drives_company_id_companies_company_id_fk",
+          "tableFrom": "drives",
+          "tableTo": "companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "company_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "drives_cycle_id_placement_cycles_cycle_id_fk": {
+          "name": "drives_cycle_id_placement_cycles_cycle_id_fk",
+          "tableFrom": "drives",
+          "tableTo": "placement_cycles",
+          "columnsFrom": [
+            "cycle_id"
+          ],
+          "columnsTo": [
+            "cycle_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "drives_id_company_cycle_unique": {
+          "name": "drives_id_company_cycle_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "drive_id",
+            "company_id",
+            "cycle_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.enrollments": {
+      "name": "enrollments",
+      "schema": "",
+      "columns": {
+        "enrollment_id": {
+          "name": "enrollment_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "roll_number": {
+          "name": "roll_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cohort_id": {
+          "name": "cohort_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "admission_year": {
+          "name": "admission_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reservation_category_code": {
+          "name": "reservation_category_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "enrollments_student_idx": {
+          "name": "enrollments_student_idx",
+          "columns": [
+            {
+              "expression": "student_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "enrollments_cohort_idx": {
+          "name": "enrollments_cohort_idx",
+          "columns": [
+            {
+              "expression": "cohort_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "enrollments_category_idx": {
+          "name": "enrollments_category_idx",
+          "columns": [
+            {
+              "expression": "reservation_category_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "enrollments_student_id_students_student_id_fk": {
+          "name": "enrollments_student_id_students_student_id_fk",
+          "tableFrom": "enrollments",
+          "tableTo": "students",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "student_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "enrollments_cohort_id_cohorts_cohort_id_fk": {
+          "name": "enrollments_cohort_id_cohorts_cohort_id_fk",
+          "tableFrom": "enrollments",
+          "tableTo": "cohorts",
+          "columnsFrom": [
+            "cohort_id"
+          ],
+          "columnsTo": [
+            "cohort_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "enrollments_reservation_category_fk": {
+          "name": "enrollments_reservation_category_fk",
+          "tableFrom": "enrollments",
+          "tableTo": "reservation_categories",
+          "columnsFrom": [
+            "reservation_category_code"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "enrollments_roll_number_unique": {
+          "name": "enrollments_roll_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "roll_number"
+          ]
+        },
+        "enrollments_id_cohort_unique": {
+          "name": "enrollments_id_cohort_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "enrollment_id",
+            "cohort_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "enrollments_roll_number_nine_digits": {
+          "name": "enrollments_roll_number_nine_digits",
+          "value": "\"enrollments\".\"roll_number\" between 100000000 and 999999999"
+        },
+        "enrollments_admission_year_four_digits": {
+          "name": "enrollments_admission_year_four_digits",
+          "value": "\"enrollments\".\"admission_year\" between 1000 and 9999"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.event_roles": {
+      "name": "event_roles",
+      "schema": "",
+      "columns": {
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "drive_id": {
+          "name": "drive_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "event_roles_role_drive_idx": {
+          "name": "event_roles_role_drive_idx",
+          "columns": [
+            {
+              "expression": "role_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "drive_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "event_roles_event_drive_fk": {
+          "name": "event_roles_event_drive_fk",
+          "tableFrom": "event_roles",
+          "tableTo": "drive_events",
+          "columnsFrom": [
+            "event_id",
+            "drive_id"
+          ],
+          "columnsTo": [
+            "event_id",
+            "drive_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "event_roles_role_drive_fk": {
+          "name": "event_roles_role_drive_fk",
+          "tableFrom": "event_roles",
+          "tableTo": "drive_roles",
+          "columnsFrom": [
+            "role_id",
+            "drive_id"
+          ],
+          "columnsTo": [
+            "role_id",
+            "drive_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "event_roles_pk": {
+          "name": "event_roles_pk",
+          "columns": [
+            "event_id",
+            "role_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.gender_types": {
+      "name": "gender_types",
+      "schema": "",
+      "columns": {
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "gender_types_code_required": {
+          "name": "gender_types_code_required",
+          "value": "char_length(\"gender_types\".\"code\") > 0 and \"gender_types\".\"code\" = btrim(\"gender_types\".\"code\")"
+        },
+        "gender_types_label_required": {
+          "name": "gender_types_label_required",
+          "value": "char_length(btrim(\"gender_types\".\"label\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.outreach_contacts": {
+      "name": "outreach_contacts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "department_id": {
+          "name": "department_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "company_name": {
+          "name": "company_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hr_name": {
+          "name": "hr_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pvr_status": {
+          "name": "pvr_status",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "remarks": {
+          "name": "remarks",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "outreach_contacts_department_id_departments_department_id_fk": {
+          "name": "outreach_contacts_department_id_departments_department_id_fk",
+          "tableFrom": "outreach_contacts",
+          "tableTo": "departments",
+          "columnsFrom": [
+            "department_id"
+          ],
+          "columnsTo": [
+            "department_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.placement_cycles": {
+      "name": "placement_cycles",
+      "schema": "",
+      "columns": {
+        "cycle_id": {
+          "name": "cycle_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_on": {
+          "name": "starts_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "placement_cycles_code_unique": {
+          "name": "placement_cycles_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "placement_cycles_code_required": {
+          "name": "placement_cycles_code_required",
+          "value": "char_length(\"placement_cycles\".\"code\") > 0 and \"placement_cycles\".\"code\" = btrim(\"placement_cycles\".\"code\")"
+        },
+        "placement_cycles_date_order": {
+          "name": "placement_cycles_date_order",
+          "value": "\"placement_cycles\".\"starts_on\" <= \"placement_cycles\".\"ends_on\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.placement_offers": {
+      "name": "placement_offers",
+      "schema": "",
+      "columns": {
+        "offer_id": {
+          "name": "offer_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "enrollment_id": {
+          "name": "enrollment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cycle_id": {
+          "name": "cycle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "drive_id": {
+          "name": "drive_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "package_lpa": {
+          "name": "package_lpa",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "monthly_stipend_inr": {
+          "name": "monthly_stipend_inr",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "offer_type": {
+          "name": "offer_type",
+          "type": "offer_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "offer_date": {
+          "name": "offer_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "placement_offers_company_cycle_idx": {
+          "name": "placement_offers_company_cycle_idx",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cycle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "placement_offers_cycle_idx": {
+          "name": "placement_offers_cycle_idx",
+          "columns": [
+            {
+              "expression": "cycle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "placement_offers_drive_idx": {
+          "name": "placement_offers_drive_idx",
+          "columns": [
+            {
+              "expression": "drive_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "placement_offers_role_idx": {
+          "name": "placement_offers_role_idx",
+          "columns": [
+            {
+              "expression": "role_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "placement_offers_date_idx": {
+          "name": "placement_offers_date_idx",
+          "columns": [
+            {
+              "expression": "offer_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "placement_offers_company_id_companies_company_id_fk": {
+          "name": "placement_offers_company_id_companies_company_id_fk",
+          "tableFrom": "placement_offers",
+          "tableTo": "companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "company_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "placement_offers_student_cycle_fk": {
+          "name": "placement_offers_student_cycle_fk",
+          "tableFrom": "placement_offers",
+          "tableTo": "student_cycles",
+          "columnsFrom": [
+            "cycle_id",
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "cycle_id",
+            "enrollment_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "placement_offers_drive_context_fk": {
+          "name": "placement_offers_drive_context_fk",
+          "tableFrom": "placement_offers",
+          "tableTo": "drives",
+          "columnsFrom": [
+            "drive_id",
+            "company_id",
+            "cycle_id"
+          ],
+          "columnsTo": [
+            "drive_id",
+            "company_id",
+            "cycle_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "placement_offers_role_drive_fk": {
+          "name": "placement_offers_role_drive_fk",
+          "tableFrom": "placement_offers",
+          "tableTo": "drive_roles",
+          "columnsFrom": [
+            "role_id",
+            "drive_id"
+          ],
+          "columnsTo": [
+            "role_id",
+            "drive_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "placement_offers_enrollment_id_unique": {
+          "name": "placement_offers_enrollment_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "enrollment_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "placement_offers_role_requires_drive": {
+          "name": "placement_offers_role_requires_drive",
+          "value": "\"placement_offers\".\"role_id\" is null or \"placement_offers\".\"drive_id\" is not null"
+        },
+        "placement_offers_package_nonnegative_finite": {
+          "name": "placement_offers_package_nonnegative_finite",
+          "value": "\"placement_offers\".\"package_lpa\" >= 0 and \"placement_offers\".\"package_lpa\" < 'Infinity'::numeric"
+        },
+        "placement_offers_stipend_nonnegative_finite": {
+          "name": "placement_offers_stipend_nonnegative_finite",
+          "value": "\"placement_offers\".\"monthly_stipend_inr\" >= 0 and \"placement_offers\".\"monthly_stipend_inr\" < 'Infinity'::numeric"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.programmes": {
+      "name": "programmes",
+      "schema": "",
+      "columns": {
+        "programme_id": {
+          "name": "programme_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "department_id": {
+          "name": "department_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "degree_id": {
+          "name": "degree_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "specialization": {
+          "name": "specialization",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "programmes_degree_idx": {
+          "name": "programmes_degree_idx",
+          "columns": [
+            {
+              "expression": "degree_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "programmes_department_id_departments_department_id_fk": {
+          "name": "programmes_department_id_departments_department_id_fk",
+          "tableFrom": "programmes",
+          "tableTo": "departments",
+          "columnsFrom": [
+            "department_id"
+          ],
+          "columnsTo": [
+            "department_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "programmes_degree_id_degrees_degree_id_fk": {
+          "name": "programmes_degree_id_degrees_degree_id_fk",
+          "tableFrom": "programmes",
+          "tableTo": "degrees",
+          "columnsFrom": [
+            "degree_id"
+          ],
+          "columnsTo": [
+            "degree_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "programmes_department_degree_specialization_unique": {
+          "name": "programmes_department_degree_specialization_unique",
+          "nullsNotDistinct": true,
+          "columns": [
+            "department_id",
+            "degree_id",
+            "specialization"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "programmes_specialization_nonblank": {
+          "name": "programmes_specialization_nonblank",
+          "value": "char_length(\"programmes\".\"specialization\") > 0 and \"programmes\".\"specialization\" = btrim(\"programmes\".\"specialization\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reservation_categories": {
+      "name": "reservation_categories",
+      "schema": "",
+      "columns": {
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reservation_categories_code_required": {
+          "name": "reservation_categories_code_required",
+          "value": "char_length(\"reservation_categories\".\"code\") > 0 and \"reservation_categories\".\"code\" = btrim(\"reservation_categories\".\"code\")"
+        },
+        "reservation_categories_label_required": {
+          "name": "reservation_categories_label_required",
+          "value": "char_length(btrim(\"reservation_categories\".\"label\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.student_cycles": {
+      "name": "student_cycles",
+      "schema": "",
+      "columns": {
+        "cycle_id": {
+          "name": "cycle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enrollment_id": {
+          "name": "enrollment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cohort_id": {
+          "name": "cohort_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "registration_status": {
+          "name": "registration_status",
+          "type": "registration_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "student_cycles_enrollment_idx": {
+          "name": "student_cycles_enrollment_idx",
+          "columns": [
+            {
+              "expression": "enrollment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "student_cycles_cycle_cohort_idx": {
+          "name": "student_cycles_cycle_cohort_idx",
+          "columns": [
+            {
+              "expression": "cycle_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cohort_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "student_cycles_cycle_cohort_fk": {
+          "name": "student_cycles_cycle_cohort_fk",
+          "tableFrom": "student_cycles",
+          "tableTo": "cycle_cohorts",
+          "columnsFrom": [
+            "cycle_id",
+            "cohort_id"
+          ],
+          "columnsTo": [
+            "cycle_id",
+            "cohort_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        },
+        "student_cycles_enrollment_cohort_fk": {
+          "name": "student_cycles_enrollment_cohort_fk",
+          "tableFrom": "student_cycles",
+          "tableTo": "enrollments",
+          "columnsFrom": [
+            "enrollment_id",
+            "cohort_id"
+          ],
+          "columnsTo": [
+            "enrollment_id",
+            "cohort_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "student_cycles_pk": {
+          "name": "student_cycles_pk",
+          "columns": [
+            "cycle_id",
+            "enrollment_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.students": {
+      "name": "students",
+      "schema": "",
+      "columns": {
+        "student_id": {
+          "name": "student_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gender_code": {
+          "name": "gender_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "students_gender_idx": {
+          "name": "students_gender_idx",
+          "columns": [
+            {
+              "expression": "gender_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "students_gender_code_gender_types_code_fk": {
+          "name": "students_gender_code_gender_types_code_fk",
+          "tableFrom": "students",
+          "tableTo": "gender_types",
+          "columnsFrom": [
+            "gender_code"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "students_name_required": {
+          "name": "students_name_required",
+          "value": "char_length(\"students\".\"name\") between 1 and 100 and \"students\".\"name\" = btrim(\"students\".\"name\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PROFESSOR'"
+        },
+        "department_id": {
+          "name": "department_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "users_department_id_departments_department_id_fk": {
+          "name": "users_department_id_departments_department_id_fk",
+          "tableFrom": "users",
+          "tableTo": "departments",
+          "columnsFrom": [
+            "department_id"
+          ],
+          "columnsTo": [
+            "department_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.degree_level": {
+      "name": "degree_level",
+      "schema": "public",
+      "values": [
+        "UG",
+        "PG"
+      ]
+    },
+    "public.event_scope": {
+      "name": "event_scope",
+      "schema": "public",
+      "values": [
+        "WHOLE_DRIVE",
+        "SELECTED_ROLES"
+      ]
+    },
+    "public.offer_type": {
+      "name": "offer_type",
+      "schema": "public",
+      "values": [
+        "PPO",
+        "FTE",
+        "FTE+6month"
+      ]
+    },
+    "public.process_type": {
+      "name": "process_type",
+      "schema": "public",
+      "values": [
+        "PPT",
+        "OT",
+        "GD",
+        "RESUME_SHORTLISTING",
+        "PI"
+      ]
+    },
+    "public.registration_status": {
+      "name": "registration_status",
+      "schema": "public",
+      "values": [
+        "REGISTERED",
+        "UNREGISTERED"
+      ]
+    },
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "ADMIN",
+        "PROFESSOR",
+        "SUPERADMIN"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { relativeLabel, toIsoDate } from "@/lib/calendar/dates";
 import { DatePicker } from "@/components/ui/date-picker";
 import "./calendar.css";
@@ -23,6 +23,8 @@ interface ProcessEvent {
 interface Props {
   today: string;
   isAdmin: boolean;
+  /** Department code (or "all"): each department keeps its own entries in this browser. */
+  scope: string;
 }
 
 type Draft = Omit<ProcessEvent, "id">;
@@ -46,9 +48,6 @@ const subscribeToEvents = (callback: () => void) => {
     window.removeEventListener(EVENT_CHANGE_EVENT, callback);
   };
 };
-
-const getStoredEvents = () =>
-  window.localStorage.getItem(EVENT_STORAGE_KEY) ?? "[]";
 
 const parseEvents = (raw: string): ProcessEvent[] => {
   try {
@@ -79,7 +78,12 @@ const formatLong = (iso: string) =>
     timeZone: "UTC",
   });
 
-export default function DriveCalendar({ today, isAdmin }: Props) {
+export default function DriveCalendar({ today, isAdmin, scope }: Props) {
+  const storageKey = `${EVENT_STORAGE_KEY}:${scope}`;
+  const getStoredEvents = useCallback(
+    () => window.localStorage.getItem(storageKey) ?? "[]",
+    [storageKey],
+  );
   const storedEvents = useSyncExternalStore(
     subscribeToEvents,
     getStoredEvents,
@@ -94,7 +98,7 @@ export default function DriveCalendar({ today, isAdmin }: Props) {
   const [editing, setEditing] = useState<ProcessEvent | "new" | null>(null);
 
   const updateEvents = (next: ProcessEvent[]) => {
-    window.localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(next));
+    window.localStorage.setItem(storageKey, JSON.stringify(next));
     window.dispatchEvent(new Event(EVENT_CHANGE_EVENT));
   };
 

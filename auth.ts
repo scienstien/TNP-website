@@ -11,7 +11,7 @@ import { burnPasswordCheck, verifyPassword } from "@/lib/auth/password";
 import { clientIp, resetAttempts, takeAttempt } from "@/lib/auth/rate-limit";
 import {
   isValidEmail,
-  normalizeEmail,
+  loginEmail,
   PASSWORD_MAX,
 } from "@/lib/auth/validation";
 import { authConfig } from "./auth.config";
@@ -30,7 +30,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: { email: {}, password: {} },
       // Runs for every credentials sign-in, including direct POSTs to /api/auth/callback/credentials.
       async authorize(credentials, request) {
-        const email = normalizeEmail(credentials?.email);
+        const email = loginEmail(credentials?.email);
         const password =
           typeof credentials?.password === "string" ? credentials.password : "";
         if (!isValidEmail(email) || !password || password.length > PASSWORD_MAX)

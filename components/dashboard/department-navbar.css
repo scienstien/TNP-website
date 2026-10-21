@@ -1,0 +1,83 @@
+/* Department navbar: sticky bar above the dashboard content. */
+.dept-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 0 -48px 18px;
+  padding: 12px 48px;
+  border-bottom: 1px solid #243653;
+  background: rgba(13, 21, 36, 0.92);
+  backdrop-filter: blur(6px);
+  color: #f1f5ff;
+}
+.dept-navbar-label {
+  color: #8f9bb0;
+  font: 500 10px "DM Mono", monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.dept-navbar-list {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 2px;
+}
+.dept-chip {
+  flex: none;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid #354d76;
+  border-radius: 999px;
+  background: transparent;
+  color: #b9c6dc;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.dept-chip:hover:not(:disabled) {
+  border-color: #4c7fe4;
+  color: #f1f5ff;
+}
+.dept-chip:focus-visible {
+  outline: 2px solid #70a0ff;
+  outline-offset: 2px;
+}
+.dept-chip:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.dept-chip.is-active {
+  border-color: #4c7fe4;
+  background: rgba(36, 84, 197, 0.28);
+  color: #f1f5ff;
+}
+.dept-chip.is-static {
+  cursor: default;
+}
+.dept-navbar-current {
+  margin-left: auto;
+  color: #8f9bb0;
+  font-size: 13px;
+}
+@media (max-width: 1000px) {
+  .dept-navbar {
+    margin: 0 -24px 18px;
+    padding: 12px 24px;
+  }
+}
+@media (max-width: 640px) {
+  .dept-navbar {
+    margin: 0 -15px 16px;
+    padding: 10px 15px;
+  }
+  .dept-navbar-current {
+    display: none;
+  }
+}

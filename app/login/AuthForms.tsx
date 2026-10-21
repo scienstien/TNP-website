@@ -9,10 +9,15 @@ import {
 
 type Mode = "signin" | "signup";
 
+export interface DepartmentChoice {
+  code: string;
+  name: string;
+}
+
 const COPY: Record<Mode, { title: string; intro: string }> = {
   signin: {
     title: "Welcome back.",
-    intro: "Sign in to explore MME placement records.",
+    intro: "Sign in to explore your department's placement records.",
   },
   signup: {
     title: "Get started.",
@@ -20,7 +25,13 @@ const COPY: Record<Mode, { title: string; intro: string }> = {
   },
 };
 
-export default function AuthForms({ callbackUrl }: { callbackUrl: string }) {
+export default function AuthForms({
+  callbackUrl,
+  departments,
+}: {
+  callbackUrl: string;
+  departments: DepartmentChoice[];
+}) {
   const [mode, setMode] = useState<Mode>("signin");
   const id = useId();
 
@@ -66,7 +77,7 @@ export default function AuthForms({ callbackUrl }: { callbackUrl: string }) {
         {mode === "signin" ? (
           <SignInForm callbackUrl={callbackUrl} />
         ) : (
-          <SignUpForm callbackUrl={callbackUrl} />
+          <SignUpForm callbackUrl={callbackUrl} departments={departments} />
         )}
       </div>
     </>
@@ -83,10 +94,9 @@ function SignInForm({ callbackUrl }: { callbackUrl: string }) {
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <Field
         name="email"
-        label="Email address"
-        type="email"
+        label="Email or username"
         autoComplete="username"
-        placeholder="Enter your email"
+        placeholder="Enter your email or username"
         defaultValue={state.values?.email}
       />
       <PasswordField
@@ -105,7 +115,13 @@ function SignInForm({ callbackUrl }: { callbackUrl: string }) {
   );
 }
 
-function SignUpForm({ callbackUrl }: { callbackUrl: string }) {
+function SignUpForm({
+  callbackUrl,
+  departments,
+}: {
+  callbackUrl: string;
+  departments: DepartmentChoice[];
+}) {
   const [state, action, pending] = useActionState<AuthFormState, FormData>(
     signUpAction,
     {},
@@ -130,6 +146,11 @@ function SignUpForm({ callbackUrl }: { callbackUrl: string }) {
         placeholder="you@nitt.edu"
         defaultValue={state.values?.email}
         error={errors.email}
+      />
+      <DepartmentField
+        departments={departments}
+        defaultValue={state.values?.department}
+        error={errors.department}
       />
       <PasswordField
         name="password"
@@ -157,6 +178,45 @@ function SignUpForm({ callbackUrl }: { callbackUrl: string }) {
         </p>
       )}
     </form>
+  );
+}
+
+function DepartmentField({
+  departments,
+  defaultValue,
+  error,
+}: {
+  departments: DepartmentChoice[];
+  defaultValue?: string;
+  error?: string;
+}) {
+  const id = useId();
+  return (
+    <div className="login-field">
+      <label htmlFor={id}>Department</label>
+      <select
+        id={id}
+        name="department"
+        defaultValue={defaultValue ?? ""}
+        required
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
+      >
+        <option value="" disabled>
+          Choose your department
+        </option>
+        {departments.map((department) => (
+          <option key={department.code} value={department.code}>
+            {department.name}
+          </option>
+        ))}
+      </select>
+      {error && (
+        <p id={`${id}-error`} className="login-fieldError">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 

@@ -3,7 +3,7 @@ import LoginLogo from "@/components/login/LoginLogo";
 import TnpTitle from "@/components/login/TnpTitle";
 
 export const metadata = {
-  title: "Logo preview | MME Training and Placement",
+  title: "Logo preview | Training and Placement",
 };
 
 export default function LogoPreview() {

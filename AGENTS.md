@@ -15,9 +15,14 @@ than private chat history or local memory. The target schema and deployed
 migration state are distinct during the staged transition below.
 
 2. Scope boundaries
-There are two application roles:
-- ADMIN: Manages historical placement data and authorized administrative actions.
-- PROFESSOR: Has read-only dashboard access unless the project owner changes it.
+There are three application roles, all scoped by department (see "Departments and
+access" below):
+- SUPERADMIN: Belongs to no department. Has every ADMIN power in every department,
+  working in one department at a time, or reading all of them.
+- ADMIN: Belongs to one department. Manages that department's historical placement
+  data and authorized administrative actions there only.
+- PROFESSOR: Belongs to one department. Has read-only dashboard access to it unless
+  the project owner changes it.
 The users table exists only for authentication and role-based access control.
 Students and academic enrollments are placement data, not login accounts.
 
@@ -33,16 +38,25 @@ do not imply those workflows.
 `db/README.md` documents keys, relationships, units and enforcement boundaries.
 TypeScript properties use camelCase; SQL tables/columns use snake_case.
 
-Current delivery is schema-only:
-- Legacy migrations 0000-0004 remain unchanged. No target migration is generated
-  or applied, and no database is reset or seeded by this task.
-- Existing analytics, student/company/calendar queries and actions, seed scripts
-  and UI contracts are not migrated to the new columns. Full-application type
-  checks are expected to fail at these legacy references until integration.
-- Calendar UI persistence remains browser local storage. Target event tables do
-  not mean the calendar is connected to PostgreSQL.
-- Do not run legacy seed scripts against the target schema or claim the complete
-  application works with it. Existing database migration state remains legacy.
+Delivery status: the target schema is deployed by migration 0005 and the application
+is ported to it.
+- Legacy migrations 0000-0004 remain unchanged. 0005_institute_wide_schema renames
+  the legacy MME tables (students, companies, placement_offers and their indexes)
+  to legacy_students, legacy_companies and legacy_placement_offers, keeping every
+  row, then creates the target tables. Nothing is dropped. Copying the legacy rows
+  into the target model (including company visit dates as drive events) is a
+  reviewed data migration that has NOT been done.
+- Analytics, the student editor, company directory, outreach tracker and the
+  dormant calendar query/action files now read and write the target tables, scoped
+  by department. Recheck cross-table rules below before relying on them.
+- Calendar UI persistence remains browser local storage (kept per department). Target
+  event tables do not mean the calendar UI is connected to PostgreSQL; the company
+  directory's visit date is the earliest dated PPT drive event of the current cycle.
+- db/seed.ts and db/seed-dashboard-demo.ts (legacy fictional seeds) were removed;
+  npm run db:seed:departments fills the target schema with fictional data.
+  db/seed-mme-2027-roster.ts still targets the preserved legacy_students table
+  through db/legacy-schema.ts and has not been ported (it needs a registration
+  decision per student, see below).
 
 Academic identity:
 - `departments`: UUID department_id PK, required unique code and required name.
@@ -121,8 +135,11 @@ Drive-stage events:
 - WHOLE_DRIVE events have zero role links; SELECTED_ROLES events have at least
   one. This rule requires coordinated transactional enforcement.
 - Target companies have no visit_date. Dates belong to drive events. Preserve
-  legacy visit-date values in the eventual reviewed migration; do not discard
-  them or fabricate their drive/cycle mapping. Calendar UI integration is pending.
+  legacy visit-date values (kept in legacy_companies) in the eventual reviewed data
+  migration; do not discard them or fabricate their drive/cycle mapping. The
+  company directory edits a visit date by moving the company's PPT events in the
+  current cycle (creating a whole-drive PPT event on a drive if none exists).
+  Calendar UI integration is pending.
 
 Enforcement boundaries:
 - Keys, local checks and composite FKs do not enforce every business rule.
@@ -132,10 +149,37 @@ Enforcement boundaries:
 - Do not claim those cross-table rules are implemented by schema.ts alone.
   Authorization must always be enforced separately on the server.
 
+Departments and access (user-requested multi-department extension):
+- Every department user sees only their own department. A department is reached
+  through programme -> cohort -> enrollment; no placement table has its own
+  department column. users.department_id and outreach_contacts.department_id are
+  the only department columns outside the academic hierarchy.
+- Every protected query and Server Action scopes with resolveDepartment() in
+  lib/auth/dal.ts: department users are pinned to their own department whatever the
+  client sends. A SUPERADMIN chooses a department in the dashboard's department
+  navbar (a cookie, re-checked against the database) or "All departments", which
+  is read-only. Mutations that need one department reject "all".
+- Dashboard analytics and the student editor use undergraduate (UG, B.Tech)
+  cohorts only: the batch is cohort.graduation_year. PG cohorts exist in the schema
+  and demo data but are not shown yet.
+- Because the target schema has no role-target links, drives and company contacts are
+  institute-wide, not per department.
+- Development accounts (created on the first sign-in request; in production only
+  with SEED_TRIAL_ADMIN=true): superadmin / test123 (SUPERADMIN) and
+  admin123<department code>@nitt.edu / test1234 (ADMIN, e.g.
+  admin123civil@nitt.edu). Sign-in accepts a bare username and appends the first
+  allowed domain. Sign-up asks for a department and creates PROFESSOR accounts only.
+- Migration 0005 creates a placeholder 'mme' department so existing users and
+  outreach contacts stay valid; replace or rename it when the real department list
+  is imported. The demo seed removes it.
+
 Users and historical data:
-- `users` remains unchanged: UUID id PK, nullable name, required unique email,
-  nullable password_hash, required ADMIN/PROFESSOR role defaulting to PROFESSOR.
-  Never store plaintext passwords, student relationships or is_active here.
+- `users`: UUID id PK, nullable name, required unique email, nullable password_hash,
+  required ADMIN/PROFESSOR/SUPERADMIN role defaulting to PROFESSOR, and a nullable
+  department_id FK to departments (NULL only for SUPERADMIN; enforced in the
+  application, not by a constraint). Never store plaintext passwords, student
+  relationships or is_active here. The department is the user's access scope, not
+  placement data.
 - All twenty years and departments share these tables; never create per-year or
   per-department placement tables. Preserve nullable historical details and
   inspect actual source files before implementing imports.
@@ -256,14 +300,19 @@ Do not reopen these as unresolved requirements.
 Remaining work:
 - Review actual historical files, missing required registration, category values,
   globally unique rolls and programme/cohort/company mappings before imports.
-- Prepare a reviewed, data-preserving forward migration from the unchanged
-  legacy history. Do not rewrite migrations 0000-0004 or reset shared databases.
-- Port existing queries/actions, analytics contracts, editors, seeds and calendar
-  persistence to the target. Implement the pending cross-table rules before
-  production integration.
+- Copy the preserved legacy_* rows into the target model (departments, programmes,
+  cohorts, enrollments, registration, companies, drives, offers, visit dates as
+  drive events) with a reviewed, data-preserving migration; then retire the
+  legacy tables. Do not rewrite migrations 0000-0005 or reset shared databases.
+- Persist the process calendar in drive_events. Implement the pending cross-table
+  rules before production integration (the student editor registers every student it
+  creates or moves as REGISTERED so offers stay valid).
 - Resolve PVR semantics without inferring behavior from the nullable field.
-- Update module-specific READMEs when their implementations are ported; existing
-  legacy module contracts are not evidence of target-schema compatibility.
+- Update the analytics placement-percentage definition for the registered-student
+  denominator, and decide whether PG cohorts get their own views.
+- Module READMEs (lib/students, lib/companies, lib/placements, lib/outreach) were
+  written for the legacy model; their data-model statements are superseded by this
+  file and db/README.md until they are revised.
 
 Authentication (implemented; see lib/auth/README.md):
 - Auth.js (NextAuth v5) Credentials provider, email + password against the
@@ -274,9 +323,10 @@ Authentication (implemented; see lib/auth/README.md):
 - Self-service sign-up creates PROFESSOR accounts only, and only for email
   domains listed in ALLOWED_SIGNUP_DOMAINS (default nitt.edu). ADMIN
   accounts cannot be created through the UI.
-- A trial admin (admin@nitt.edu) is created automatically in development
-  on the first sign-in request; production creates it only with
-  SEED_TRIAL_ADMIN=true. db/seed.ts does not create users.
+- Development accounts (superadmin, admin123<dept>@nitt.edu; see "Departments and
+  access") are created automatically on the first sign-in request in
+  development; production creates them only with SEED_TRIAL_ADMIN=true. Seeds do
+  not create users.
 - Authorization: proxy.ts redirects visitors without a session to /login
   (optimistic check). Every page, Server Action and route handler that
   reads protected data or changes anything must call requireUser() or
@@ -286,30 +336,35 @@ Authentication (implemented; see lib/auth/README.md):
   the local PostgreSQL container and migrations as described in
   db/README.md before signing in.
 
-Legacy analytics and student/company integration:
-- lib/placements/analytics.ts, lib/students/ and lib/companies/ still implement
-  the previous MME model and use columns removed from the target. Their existing
-  module READMEs describe that legacy implementation until integration updates.
-- Legacy student editors remain ADMIN-only, with role rechecks on mutation.
-  Preserve the same authorization, explicit offer removal, draft Save/Cancel and
-  no-overwrite company creation requirements when porting their data contracts.
-- Recharts remain the current chart library; the historical company-sector chart
-  must not be mistaken for the new academic department/programme dimension.
-- db/seed.ts and db/seed-dashboard-demo.ts contain fictional legacy examples.
-  They are not migrated; do not run them against the target schema.
+Ported analytics and student/company integration:
+- lib/placements/queries.ts, lib/students/ and lib/companies/ read the target
+  tables. The PlacementRecord contract (rollNumber, batchYear, offer with company,
+  sector, package, type, date) is unchanged and gained a department code, so the
+  analytics in lib/placements/analytics.ts and the charts are unchanged. Placement
+  percentage still divides by all recorded students; the registered-student
+  denominator above is not applied yet.
+- Student editors remain ADMIN-only (SUPERADMIN included) with role and department
+  rechecks on every mutation, explicit offer removal, draft Save/Cancel and
+  no-overwrite company creation. A student's job role is stored as a drive role;
+  moving a student to another batch carries the offer but drops its drive and role.
+- Recharts remain the current chart library; the company-sector chart must not be
+  mistaken for the academic department/programme dimension.
 
 Process calendar (temporary client-only mode):
 - The dashboard calendar does not call lib/calendar/queries.ts or
   lib/calendar/actions.ts. Admins add/edit/remove process entries in browser
-  local storage; entries are not shared between browsers or stored in PostgreSQL.
+  local storage, kept separately per department; entries are not shared between
+  browsers or stored in PostgreSQL.
 - Professors remain read-only. The dormant company visit-date query/action files
-  use the old schema and must be ported or replaced when persistence is integrated.
+  were ported to the PPT drive events but remain unconnected to the UI.
 - Target drive_events/event_roles describe the future persistence contract,
   not an already connected calendar feature.
 
-Outreach contact tracker (unchanged; see lib/outreach/):
-- Signed-in PROFESSOR users have read-only access. ADMIN users can create,
-  edit and delete standalone outreach_contacts records.
+Outreach contact tracker (see lib/outreach/):
+- Each department has its own checklist (outreach_contacts.department_id).
+  Signed-in PROFESSOR users have read-only access to their department's records.
+  ADMIN users can create, edit and delete their department's standalone records; a
+  SUPERADMIN can read all departments and edit the chosen one.
 - There is no FK or synchronization with companies, students, offers, analytics
   or the process calendar.
 - PVR defaults to No; updated_at is maintained by the server on edits.

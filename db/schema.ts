@@ -27,7 +27,9 @@ import {
  * - WHOLE_DRIVE events have no event roles; SELECTED_ROLES events have >= 1.
  * These cross-row/lifecycle rules are not enforced by the declarations below.
  */
-export const userRole = pgEnum("user_role", ["ADMIN", "PROFESSOR"]);
+// SUPERADMIN belongs to no department and has every ADMIN power in every department; ADMIN and
+// PROFESSOR belong to exactly one department (users.department_id, enforced in the application).
+export const userRole = pgEnum("user_role", ["ADMIN", "PROFESSOR", "SUPERADMIN"]);
 export const offerType = pgEnum("offer_type", ["PPO", "FTE", "FTE+6month"]);
 export const degreeLevel = pgEnum("degree_level", ["UG", "PG"]);
 export const registrationStatus = pgEnum("registration_status", [
@@ -334,6 +336,10 @@ export const eventRoles = pgTable("event_roles", {
 // companies or placement records so prospective contacts can be tracked freely.
 export const outreachContacts = pgTable("outreach_contacts", {
   id: uuid("id").defaultRandom().primaryKey(),
+  // Each department keeps its own outreach checklist.
+  departmentId: uuid("department_id")
+    .notNull()
+    .references(() => departments.departmentId, { onUpdate: "cascade", onDelete: "restrict" }),
   companyName: text("company_name").notNull(),
   hrName: text("hr_name"),
   phoneNumber: text("phone_number"),
@@ -345,8 +351,9 @@ export const outreachContacts = pgTable("outreach_contacts", {
     .notNull(),
 });
 
-// Authentication only; no student or placement fields belong here.
-// Existing Auth.js JWT/Credentials authentication needs no adapter tables.
+// Authentication only; no student or placement fields belong here (the department is the
+// user's scope, not placement data). Existing Auth.js JWT/Credentials authentication needs no
+// adapter tables.
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name"),
@@ -354,4 +361,9 @@ export const users = pgTable("users", {
   // Nullable for provider-based authentication; never store plaintext passwords.
   passwordHash: text("password_hash"),
   role: userRole("role").notNull().default("PROFESSOR"),
+  // NULL only for SUPERADMIN. Authorization is separate: see lib/auth/dal.ts.
+  departmentId: uuid("department_id").references(() => departments.departmentId, {
+    onUpdate: "cascade",
+    onDelete: "restrict",
+  }),
 });

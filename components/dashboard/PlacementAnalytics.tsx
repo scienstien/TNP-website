@@ -21,18 +21,19 @@ import OfferTypeDistributionChart from "./charts/OfferTypeDistributionChart";
 import SectorPlacementChart from "./charts/SectorPlacementChart";
 import TopCompaniesOfferChart from "./charts/TopCompaniesOfferChart";
 import DashboardFilters from "./DashboardFilters";
-import DashboardHeader from "./DashboardHeader";
+import DashboardHeader, { type HeaderRole } from "./DashboardHeader";
 import KPICards from "./KPICards";
 import { useDashboardFilters } from "./useDashboardFilters";
 import "./analytics.css";
 
 interface Props {
   records: PlacementRecord[];
-  role: "Admin" | "Professor";
+  role: HeaderRole;
+  department: { code: string; name: string } | null;
 }
 
 /** The main dashboard: header, shared filters, KPIs and the four independent charts. */
-export default function PlacementAnalytics({ records, role }: Props) {
+export default function PlacementAnalytics({ records, role, department }: Props) {
   const { filters, update, toggle, reset } = useDashboardFilters(records);
 
   const options = useMemo(
@@ -60,7 +61,7 @@ export default function PlacementAnalytics({ records, role }: Props) {
   if (records.length === 0) {
     return (
       <div className="mme-analytics">
-        <DashboardHeader role={role} batches={0} students={0} />
+        <DashboardHeader role={role} department={department} batches={0} students={0} />
         <section className="panel mme-empty mme-empty--page" role="status">
           No placement records yet. Once historical data is imported, the
           dashboard fills in automatically.
@@ -73,6 +74,7 @@ export default function PlacementAnalytics({ records, role }: Props) {
     <div className="mme-analytics">
       <DashboardHeader
         role={role}
+        department={department}
         batches={options.batches.length}
         students={records.length}
       />

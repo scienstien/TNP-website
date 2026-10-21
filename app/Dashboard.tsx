@@ -16,6 +16,7 @@ import type { StudentData } from "@/lib/students/types";
 import DriveCalendar from "@/components/calendar/DriveCalendar";
 import PlacementAnalytics from "@/components/dashboard/PlacementAnalytics";
 import { signOutAction } from "@/lib/auth/actions";
+import DepartmentNavbar, { type DepartmentOption } from "@/components/dashboard/DepartmentNavbar";
 import type { PlacementRecord } from "@/lib/placements/types";
 import Companies from "@/components/companies/Companies";
 import type { CompanyRecord } from "@/lib/companies/types";
@@ -44,12 +45,18 @@ const getStoredView = () =>
 export interface DashboardUser {
   name: string | null;
   email: string;
-  role: "ADMIN" | "PROFESSOR";
+  role: "ADMIN" | "PROFESSOR" | "SUPERADMIN";
+  /**
+   * The department being shown: a department user's own, or the one a super admin chose.
+   * null for a super admin viewing every department.
+   */
+  department: DepartmentOption | null;
 }
 
 /** Rendered by app/page.tsx with the user verified on the server; the role cannot be switched here. */
 export default function Dashboard({
   user,
+  departments,
   placementRecords,
   studentData,
   companies,
@@ -57,6 +64,8 @@ export default function Dashboard({
   today,
 }: {
   user: DashboardUser;
+  /** Every department, for the super admin's switcher; empty for everyone else. */
+  departments: DepartmentOption[];
   placementRecords: PlacementRecord[];
   studentData: StudentData | null;
   companies: CompanyRecord[];
@@ -64,8 +73,11 @@ export default function Dashboard({
   /** Today's date at the institute (YYYY-MM-DD), computed on the server. */
   today: string;
 }) {
-  const role: "Professor" | "Admin" =
-    user.role === "ADMIN" ? "Admin" : "Professor";
+  const isSuper = user.role === "SUPERADMIN";
+  // A super admin has every administrator's powers, in whichever department they chose.
+  const role: "Professor" | "Admin" = user.role === "PROFESSOR" ? "Professor" : "Admin";
+  // Editing needs one department; a super admin looking at all of them is read-only.
+  const canEdit = role === "Admin" && user.department !== null;
   const storedView = useSyncExternalStore(subscribeToView, getStoredView, () => "Home");
   const allowedViews: View[] = role === "Admin"
     ? ["Home", "Overview", "Calendar", "Companies", "Outreach", "Students"]
@@ -93,7 +105,7 @@ export default function Dashboard({
           <span className="sidebar-brandDivider" aria-hidden="true" />
           <span className="sidebar-lockup">
             <strong>T&amp;P</strong>
-            <small>NIT TRICHY · MME</small>
+            <small>NIT TRICHY · {user.department ? user.department.code.toUpperCase() : "ALL DEPARTMENTS"}</small>
           </span>
         </div>
         <nav>
@@ -148,7 +160,7 @@ export default function Dashboard({
           <b>{initials}</b>
           <span>
             {displayName}
-            {role === "Admin" && <small>Administrator</small>}
+            {role === "Admin" && <small>{isSuper ? "Super administrator" : "Administrator"}</small>}
           </span>
           <form action={signOutAction}>
             <button type="submit" className="signout-button">
@@ -158,17 +170,23 @@ export default function Dashboard({
         </div>
       </aside>
       <section className="content-area">
+        <DepartmentNavbar current={user.department} departments={departments} canSwitch={isSuper} />
         {view === "Home" && (
           <HomeView
             firstName={firstName}
             placementRecords={placementRecords}
             today={today}
+            canChooseBatch={role === "Admin"}
             onDashboard={() => setView("Overview")}
             onCalendar={() => setView("Calendar")}
           />
         )}
         {view === "Overview" && (
-          <PlacementAnalytics records={placementRecords} role={role} />
+          <PlacementAnalytics
+            records={placementRecords}
+            role={isSuper ? "Super admin" : role}
+            department={user.department}
+          />
         )}
         {view === "Calendar" && (
           <>
@@ -180,20 +198,30 @@ export default function Dashboard({
             <DriveCalendar
               today={today}
               isAdmin={role === "Admin"}
+              scope={user.department?.code ?? "all"}
             />
           </>
         )}
         {view === "Companies" && role === "Admin" && (
-          <Companies data={companies} isAdmin />
+          canEdit ? <Companies data={companies} isAdmin /> : <ChooseDepartment />
         )}
         {view === "Outreach" && (
-          <OutreachTracker data={outreachContacts} isAdmin={role === "Admin"} />
+          <OutreachTracker data={outreachContacts} isAdmin={canEdit} />
         )}
-        {view === "Students" && role === "Admin" && studentData && (
-          <StudentRecords data={studentData} />
+        {view === "Students" && role === "Admin" && (
+          canEdit && studentData ? <StudentRecords data={studentData} /> : <ChooseDepartment />
         )}
       </section>
     </main>
+  );
+}
+
+/** Shown to a super admin on a view that edits one department's data while "All departments" is chosen. */
+function ChooseDepartment() {
+  return (
+    <section className="panel" role="status">
+      <p>Choose a department in the bar above to manage its records.</p>
+    </section>
   );
 }
 
@@ -201,12 +229,14 @@ function HomeView({
   firstName,
   placementRecords,
   today,
+  canChooseBatch,
   onDashboard,
   onCalendar,
 }: {
   firstName: string;
   placementRecords: PlacementRecord[];
   today: string;
+  canChooseBatch: boolean;
   onDashboard: () => void;
   onCalendar: () => void;
 }) {
@@ -214,14 +244,23 @@ function HomeView({
     () => placementRecords.flatMap((record) => record.offer ? [{
       batchYear: record.batchYear,
       offerDate: record.offer.offerDate,
+      company: record.offer.company,
     }] : []),
     [placementRecords],
   );
-  const batchStats = useMemo(() => {
-    const batchYear = batchYearForDate(today);
-    const batchRecords = placementRecords.filter((record) => record.batchYear === batchYear);
-    const placed = batchRecords.filter((record) => record.offer !== null).length;
-    return { batchYear, placed, unplaced: batchRecords.length - placed };
+  const batches = useMemo(() => {
+    const totals = new Map<number, { placed: number; unplaced: number }>();
+    // The batch of today's date is always listed, even before any student is recorded for it.
+    totals.set(batchYearForDate(today), { placed: 0, unplaced: 0 });
+    for (const record of placementRecords) {
+      const total = totals.get(record.batchYear) ?? { placed: 0, unplaced: 0 };
+      if (record.offer !== null) total.placed++;
+      else total.unplaced++;
+      totals.set(record.batchYear, total);
+    }
+    return [...totals]
+      .map(([batchYear, total]) => ({ batchYear, ...total }))
+      .sort((a, b) => b.batchYear - a.batchYear);
   }, [placementRecords, today]);
   return (
     <section className="home-view home-view--comparison">
@@ -241,7 +280,7 @@ function HomeView({
             </button>
           </div>
         </div>
-        <PlacedSoFar offers={offers} batchStats={batchStats} today={today} />
+        <PlacedSoFar offers={offers} batches={batches} canChooseBatch={canChooseBatch} today={today} />
       </div>
       <div className="home-grid">
         <button className="home-card coral-card" onClick={onDashboard}>

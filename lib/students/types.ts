@@ -15,6 +15,12 @@ export interface StudentRecord {
 }
 export interface StudentData {
   students: StudentRecord[];
+  /**
+   * The batch whose placement cycle the companies' visit dates belong to. The server checks an
+   * offer date against the visit in the student's own cycle; the editor's date hint only
+   * applies to this batch.
+   */
+  currentBatchYear: number;
   companies: { name: string; domain: string | null; visitDate: string | null }[];
 }
 export type StudentChanges = {
