@@ -1,0 +1,720 @@
+.login-page {
+  --base: #0d1118;
+  --blue: #2454c5;
+  --line: rgba(110, 160, 255, 0.5);
+  --login-glow-colors:
+    rgba(10, 75, 255, 0.32) 0%, rgba(10, 75, 255, 0.14) 25%,
+    rgba(2, 26, 77, 0.25) 50%, transparent 85%;
+  display: grid;
+  grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
+  height: 100svh;
+  background: var(--base);
+  color: #e8eefc;
+  font-family: var(--font-geist-sans), sans-serif;
+  color-scheme: dark;
+}
+.login-formSection {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  padding: max(20px, env(safe-area-inset-top)) clamp(24px, 3vw, 48px)
+    max(18px, env(safe-area-inset-bottom));
+}
+.login-formBackdrop {
+  --login-glow-shape: ellipse 60% 65% at 100% 90%;
+  --login-glow-fade: linear-gradient(
+    0deg,
+    rgba(13, 17, 24, 0.5),
+    transparent 30%
+  );
+  --login-form-edge-fade: linear-gradient(90deg, transparent 65%, var(--base));
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--base);
+}
+.login-formBackdrop img {
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.48;
+  filter: brightness(0.9) contrast(0.9) saturate(1.05);
+}
+.login-formBackdrop::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    var(--login-glow-fade),
+    radial-gradient(var(--login-glow-shape), var(--login-glow-colors)),
+    var(--login-form-edge-fade),
+    linear-gradient(
+      180deg,
+      rgba(13, 17, 24, 0.1),
+      rgba(13, 17, 24, 0.3) 55%,
+      rgba(13, 17, 24, 0.12)
+    );
+}
+.login-formSection::after {
+  position: absolute;
+  z-index: 2;
+  top: 8%;
+  right: 0;
+  bottom: 8%;
+  width: 1px;
+  content: "";
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(255, 255, 255, 0.15) 12%,
+    rgba(255, 255, 255, 0.15) 88%,
+    transparent
+  );
+  box-shadow: 0 0 5px rgba(230, 239, 255, 0.12);
+}
+.login-formSection::before {
+  position: absolute;
+  z-index: 3;
+  top: calc(8% - 60px);
+  right: -2px;
+  width: 5px;
+  height: 120px;
+  content: "";
+  background:
+    radial-gradient(
+      ellipse 2.5px 7px at 50% 60px,
+      #fff,
+      rgba(238, 245, 255, 0.75) 42%,
+      transparent
+    ),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.12) 20%,
+      rgba(255, 255, 255, 0.38) 40%,
+      rgba(255, 255, 255, 0.85) 50%,
+      rgba(255, 255, 255, 0.38) 60%,
+      rgba(255, 255, 255, 0.12) 80%,
+      transparent 100%
+    );
+  background-size:
+    100% 100%,
+    1px 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 5px rgba(230, 239, 255, 0.6));
+  animation: login-divider-flow 3.5s linear infinite;
+}
+@keyframes login-divider-flow {
+  0% {
+    top: calc(8% - 60px);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    top: calc(92% - 60px);
+    opacity: 0;
+  }
+}
+.login-brand {
+  width: 100%;
+  max-width: 390px;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  color: #d4d9e3;
+}
+.login-institute {
+  font-size: 13px;
+}
+.login-department {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #afb8c8;
+}
+.login-formContent {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  max-width: 390px;
+  min-height: 0;
+  margin-inline: auto;
+  padding: 16px 0;
+}
+.login-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.login-logo {
+  width: 120px;
+  height: 120px;
+  margin: 0;
+}
+.login-identity .login-brandTitle {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -0.06em;
+}
+.login-formContent h1 {
+  font-size: clamp(32px, 3.1vw, 48px);
+  font-weight: 550;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+  margin: 0 0 14px;
+}
+.login-intro {
+  color: #969daa;
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0 0 24px;
+}
+.login-form {
+  display: grid;
+  gap: 16px;
+}
+.login-field {
+  display: grid;
+  gap: 10px;
+}
+.login-field label {
+  font-size: 12px;
+  color: #cbd0da;
+}
+.login-field input {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid #4b566a;
+  border-radius: 5px;
+  padding: 12px 15px;
+  background: #171c26;
+  color: #e8eefc;
+  font-size: 14px;
+}
+.login-field input::placeholder {
+  color: #787f8d;
+}
+.login-field input:focus-visible {
+  outline: 2px solid #70a0ff;
+  outline-offset: 2px;
+  border-color: #70a0ff;
+  box-shadow: 0 0 0 4px rgba(52, 103, 220, 0.18);
+}
+.login-passwordControl {
+  position: relative;
+}
+.login-passwordControl input {
+  padding-right: 68px;
+}
+.login-passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #c2d1ed;
+  font-size: 12px;
+  cursor: pointer;
+}
+.login-passwordToggle:hover {
+  color: #fff;
+}
+.login-passwordToggle:focus-visible {
+  outline: 2px solid #70a0ff;
+  outline-offset: 1px;
+}
+.login-submit {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 50px;
+  margin-top: 2px;
+  padding: 12px 18px;
+  border: 1px solid #4973d0;
+  border-radius: 5px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.login-submit:hover {
+  background: #3062d0;
+}
+.login-submit:disabled {
+  cursor: wait;
+  opacity: 0.8;
+}
+.login-submit:focus-visible {
+  outline: 2px solid #8babff;
+  outline-offset: 4px;
+}
+.login-submitArrow {
+  font-size: 23px;
+  line-height: 16px;
+}
+.login-spinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: login-spin 0.7s linear infinite;
+}
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.login-message {
+  margin: -2px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 126, 126, 0.38);
+  border-radius: 5px;
+  background: rgba(134, 40, 52, 0.17);
+  color: #ffd4d4;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.login-footer {
+  width: 100%;
+  max-width: 390px;
+  margin-inline: auto;
+  font-size: 12px;
+  color: #bcc5d3;
+  letter-spacing: 0.04em;
+}
+/* Hero styles preserved from the supplied Blueprint hero background HTML. */
+.login-hero {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+  background: var(--base);
+  isolation: isolate;
+}
+.login-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* 1. Matching radii carry the blue glow across the 40:60 panel boundary. */
+.login-glow {
+  --login-glow-shape: ellipse 40% 65% at 0% 90%;
+  background: radial-gradient(
+    var(--login-glow-shape),
+    var(--login-glow-colors)
+  );
+}
+
+/* 2. Grid, only visible on the right side via a radial mask */
+.login-grid {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 8% 14%;
+  -webkit-mask-image:
+    radial-gradient(ellipse 18% 18% at 16% 28%, #000 0%, transparent 100%),
+    radial-gradient(ellipse 68% 84% at 77% 38%, #000 0%, transparent 82%);
+  mask-image:
+    radial-gradient(ellipse 18% 18% at 16% 28%, #000 0%, transparent 100%),
+    radial-gradient(ellipse 68% 84% at 77% 38%, #000 0%, transparent 82%);
+  opacity: 1;
+}
+
+/* 3. The building: grayscale + dimmed, faded out toward the left */
+.login-building {
+  left: 28%;
+  filter: grayscale(1) brightness(0.72) contrast(1.2);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 42%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 42%);
+}
+.login-building img {
+  position: absolute;
+  right: calc(8% - 55px);
+  bottom: -3%;
+  height: 78%;
+  width: auto;
+  max-width: none;
+}
+@media (max-width: 700px) {
+  .login-building {
+    left: 0;
+    opacity: 0.6;
+  }
+  .login-building img {
+    height: 60%;
+    right: -20%;
+  }
+}
+
+/* 4. Dashed arc + markers */
+.login-overlay svg {
+  width: 100%;
+  height: 100%;
+}
+.login-arc {
+  fill: none;
+  stroke: rgba(180, 200, 255, 0.35);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+.login-plus {
+  stroke: #3d7bff;
+  stroke-width: 1.5;
+}
+.login-ring {
+  fill: none;
+  stroke: rgba(200, 215, 255, 0.6);
+  stroke-width: 1;
+}
+
+.login-heroDetail {
+  position: absolute;
+  z-index: 2;
+  top: calc(39% - 90px);
+  left: calc(94.24% + 40px - 66.34svh);
+  margin: 0;
+  color: #9eabc0;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-shadow: 0 2px 10px rgba(13, 17, 24, 0.7);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.login-heroCopy {
+  position: absolute;
+  z-index: 2;
+  top: 23%;
+  left: 16%;
+  color: #f2f5fc;
+  text-shadow: 0 2px 14px rgba(13, 17, 24, 0.7);
+}
+.login-heroWordmark {
+  margin: 0 0 9px;
+  font-size: clamp(38px, 3.5vw, 50px);
+  font-weight: 700;
+  line-height: 0.96;
+  letter-spacing: 0.055em;
+  white-space: nowrap;
+}
+.login-heroWordmark--cinzel {
+  font-family: var(--font-login-cinzel), Georgia, serif;
+}
+.login-heroWordmark--condensed {
+  font-family: var(--font-login-condensed), "Arial Narrow", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+.login-heroWordmark--plex {
+  font-family: var(--font-login-plex), sans-serif;
+}
+.login-heroWordmark--geometric {
+  font-family: var(--font-geist-sans), sans-serif;
+  letter-spacing: 0.065em;
+}
+.login-heroTagline {
+  margin: 0;
+  font-family: var(--font-login-serif), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+.login-heroTagline > span {
+  display: block;
+  font-size: clamp(26px, 2.4vw, 37px);
+  line-height: 0.96;
+}
+.login-heroTagline em {
+  display: block;
+  margin-left: clamp(18px, 3vw, 48px);
+  font-size: clamp(29px, 2.7vw, 42px);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 0.98;
+}
+.login-glintLetter {
+  position: relative;
+}
+.login-glintLetter::after {
+  position: absolute;
+  /* Overlap the rendered serif edge; let the faint bloom open outward. */
+  top: calc(0.32em - 4.2px);
+  right: calc(0.11em - 5.6px);
+  width: 8px;
+  height: 6px;
+  content: "";
+  pointer-events: none;
+  user-select: none;
+  border-radius: 45% 55% 60% 40%;
+  background: radial-gradient(
+    ellipse 4px 3px at 30% 70%,
+    #fff 0 32%,
+    rgba(248, 252, 255, 0.98) 42%,
+    rgba(226, 240, 255, 0.9) 55%,
+    rgba(189, 219, 255, 0.5) 75%,
+    transparent 100%
+  );
+  transform: rotate(-35deg);
+  transform-origin: 30% 70%;
+  opacity: var(--login-glint-opacity, 1);
+  filter: brightness(var(--login-glint-brightness, 1))
+    drop-shadow(0 0 1.5px rgba(245, 251, 255, 0.95))
+    drop-shadow(0.8px -0.8px 3px rgba(173, 209, 255, 0.75));
+}
+
+/* 5. Soft vignette so the photo melts into the dark base */
+.login-vignette {
+  background:
+    linear-gradient(180deg, rgba(13, 17, 24, 0.55) 0%, transparent 25%),
+    linear-gradient(0deg, rgba(13, 17, 24, 0.5) 0%, transparent 30%);
+}
+
+@media (min-width: 801px) and (max-width: 1360px) {
+  .login-heroCopy {
+    top: 8%;
+  }
+}
+
+@media (max-width: 700px) {
+  .login-heroDetail {
+    top: calc(49% - 90px);
+    left: clamp(12px, calc(120% - 51svh - 15px), 85%);
+  }
+}
+
+@media (max-width: 800px) {
+  .login-page {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .login-formSection {
+    min-height: 100svh;
+    border-right: 0;
+  }
+  .login-formSection::before,
+  .login-formSection::after {
+    display: none;
+  }
+  .login-formBackdrop {
+    --login-glow-shape: ellipse 100% 45% at 50% 100%;
+    --login-glow-fade: linear-gradient(
+      0deg,
+      rgba(13, 17, 24, 0.55),
+      transparent 25%
+    );
+    --login-form-edge-fade: linear-gradient(
+      180deg,
+      transparent 65%,
+      var(--base)
+    );
+  }
+  .login-glow {
+    --login-glow-shape: ellipse 100% 45% at 50% 0%;
+  }
+  .login-formContent {
+    padding: 28px 0;
+  }
+  .login-hero {
+    min-height: 100svh;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-spinner {
+    animation: none;
+  }
+  .login-glintLetter::after {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+/* Sign in / Sign up tabs */
+.login-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 0 0 22px;
+  padding: 4px;
+  border: 1px solid #4b566a;
+  border-radius: 6px;
+  background: #121722;
+}
+.login-tab {
+  min-height: 38px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #969daa;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+.login-tab:hover {
+  color: #e8eefc;
+}
+.login-tab[aria-selected="true"] {
+  background: #222c3f;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(112, 160, 255, 0.35);
+}
+.login-tab:focus-visible {
+  outline: 2px solid #70a0ff;
+  outline-offset: 2px;
+}
+.login-field input[aria-invalid="true"] {
+  border-color: rgba(255, 126, 126, 0.7);
+}
+.login-fieldError {
+  margin: -4px 0 0;
+  color: #ffb4b4;
+  font-size: 12px;
+  line-height: 1.45;
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-tab {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Form spacing. globals.css still carries .login-field rules from the
+   earlier demo login (17px margins, 9px mono labels, underline inputs);
+   neutralise them on this page only.
+   ------------------------------------------------------------------ */
+.login-page .login-form {
+  gap: 14px;
+}
+.login-page .login-field {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+}
+.login-page .login-field label {
+  color: #cbd0da;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.login-page .login-field input {
+  min-height: 46px;
+  padding: 11px 14px;
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: normal;
+}
+.login-page .login-passwordControl input {
+  padding-right: 68px;
+}
+.login-page .login-submit {
+  min-height: 48px;
+  margin-top: 6px;
+}
+.login-page .login-tabs {
+  margin-bottom: 20px;
+}
+.login-page .login-intro {
+  margin-bottom: 20px;
+}
+.login-fieldHint {
+  margin: -2px 0 0;
+  color: #858c99;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Shared column for everything inside the form area. */
+.login-page .login-formContent > * {
+  width: 100%;
+  max-width: 390px;
+  margin-inline: auto;
+}
+
+/* ------------------------------------------------------------------
+   Desktop: the page itself never scrolls, so the hero keeps its size
+   whichever tab is open. Only the form column scrolls, with its own
+   scrollbar at the column edge; header and backdrop stay in place.
+   ------------------------------------------------------------------ */
+@media (min-width: 801px) {
+  .login-page {
+    grid-template-rows: 100svh;
+    overflow: hidden;
+  }
+  .login-hero {
+    height: 100svh;
+    min-height: 0;
+  }
+  .login-formSection {
+    --login-pad-x: clamp(24px, 3vw, 48px);
+    height: 100svh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .login-page .login-formContent {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    width: auto;
+    max-width: none;
+    min-height: 0;
+    margin-inline: calc(-1 * var(--login-pad-x));
+    padding: 16px var(--login-pad-x) 24px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(112, 160, 255, 0.28) transparent;
+  }
+  .login-page .login-formContent:hover {
+    scrollbar-color: rgba(112, 160, 255, 0.45) transparent;
+  }
+  /* Centred when it fits, top-aligned (never clipped) when it doesn't. */
+  .login-page .login-formContent > :first-child {
+    margin-top: auto;
+  }
+  .login-page .login-formContent > :last-child {
+    margin-bottom: auto;
+  }
+}
+
+
+/* Department choice on the sign-up form, styled like the text inputs. */
+.login-page .login-field select {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 14px;
+  border: 1px solid #4b566a;
+  border-radius: 5px;
+  background: #171c26;
+  color: #e8eefc;
+  font: inherit;
+  font-size: 14px;
+  color-scheme: dark;
+}
+.login-page .login-field select:focus-visible {
+  outline: 2px solid #70a0ff;
+  outline-offset: 2px;
+  border-color: #70a0ff;
+}
+.login-page .login-field select[aria-invalid="true"] {
+  border-color: rgba(255, 126, 126, 0.7);
+}
