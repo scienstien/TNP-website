@@ -434,3 +434,30 @@ main().catch((error) => { console.error(error); process.exitCode = 1; }).finally
 ```
 
 </details>
+
+## Pre-PR conflict checks (2026-10-22, Lane A at `2242721`, Lane B at `13c8904`)
+
+- **(a) Lane A paths only:** 19 changed paths since `5687c05`, all inside the Lane A
+  allowlist. Not touched: `lib/students/company-validation.ts`, `lib/companies`,
+  `lib/calendar`, `lib/placements`, `components/ui`, `components/portal`,
+  `TASKS.md`, `AGENTS.md`, `db/README.md`, `db/schema.ts`, `drizzle`,
+  `package*.json`.
+- **(b) No overlap with Lane B:** Lane B has 45 changed paths; the intersection is empty.
+  Lane B's merge base is also `5687c05`. The frozen interfaces Lane A consumes are
+  unchanged on Lane B:
+  - `visitDatesByCompany(connection, cycleId)` (same signature and query);
+  - `todayInInstituteZone` and `isValidIsoDate` (still exported);
+  - Lane B's `lib/companies/validation.ts` still imports
+    `@/lib/students/company-validation`.
+- **(c) Integration dry run** (local branch `tmp/integration-dry-run` from `origin/main`,
+  never pushed, deleted afterwards). Both lanes merged with `--no-ff` and **no
+  conflicts**. Results:
+  - `npx tsc --noEmit` → exit 0;
+  - eslint on `app components lib db auth.ts auth.config.ts proxy.ts` → exit 0;
+  - `next build` → passed, with every route including `/companies/drives` and
+    `/students`;
+  - all 12 test files → 86 tests, 84 passed, 2 failed.
+
+  The 2 failures are the pre-existing `lib/placements/year-to-date.test.ts` dynamic-import
+  failures under the Windows `tsx/cjs` workaround. They fail identically on `5687c05`;
+  neither lane touches `lib/placements`.
