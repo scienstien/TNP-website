@@ -2,8 +2,8 @@
  * Dashboard analytics: pure functions over PlacementRecord[] shared by every KPI and chart.
  *
  * Definitions (AGENTS.md, db/README.md):
- * - Population: recorded students of the selected batch (all batches when none is chosen).
- *   Students are counted by roll number.
+ * - Population: participation records in the selected placement cycle and batch (all values
+ *   when a filter is not chosen).
  * - Placed: the student has an offer (one offer per student, so offers = placed students).
  * - Offer filters (company, sector, offer type, CTC range) narrow which offers count as
  *   "matching". The population and the unplaced count never change with offer filters.
@@ -22,6 +22,7 @@ import {
 export const NOT_RECORDED = "Not recorded";
 
 export interface DashboardFilterState {
+  cycleId: string | null;
   batchYear: number | null;
   company: string | null;
   sector: string | null;
@@ -31,6 +32,7 @@ export interface DashboardFilterState {
 }
 
 export const EMPTY_FILTERS: DashboardFilterState = {
+  cycleId: null,
   batchYear: null,
   company: null,
   sector: null,
@@ -41,11 +43,24 @@ export const EMPTY_FILTERS: DashboardFilterState = {
 
 type PlacedRecord = PlacementRecord & { offer: PlacementOffer };
 
+export interface PlacementCycleOption {
+  id: string;
+  code: string;
+}
+
 /* ---------------------------------------------------------------- options */
 
 export function batchYears(records: PlacementRecord[]): number[] {
   return [...new Set(records.map((record) => record.batchYear))].sort(
     (a, b) => b - a,
+  );
+}
+
+export function placementCycles(records: PlacementRecord[]): PlacementCycleOption[] {
+  const cycles = new Map<string, string>();
+  for (const record of records) cycles.set(record.cycleId, record.cycleCode);
+  return [...cycles].map(([id, code]) => ({ id, code })).sort((a, b) =>
+    a.code.localeCompare(b.code, undefined, { numeric: true }),
   );
 }
 
@@ -113,10 +128,11 @@ export function scopeRecords(
   records: PlacementRecord[],
   filters: DashboardFilterState,
 ): Scope {
-  const population =
-    filters.batchYear === null
-      ? records
-      : records.filter((r) => r.batchYear === filters.batchYear);
+  const population = records.filter(
+    (record) =>
+      (filters.cycleId === null || record.cycleId === filters.cycleId) &&
+      (filters.batchYear === null || record.batchYear === filters.batchYear),
+  );
   const matching = population.filter(
     (r): r is PlacedRecord =>
       r.offer !== null && offerMatches(r.offer, filters),
@@ -173,7 +189,10 @@ export function previousBatchKpis(
   filters: DashboardFilterState,
 ): { batchYear: number; kpis: Kpis } | null {
   if (filters.batchYear === null) return null;
-  const previous = batchYears(records).find(
+  const cycleRecords = filters.cycleId === null
+    ? records
+    : records.filter((record) => record.cycleId === filters.cycleId);
+  const previous = batchYears(cycleRecords).find(
     (year) => year < filters.batchYear!,
   );
   if (previous === undefined) return null;

@@ -1,11 +1,15 @@
 "use client";
 
 import { useId } from "react";
-import type { DashboardFilterState } from "@/lib/placements/analytics";
+import type {
+  DashboardFilterState,
+  PlacementCycleOption,
+} from "@/lib/placements/analytics";
 import { OFFER_TYPES, type OfferTypeValue } from "@/lib/placements/types";
 import { OFFER_TYPE_LABELS } from "./chartTheme";
 
 export interface FilterOptions {
+  cycles: PlacementCycleOption[];
   batches: number[];
   companies: string[];
   sectors: string[];
@@ -36,6 +40,13 @@ export default function DashboardFilters({
   const max = filters.ctcMax ?? hi;
 
   const chips: { label: string; clear: () => void }[] = [];
+  if (filters.cycleId) {
+    const cycle = options.cycles.find((option) => option.id === filters.cycleId);
+    chips.push({
+      label: `Cycle ${cycle?.code ?? filters.cycleId}`,
+      clear: () => onChange({ cycleId: null }),
+    });
+  }
   if (filters.batchYear !== null)
     chips.push({
       label: `Batch ${filters.batchYear}`,
@@ -65,6 +76,22 @@ export default function DashboardFilters({
   return (
     <section className="panel mme-filters" aria-label="Dashboard filters">
       <div className="mme-filter-grid">
+        <label className="mme-field" htmlFor={`${id}-cycle`}>
+          <span>Placement cycle</span>
+          <select
+            id={`${id}-cycle`}
+            value={filters.cycleId ?? ""}
+            onChange={(e) => onChange({ cycleId: e.target.value || null })}
+          >
+            <option value="">All placement cycles</option>
+            {options.cycles.map((cycle) => (
+              <option key={cycle.id} value={cycle.id}>
+                {cycle.code}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label className="mme-field" htmlFor={`${id}-batch`}>
           <span>Batch year</span>
           <select

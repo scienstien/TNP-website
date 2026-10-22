@@ -9,6 +9,7 @@ import {
   ctcHistogram,
   hasOfferFilters,
   offerTypeSplit,
+  placementCycles,
   previousBatchKpis,
   scopeRecords,
   sectorNames,
@@ -38,6 +39,7 @@ export default function PlacementAnalytics({ records, role, department }: Props)
 
   const options = useMemo(
     () => ({
+      cycles: placementCycles(records),
       batches: batchYears(records),
       companies: companyNames(records),
       sectors: sectorNames(records),

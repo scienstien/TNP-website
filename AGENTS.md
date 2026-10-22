@@ -342,11 +342,13 @@ Authentication (implemented; see lib/auth/README.md):
 
 Ported analytics and student/company integration:
 - lib/placements/queries.ts, lib/students/ and lib/companies/ read the target
-  tables. The PlacementRecord contract (rollNumber, batchYear, offer with company,
-  sector, package, type, date) is unchanged and gained a department code, so the
-  analytics in lib/placements/analytics.ts and the charts are unchanged. Placement
-  percentage still divides by all recorded students; the registered-student
-  denominator above is not applied yet.
+  tables. PlacementRecord now represents one explicit undergraduate student-cycle
+  participation and includes cycle identity, optional cycle dates, registration
+  status, department, roll, batch and the offer for that same cycle. The analytics
+  functions and charts can filter by explicit cycle and graduating batch. They do
+  not yet exclude UNREGISTERED participation, so the registered-student
+  denominator above is not applied yet. Server-side cycle filtering is tracked as
+  a later optimization; authorization remains server-enforced.
 - Student editors remain ADMIN-only (SUPERADMIN included) with role and department
   rechecks on every mutation, explicit offer removal, draft Save/Cancel and
   no-overwrite company creation. A student's job role is stored as a drive role;

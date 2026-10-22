@@ -4,15 +4,15 @@ The "Dashboard" view (`components/dashboard/`) is computed from placement data i
 
 ## Data flow
 
-1. `app/page.tsx` (server) calls `getPlacementRecords()` from `lib/placements/queries.ts`. That query requires a signed-in user and returns one row per recorded student, with an integer roll number, the offer (if any) and the company's sector. Student names are excluded from analytics; they are provided separately only to the ADMIN student editor.
-2. `components/dashboard/PlacementAnalytics.tsx` keeps one shared filter state (`useDashboardFilters`). It derives every KPI and chart dataset through `lib/placements/analytics.ts`.
+1. `app/(portal)/page.tsx` and `app/(portal)/dashboard/page.tsx` call `getPlacementRecords()` from `lib/placements/queries.ts`. That query requires a signed-in user and returns one row per explicit undergraduate student-cycle participation, including the cycle identity, optional cycle dates, registration status, integer roll number, the offer for that same cycle (if any), and the company's sector. Student names are excluded from analytics; they are provided separately only to the ADMIN student editor.
+2. `components/dashboard/PlacementAnalytics.tsx` keeps one shared filter state (`useDashboardFilters`). Its placement-cycle selector uses the explicit cycle IDs returned by the server; cycle and batch remain independent filters. It derives every KPI and chart dataset through `lib/placements/analytics.ts`.
 3. Each chart (`components/dashboard/charts/*`) is an independent component. It receives prepared data and a selection callback, and contains no filtering logic.
 
 ## Definitions (`lib/placements/analytics.ts`)
 
 | Term | Meaning |
 | --- | --- |
-| Population | Recorded students of the selected batch (or all batches), counted by roll number. |
+| Population | Participation records in the selected explicit placement cycle and graduating batch (or all values when cleared). |
 | Placed | The student has an offer. With one offer per student, offers = placed students. |
 | Offer filters | Company, sector, offer type and CTC range. They narrow the *matching offers*; the population and the unplaced count never change. |
 | Placement % | Placed ÷ recorded students. Labelled "assumes the batch roster is complete" until roster completeness is recorded. |
@@ -39,7 +39,7 @@ Each side also reports "companies came": the distinct companies (names are liste
 
 ## Departments
 
-Records come from the institute-wide schema (see `db/README.md`): one row per undergraduate (B.Tech) enrollment, with `batchYear` taken from the cohort's graduation year and `department` the lower-case department code. A department user receives only their own department; a super admin receives the department chosen in the department navbar, or every department. M.Tech cohorts exist in the schema but are not included. The placement percentage still divides by all recorded students; `AGENTS.md` describes the registered-student denominator the new schema allows, which is not applied yet.
+Records come from the institute-wide schema (see `db/README.md`): one row per explicit undergraduate (B.Tech) student-cycle participation, with `batchYear` taken from the cohort's graduation year and `department` the lower-case department code. The record also exposes the placement cycle and `REGISTERED`/`UNREGISTERED` status. An offer is joined only when both its enrollment and cycle match the participation. A department user receives only their own department; a super admin receives the department chosen in the department navbar, or every department. M.Tech cohorts exist in the schema but are not included. The analytics functions do not use the new cycle and registration fields yet, so the placement percentage still divides by all returned participation records; `AGENTS.md` describes the required registered-student denominator.
 
 ## Local data
 
