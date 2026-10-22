@@ -787,6 +787,13 @@ Cohort moves may remain safely rejected (nonblocking feature) until history can 
 preserved transactionally. Tests include conflicting final offers across cycles,
 forged IDs, concurrency, null dates and all previously supported draft/error flows.
 
+Decision confirmed by the project owner after Lane A merged: an administrator's
+explicit first registration for a cohort/cycle pair may create the missing
+`cycle_cohorts` association. This does not register the cohort as a group. Every
+enrollment still needs its own explicit `student_cycles` status; only REGISTERED
+enrollments enter placed/unplaced statistics, while confirmed non-participants are
+recorded as UNREGISTERED and cannot receive an offer.
+
 ### [MIG-005] Select exact drive/role IDs in the student editor
 
 - Priority: P1; Status: READY; Lane: A; Dependencies: MIG-004, merged MIG-007 options.
@@ -946,6 +953,12 @@ from analytics/editor despite valid target rows. PG specialization, immutable ro
 registration/offer compatibility and event-scope cardinality are not all enforced
 by schema checks/FKs. Some are application rules today, not SQL guarantees.
 
+Decision confirmed by the project owner after Lane A merged: PostgreSQL must also
+enforce registration/offer compatibility. A new reviewed migration must reject an
+offer insert or update unless the matching `student_cycles` row is REGISTERED, and
+must reject changing/removing that participation while its offer exists. The Lane A
+application checks remain defense in depth, not the final enforcement boundary.
+
 Required decision: which UG degrees are supported and whether PG has separate views;
 do not enable PG by simply removing the UG predicate. Record a matrix mapping each
 invariant to all write paths and transactional enforcement/trigger choice. Existing
@@ -974,6 +987,22 @@ contexts; verify isolation, no offer multiplication/leakage, immutable roll,
 registered denominator and offer filters, stale edits and transactional rollback.
 Run concurrency cases for offer/registration and event-role changes. Never use or
 reset a shared database; record how the test database is isolated and disposed.
+
+### [MIG-014] Reject participation payloads with any validation error
+
+- Priority: P2; Status: READY; Owner: Unassigned.
+- Dependencies: Lane A merge (`c9598ff`).
+- Files: `lib/students/store.ts`, focused student validation/action tests.
+
+Evidence: `validateParticipation()` can return valid parsed cycle/status data and a
+nonempty `fieldErrors` object when the request also contains a forbidden field.
+`mutateStudent()` currently rejects only when parsed data is absent, so that malformed
+request is accepted and its valid fields are saved despite the validation error.
+
+Acceptance: `setParticipation` rejects whenever participation validation returns any
+field error, performs no write, and returns the error to the caller. Add a regression
+test using a valid cycle/status plus an unexpected field. Preserve the existing valid
+registration behavior and authorization checks.
 
 ### Audit validation and handoff
 
