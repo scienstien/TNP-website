@@ -13,3 +13,10 @@
 - What / why: UUID company saves with row locks/stale protection; existing-cycle selector and same-cycle UG offers; global contacts copy and Unknown PVR default.
 - Verify: lint/type-check/build/diff check passed; company tests 11 passed / 0 failed. DB/browser checks not run.
 - Revert: `git revert <MIG-006 SHA>`; dependencies: MIG-007, MIG-008.
+
+## 2026-10-22 · MIG-007 · MIG-007: add explicit historical drive and role management
+- SHA: pending backfill
+- Files: lib/drives/{types,read,queries,rules,rules.test,write,actions}.ts and README.md; components/drives/DriveManager.tsx, drives.css; app/(portal)/companies/drives/page.tsx; company page/editor/CSS; docs/handoffs/MIG-007.md, LANE-B-CHANGELOG.md.
+- What / why: exact two-query option contract; SUPERADMIN/chosen-department transactional writes, fixed identities and reference-safe deletes; Companies entry point and duplicate-friendly UI.
+- Verify: lint/type-check/build/diff check passed; 15 passed / 0 failed (drive 4, company 11). DB/browser checks not run.
+- Revert: `git revert <MIG-007 SHA>`; dependencies: MIG-008.

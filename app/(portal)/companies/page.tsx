@@ -9,5 +9,5 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
   const cycles = await getCompanyCycles();
   const cycle = cycles.find(option => option.cycleId === params.cycle) ?? null;
   const companies = await getCompanies(cycle?.cycleId ?? null);
-  return <Companies data={companies} isAdmin={department !== null} cycles={cycles} cycle={cycle} />;
+  return <Companies data={companies} isAdmin={department !== null} canManageDrives={user.role === "SUPERADMIN"} cycles={cycles} cycle={cycle} />;
 }

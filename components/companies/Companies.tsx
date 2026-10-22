@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, CalendarCheck2, ContactRound, Pencil, Search } from "lucide-react";
 import { createCompany, updateCompany } from "@/lib/companies/actions";
@@ -13,7 +14,7 @@ import "./companies.css";
 
 type Draft = Omit<CompanyRecord, "companyId" | "name" | "pvrStatus" | "visitDate"> & { pvrStatus: PvrStatus };
 
-export default function Companies({ data, isAdmin, cycles, cycle }: { data: CompanyRecord[]; isAdmin: boolean; cycles: { cycleId: string; code: string }[]; cycle: { cycleId: string; code: string } | null }) {
+export default function Companies({ data, isAdmin, cycles, cycle, canManageDrives }: { data: CompanyRecord[]; isAdmin: boolean; canManageDrives: boolean; cycles: { cycleId: string; code: string }[]; cycle: { cycleId: string; code: string } | null }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<CompanyRecord | "new" | null>(null);
@@ -27,6 +28,7 @@ export default function Companies({ data, isAdmin, cycles, cycle }: { data: Comp
     <div className="section-heading">
       <div><p className="eyebrow">DIRECTORY</p><h1>Companies</h1>
         <p>Global company contacts with an optional placement-cycle projection.</p></div>
+      {canManageDrives && <Link className="company-manage-drives" href="/companies/drives">Manage drives</Link>}
       {isAdmin && <button type="button" className="dark-button company-add" disabled={editing !== null} onClick={() => { setEditing("new"); setMessage(""); }}>Add company</button>}
     </div>
     <label className="company-field">Placement cycle<select value={cycle?.cycleId ?? ""} onChange={event => router.push(event.target.value ? `?cycle=${event.target.value}` : "/companies")}><option value="">Choose a cycle</option>{cycles.map(option => <option key={option.cycleId} value={option.cycleId}>{option.code}</option>)}</select></label>

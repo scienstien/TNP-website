@@ -1,0 +1,13 @@
+.drive-manager { padding:32px 0 48px; min-width:0; }
+.drive-manager a { color:#a9c4ff; }
+.drive-manager p { color:var(--muted); overflow-wrap:anywhere; }
+.drive-filters, .drive-text-form, .drive-create-form { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin:16px 0; }
+.drive-manager label { display:grid; gap:6px; font-size:13px; }
+.drive-manager input, .drive-manager select, .drive-manager button { min-height:38px; padding:8px 12px; border:1px solid #536786; border-radius:6px; background:#121d30; color:#dbe7fc; max-width:100%; }
+.drive-manager button { cursor:pointer; }
+.drive-manager button:disabled { opacity:.55; cursor:not-allowed; }
+.drive-manager :is(button, input, select):focus-visible { outline:2px solid #70a0ff; outline-offset:2px; }
+.drive-card { border:1px solid var(--line); border-radius:10px; background:#131c2b; padding:20px; margin:20px 0; }
+.drive-card h2 { font-size:18px; overflow-wrap:anywhere; }
+.drive-roles { padding-left:20px; }
+.drive-roles li { padding:12px 0; border-bottom:1px solid var(--line); }
