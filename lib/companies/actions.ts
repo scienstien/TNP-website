@@ -1,15 +1,11 @@
 "use server";
 
-import { and, eq, isNotNull, lt } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { companies, placementOffers } from "@/db/schema";
+import { companies } from "@/db/schema";
 import { getCurrentUser, isAdminRole, resolveDepartment } from "@/lib/auth/dal";
-import { todayInInstituteZone } from "@/lib/calendar/dates";
-import { findCycleId } from "@/lib/placements/cycles";
-import { batchYearForDate } from "@/lib/placements/year-to-date";
 import { pvrStatusFromDatabase, validateCompanyCreate, validateCompanyUpdate } from "./validation";
-import { visitDatesByCompany, setVisitDate } from "./visit";
 import type { CompanyRecord, CompanyResult } from "./types";
 
 /** Only an administrator acting in a department (a super admin must have chosen one) may write. */
@@ -22,12 +18,10 @@ async function adminDepartment(action: string) {
   return { department };
 }
 
-const currentBatch = () => batchYearForDate(todayInInstituteZone());
 
 async function readCompany(companyId: string): Promise<CompanyRecord | null> {
   const [row] = await db.select().from(companies).where(eq(companies.companyId, companyId));
   if (!row) return null;
-  const visits = await visitDatesByCompany(db, await findCycleId(db, currentBatch()));
   return {
     name: row.name,
     domain: row.domain,
@@ -36,7 +30,7 @@ async function readCompany(companyId: string): Promise<CompanyRecord | null> {
     phoneNumber: row.phoneNumber,
     remarks: row.remarks,
     pvrStatus: pvrStatusFromDatabase(row.pvrStatus),
-    visitDate: visits.get(row.companyId) ?? null,
+    visitDate: null,
   };
 }
 
@@ -46,14 +40,13 @@ export async function createCompany(input: unknown): Promise<CompanyResult> {
   if ("error" in scope) return { error: scope.error };
   const parsed = validateCompanyCreate(input);
   if (Object.keys(parsed.fieldErrors).length) return { fieldErrors: parsed.fieldErrors };
-  const { visitDate, ...fields } = parsed.data;
+  const fields = parsed.data;
   try {
     const companyId = await db.transaction(async (tx) => {
       const [row] = await tx.insert(companies).values(fields)
         .onConflictDoNothing({ target: companies.name })
         .returning({ companyId: companies.companyId });
       if (!row) return null;
-      if (visitDate) await setVisitDate(tx, row.companyId, currentBatch(), visitDate);
       return row.companyId;
     });
     if (companyId === null) {
@@ -80,28 +73,10 @@ export async function updateCompany(name: unknown, input: unknown): Promise<Comp
     .from(companies).where(eq(companies.name, normalizedName));
   if (!existing) return { error: "This company no longer exists. Refresh and try again." };
   const { companyId } = existing;
-  const { visitDate, ...fields } = parsed.data;
-  const batchYear = currentBatch();
-  if (visitDate) {
-    // A visit cannot be dated after an offer the company already made in that placement cycle.
-    const cycleId = await findCycleId(db, batchYear);
-    const conflict = cycleId
-      ? await db.select({ offerId: placementOffers.offerId })
-        .from(placementOffers)
-        .where(and(
-          eq(placementOffers.companyId, companyId),
-          eq(placementOffers.cycleId, cycleId),
-          isNotNull(placementOffers.offerDate),
-          lt(placementOffers.offerDate, visitDate),
-        ))
-        .limit(1)
-      : [];
-    if (conflict.length) return { fieldErrors: { visitDate: "Visit date cannot be after an existing offer date for this company." } };
-  }
+  const fields = parsed.data;
   try {
     await db.transaction(async (tx) => {
       await tx.update(companies).set(fields).where(eq(companies.companyId, companyId));
-      await setVisitDate(tx, companyId, batchYear, visitDate);
     });
     revalidatePath("/", "layout");
     const company = await readCompany(companyId);

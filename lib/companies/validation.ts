@@ -1,4 +1,3 @@
-import { isValidIsoDate } from "@/lib/calendar/dates";
 import type { PvrStatus } from "./types";
 import { validateCompany } from "@/lib/students/company-validation";
 
@@ -36,13 +35,12 @@ export function validateCompanyUpdate(input: unknown, companyName: string) {
     phoneNumber: null as string | null,
     remarks: null as string | null,
     pvrStatus: null as boolean | null,
-    visitDate: null as string | null,
   };
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return { data, fieldErrors: { form: "Invalid company data." } };
   }
   const values = input as Record<string, unknown>;
-  const allowed = ["domain", "hrName", "email", "phoneNumber", "remarks", "pvrStatus", "visitDate"];
+  const allowed = ["domain", "hrName", "email", "phoneNumber", "remarks", "pvrStatus"];
   if (Object.keys(values).some((key) => !allowed.includes(key))) {
     fieldErrors.form = "Company name is immutable and cannot be changed.";
   }
@@ -73,12 +71,8 @@ export function validateCompanyUpdate(input: unknown, companyName: string) {
     fieldErrors.pvrStatus = "Choose Yes, No or Unknown.";
   }
   data.pvrStatus = pvrStatusToDatabase(values.pvrStatus);
-  if (values.visitDate !== undefined && values.visitDate !== null && typeof values.visitDate !== "string") {
-    fieldErrors.visitDate = "Choose a valid date or leave it blank.";
-  } else {
-    const visitDate = typeof values.visitDate === "string" ? values.visitDate.trim() : "";
-    if (visitDate && !isValidIsoDate(visitDate)) fieldErrors.visitDate = "Choose a valid date.";
-    data.visitDate = visitDate || null;
+  if (Object.hasOwn(values, "visitDate")) {
+    fieldErrors.form = "Visit dates come from PPT events in the process calendar and cannot be edited here.";
   }
   return { data, fieldErrors, companyName };
 }

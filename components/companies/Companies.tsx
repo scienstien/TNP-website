@@ -7,12 +7,11 @@ import { createCompany, updateCompany } from "@/lib/companies/actions";
 import { validateCompanyCreate, validateCompanyUpdate } from "@/lib/companies/validation";
 import type { CompanyRecord, CompanyResult, PvrStatus } from "@/lib/companies/types";
 import { Badge } from "@/components/ui/badge";
-import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import "./companies.css";
 
-type Draft = Omit<CompanyRecord, "name" | "pvrStatus"> & { pvrStatus: PvrStatus };
+type Draft = Omit<CompanyRecord, "name" | "pvrStatus" | "visitDate"> & { pvrStatus: PvrStatus };
 
 export default function Companies({ data, isAdmin }: { data: CompanyRecord[]; isAdmin: boolean }) {
   const router = useRouter();
@@ -53,7 +52,7 @@ export default function Companies({ data, isAdmin }: { data: CompanyRecord[]; is
       </div>
       {!visible.length ? <p className="table-hint">{data.length ? "No companies match your search." : "No companies recorded."}</p> :
         <div className="company-table-scroll"><Table className="company-table"><TableHeader><TableRow>
-          <TableHead>Company</TableHead><TableHead>Sector</TableHead><TableHead>HR name</TableHead><TableHead>Email</TableHead><TableHead>Phone</TableHead><TableHead>Remarks</TableHead><TableHead>PVR</TableHead><TableHead>Visit date</TableHead>
+          <TableHead>Company</TableHead><TableHead>Sector</TableHead><TableHead>HR name</TableHead><TableHead>Email</TableHead><TableHead>Phone</TableHead><TableHead>Remarks</TableHead><TableHead>PVR</TableHead><TableHead>Earliest scheduled PPT</TableHead>
         </TableRow></TableHeader><TableBody>{visible.map((company) => <TableRow key={company.name}>
           <TableCell><div className="company-name-cell"><strong>{company.name}</strong>
             {isAdmin && <button type="button" className="company-icon-button" title={`Edit ${company.name}`} aria-label={`Edit ${company.name}`} disabled={editing !== null} onClick={() => { setEditing(company); setMessage(""); }}><Pencil size={15} /></button>}
@@ -84,7 +83,7 @@ function CompanyEditorModal({ children, onClose }: { children: React.ReactNode; 
 
 function CompanyEditor({ company, onCancel, onSaved }: { company: CompanyRecord | null; onCancel: () => void; onSaved: () => void }) {
   const [name, setName] = useState("");
-  const [draft, setDraft] = useState<Draft>({ domain: company?.domain ?? null, hrName: company?.hrName ?? null, email: company?.email ?? null, phoneNumber: company?.phoneNumber ?? null, remarks: company?.remarks ?? null, pvrStatus: company?.pvrStatus ?? "no", visitDate: company?.visitDate ?? null });
+  const [draft, setDraft] = useState<Draft>({ domain: company?.domain ?? null, hrName: company?.hrName ?? null, email: company?.email ?? null, phoneNumber: company?.phoneNumber ?? null, remarks: company?.remarks ?? null, pvrStatus: company?.pvrStatus ?? "no" });
   const [result, setResult] = useState<CompanyResult>({});
   const [pending, startTransition] = useTransition();
   const set = (key: keyof Draft, value: string) => { setDraft((current) => ({ ...current, [key]: value || null })); setResult({}); };
@@ -103,8 +102,7 @@ function CompanyEditor({ company, onCancel, onSaved }: { company: CompanyRecord 
     });
   };
   const field = (key: keyof Draft, label: string, type = "text") => <label className="company-field">{label}
-    {type === "date" ? <DatePicker value={draft[key] ?? ""} disabled={pending} onChange={(value) => set(key, value)} /> :
-      <input type={type} value={draft[key] ?? ""} disabled={pending} onChange={(event) => set(key, event.target.value)} aria-invalid={Boolean(result.fieldErrors?.[key as keyof NonNullable<CompanyResult["fieldErrors"]>])} />}
+    <input type={type} value={draft[key] ?? ""} disabled={pending} onChange={(event) => set(key, event.target.value)} aria-invalid={Boolean(result.fieldErrors?.[key as keyof NonNullable<CompanyResult["fieldErrors"]>])} />
     {result.fieldErrors?.[key as keyof NonNullable<CompanyResult["fieldErrors"]>] && <small>{result.fieldErrors[key as keyof NonNullable<CompanyResult["fieldErrors"]>]}</small>}
   </label>;
   return <form className="panel company-editor" onSubmit={submit} noValidate><div className="company-editor-heading"><div><p className="eyebrow">{company ? "EDIT COMPANY" : "NEW COMPANY"}</p><h2 id="company-editor-title">{company?.name ?? "Add company"}</h2><p>{company ? "Company names are immutable because offers reference them." : "Only the company name is required. Adding a company does not create a placement offer."}</p></div><button type="button" className="company-editor-close" aria-label="Close editor" onClick={onCancel} disabled={pending}>×</button></div>
@@ -115,7 +113,7 @@ function CompanyEditor({ company, onCancel, onSaved }: { company: CompanyRecord 
       </div>}
       {field("domain", "Sector")}{field("hrName", "HR name")}{field("email", "Email", "email")}{field("phoneNumber", "Phone", "tel")}{field("remarks", "Remarks")}
       <label className="company-field">PVR status<select value={draft.pvrStatus} disabled={pending} onChange={(event) => set("pvrStatus", event.target.value)}><option value="no">No</option><option value="yes">Yes</option><option value="unknown">Unknown</option></select>{result.fieldErrors?.pvrStatus && <small>{result.fieldErrors.pvrStatus}</small>}</label>
-      {field("visitDate", "Visit date", "date")}</div>
+      {company && <p className="company-field">Earliest scheduled PPT<span>{company.visitDate ?? "Not scheduled"}</span></p>}</div>
     {(result.error || result.fieldErrors?.form) && <p className="company-error" role="alert">{result.error || result.fieldErrors?.form}</p>}
     <div className="company-actions"><button className="dark-button" disabled={pending}>{pending ? "Saving…" : company ? "Save changes" : "Create company"}</button><button type="button" onClick={onCancel} disabled={pending}>Cancel</button></div>
   </form>;
