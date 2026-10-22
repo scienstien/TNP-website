@@ -6,19 +6,20 @@
  * and final offers, plus a few outreach contacts per department. Every company, student and roll
  * number is invented: companies use the "DEMO" prefix and roll numbers start with 9.
  *
- * Re-running replaces the previous demo data. It refuses to run if the placement tables hold any
- * enrollment outside the demo roll range or any company without the "DEMO " prefix, so it cannot
- * wipe real records. Accounts are not created here: the development accounts (superadmin,
- * admin123<dept>@nitt.edu) are created on the first sign-in request, see
- * lib/auth/dev-accounts.ts.
+ * It only runs on a database the operator names as disposable (see db/seed-safety.ts): set
+ * DEMO_SEED_RESET_DATABASE to the exact database name. It refuses with NODE_ENV=production and on
+ * any database holding preserved legacy (historical) rows, and it decides before its first write.
+ * Re-running replaces every placement and academic row in that database. It never deletes, moves
+ * or creates user accounts, never renames existing departments and never deletes outreach records;
+ * the development accounts (superadmin, admin123<dept>@nitt.edu) are created on the first sign-in
+ * request, see lib/auth/dev-accounts.ts.
  *
- *   npm run db:seed:departments
+ *   DEMO_SEED_RESET_DATABASE=<database name> npm run db:seed:departments
  */
 import "dotenv/config";
 
-import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { and, eq, like, not, notLike, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { db, postgresClient } from "./index";
 import {
@@ -40,8 +41,15 @@ import {
   reservationCategories,
   studentCycles,
   students,
-  users,
 } from "./schema";
+import {
+  canRemoveRetiredDepartment,
+  DEMO_RESET_TABLES,
+  LEGACY_TABLES,
+  planDemoSeed,
+  RESET_DATABASE_ENV,
+  type SeedSnapshot,
+} from "./seed-safety";
 
 const DEPARTMENTS = [
   { code: "civil", name: "Civil Engineering", index: 1, size: 56, placed: 0.7 },
@@ -133,26 +141,39 @@ async function insertAll<T extends Parameters<Tx["insert"]>[0]>(
   }
 }
 
+/** Reads what the safety gate needs. Read-only; runs inside the seed's transaction. */
+async function readSnapshot(tx: Tx): Promise<SeedSnapshot> {
+  const [{ database }] = await tx.execute<{ database: string }>(sql`select current_database() as database`);
+  const rows: Record<string, number> = {};
+  for (const table of [...DEMO_RESET_TABLES, ...LEGACY_TABLES]) {
+    const [{ present }] = await tx.execute<{ present: boolean }>(sql`select to_regclass(${table}) is not null as present`);
+    if (!present) {
+      // Only the legacy tables may be absent (a database created after they were retired).
+      if ((LEGACY_TABLES as readonly string[]).includes(table)) rows[table] = 0;
+      continue;
+    }
+    const [{ count }] = await tx.execute<{ count: number }>(sql.raw(`select count(*)::int as count from ${table}`));
+    rows[table] = count;
+  }
+  return { database, rows };
+}
+
 async function seed() {
   await db.transaction(async (tx) => {
-    // Refuse to touch real data: only demo roll numbers (9xxxxxxxx) and DEMO companies.
-    const [{ foreign }] = await tx.execute<{ foreign: number }>(
-      sql`select count(*)::int as foreign from enrollments where roll_number < 900000000`,
-    );
-    assert.equal(foreign, 0, "enrollments holds non-demo roll numbers; refusing to reset the placement tables.");
-    const realCompanies = await tx.select({ id: companies.companyId }).from(companies).where(notLike(companies.name, "DEMO %")).limit(1);
-    assert.equal(realCompanies.length, 0, "companies holds non-demo companies; refusing to reset the placement tables.");
+    // Decide before the first write; a refusal throws, so nothing is changed.
+    const plan = planDemoSeed(await readSnapshot(tx), {
+      resetDatabase: process.env[RESET_DATABASE_ENV],
+      nodeEnv: process.env.NODE_ENV,
+    });
+    if (plan.refuse !== undefined) throw new Error(plan.refuse);
 
-    // Wipe previous demo rows, children first. Departments are kept so user accounts stay linked.
-    for (const table of [
-      "event_roles", "drive_events", "placement_offers", "drive_roles", "drives",
-      "student_cycles", "cycle_cohorts", "enrollments", "students", "cohorts", "programmes",
-      "companies", "placement_cycles",
-    ]) {
-      await tx.execute(sql.raw(`delete from ${table}`));
+    // The operator confirmed this database is disposable: replace its placement and academic
+    // rows, children first. Departments, users and outreach records are kept.
+    if (plan.mode === "reset") {
+      for (const table of DEMO_RESET_TABLES) {
+        await tx.execute(sql.raw(`delete from ${table}`));
+      }
     }
-    // Only the rows this script creates; real outreach contacts are never touched.
-    await tx.delete(outreachContacts).where(like(outreachContacts.companyName, "DEMO % (outreach)"));
 
     // Reference data.
     await tx.insert(genderTypes).values(GENDERS.map(([code, label]) => ({ code, label }))).onConflictDoNothing();
@@ -162,24 +183,26 @@ async function seed() {
     const btech = degreeRows.find((row) => row.code === "B.Tech")!;
     const mtech = degreeRows.find((row) => row.code === "M.Tech")!;
 
+    // Existing departments keep their names; user accounts depend on them.
     for (const dept of DEPARTMENTS) {
-      await tx.insert(departments).values({ code: dept.code, name: dept.name })
-        .onConflictDoUpdate({ target: departments.code, set: { name: dept.name } });
+      await tx.insert(departments).values({ code: dept.code, name: dept.name }).onConflictDoNothing({ target: departments.code });
     }
-    // The original MME placeholder (created by migration 0005) is not part of the demo data.
-    // Its demo outreach rows go, its dev admin account goes, any other account moves to the
-    // first demo department, and then the department itself is removed.
+    // The original MME placeholder (created by migration 0005) is not part of the demo data. It is
+    // removed only when nothing refers to it; accounts and outreach records are never deleted or
+    // moved to another department to make that possible.
     for (const code of RETIRED_DEPARTMENTS) {
       const [old] = await tx.select().from(departments).where(eq(departments.code, code));
       if (!old) continue;
-      const [first] = await tx.select().from(departments).where(eq(departments.code, DEPARTMENTS[0].code));
-      const leftover = await tx.select({ id: outreachContacts.id }).from(outreachContacts)
-        .where(and(eq(outreachContacts.departmentId, old.departmentId), not(like(outreachContacts.companyName, "DEMO % (outreach)"))));
-      assert.equal(leftover.length, 0, `Department "${code}" still has non-demo outreach contacts; refusing to remove it.`);
-      await tx.delete(outreachContacts).where(eq(outreachContacts.departmentId, old.departmentId));
-      await tx.delete(users).where(eq(users.email, `admin123${code}@nitt.edu`));
-      await tx.update(users).set({ departmentId: first.departmentId }).where(eq(users.departmentId, old.departmentId));
-      await tx.delete(departments).where(eq(departments.departmentId, old.departmentId));
+      const [references] = await tx.execute<{ users: number; outreachContacts: number; programmes: number }>(sql`
+        select
+          (select count(*)::int from users where department_id = ${old.departmentId}) as "users",
+          (select count(*)::int from outreach_contacts where department_id = ${old.departmentId}) as "outreachContacts",
+          (select count(*)::int from programmes where department_id = ${old.departmentId}) as "programmes"`);
+      if (canRemoveRetiredDepartment(references)) {
+        await tx.delete(departments).where(eq(departments.departmentId, old.departmentId));
+      } else {
+        console.log(`Kept department "${code}": it still has users, outreach records or programmes.`);
+      }
     }
     const departmentRows = await tx.select().from(departments);
     const departmentId = (code: DeptCode) => departmentRows.find((row) => row.code === code)!.departmentId;
@@ -340,17 +363,23 @@ async function seed() {
     await insertAll(tx, studentCycles, cycleRows);
     await insertAll(tx, placementOffers, offerRows);
 
+    // Outreach records are never deleted; a re-run only adds the demo names a department lacks.
     for (const dept of DEPARTMENTS) {
-      await tx.insert(outreachContacts).values(COMPANIES.filter(([, , hires]) => hires.includes(dept.code)).slice(-3).map(([name]) => ({
-        departmentId: departmentId(dept.code),
-        companyName: `${name} (outreach)`,
-        hrName: `Outreach ${name.replace("DEMO ", "")}`,
-        email: `outreach@${name.toLowerCase().replace(/[^a-z]+/g, "")}.example.com`,
-        pvrStatus: false,
-      })));
+      const existing = new Set((await tx.select({ companyName: outreachContacts.companyName }).from(outreachContacts)
+        .where(eq(outreachContacts.departmentId, departmentId(dept.code)))).map((row) => row.companyName));
+      const rows = COMPANIES.filter(([, , hires]) => hires.includes(dept.code)).slice(-3)
+        .filter(([name]) => !existing.has(`${name} (outreach)`))
+        .map(([name]) => ({
+          departmentId: departmentId(dept.code),
+          companyName: `${name} (outreach)`,
+          hrName: `Outreach ${name.replace("DEMO ", "")}`,
+          email: `outreach@${name.toLowerCase().replace(/[^a-z]+/g, "")}.example.com`,
+          pvrStatus: false,
+        }));
+      if (rows.length) await tx.insert(outreachContacts).values(rows);
     }
 
-    console.log(`Seeded ${DEPARTMENTS.length} departments, ${cohortList.length} cohorts, ${studentRows.length} students and ${offerRows.length} offers (all fictional).`);
+    console.log(`${plan.mode === "reset" ? "Replaced the demo data in" : "Seeded"} "${process.env[RESET_DATABASE_ENV]}": ${DEPARTMENTS.length} departments, ${cohortList.length} cohorts, ${studentRows.length} students and ${offerRows.length} offers (all fictional).`);
   });
 }
 

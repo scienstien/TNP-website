@@ -6,18 +6,36 @@ import {
   BriefcaseBusiness,
   ChevronDown,
   CircleSlash2,
+  ClipboardList,
   Pencil,
   Search,
   Trash2,
   UsersRound,
 } from "lucide-react";
-import { createStudent, patchStudent, deleteStudent, removeStudentOffer, createStudentCompany } from "@/lib/students/actions";
+import {
+  createStudent,
+  createStudentCompany,
+  deleteStudent,
+  patchStudent,
+  removeStudentOffer,
+  removeStudentParticipation,
+  setStudentParticipation,
+} from "@/lib/students/actions";
 import { validateCompany } from "@/lib/students/company-validation";
-import { validateStudent } from "@/lib/students/validation";
-import { OFFER_TYPES } from "@/lib/placements/types";
-import type { StudentData, StudentRecord, StudentResult } from "@/lib/students/types";
+import { validateParticipation, validateStudent } from "@/lib/students/validation";
+import { OFFER_TYPES, REGISTRATION_STATUSES } from "@/lib/placements/types";
+import type { CompanyOption, StudentData, StudentRecord, StudentResult } from "@/lib/students/types";
 import { DatePicker } from "@/components/ui/date-picker";
 import "./students.css";
+
+type Options = Omit<StudentData, "students">;
+type Status = "Placed" | "Unplaced" | "Not registered";
+
+/** Derived, never stored: an offer means placed; REGISTERED without an offer means unplaced. */
+const statusOf = (student: StudentRecord): Status =>
+  student.offer ? "Placed"
+    : student.participations.some((item) => item.registrationStatus === "REGISTERED") ? "Unplaced" : "Not registered";
+const statusClass: Record<Status, string> = { Placed: "placed", Unplaced: "unplaced", "Not registered": "unregistered" };
 
 export default function StudentRecords({ data }: { data: StudentData }) {
   const [query, setQuery] = useState("");
@@ -25,21 +43,24 @@ export default function StudentRecords({ data }: { data: StudentData }) {
   const [batchFilter, setBatchFilter] = useState("All");
   const [companyFilter, setCompanyFilter] = useState("All");
   const [editing, setEditing] = useState<StudentRecord | "new" | null>(null);
+  const [registrationsRoll, setRegistrationsRoll] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const batches = [...new Set(data.students.map(s => s.batchYear))]
+  const { students, ...options } = data;
+  const busy = pending || editing !== null || registrationsRoll !== null;
+  const batches = [...new Set(students.map(s => s.batchYear))]
     .sort((a, b) => b - a);
-  const companies = [...new Set(data.students.flatMap(s => s.offer ? [s.offer.companyName] : []))]
+  const companies = [...new Set(students.flatMap(s => s.offer ? [s.offer.companyName] : []))]
     .sort((a, b) => a.localeCompare(b));
-  const placedCount = data.students.filter((student) => student.offer).length;
-  const unplacedCount = data.students.length - placedCount;
-  const visible = data.students.filter(s =>
-    `${s.rollNumber} ${s.name} ${s.batchYear} ${s.offer?.companyName ?? ""}`.toLowerCase().includes(query.toLowerCase()) &&
+  const placedCount = students.filter((student) => statusOf(student) === "Placed").length;
+  const unplacedCount = students.filter((student) => statusOf(student) === "Unplaced").length;
+  const visible = students.filter(s =>
+    `${s.rollNumber} ${s.name} ${s.programmeLabel} ${s.batchYear} ${s.participations.map(p => p.cycleCode).join(" ")} ${s.offer?.companyName ?? ""}`
+      .toLowerCase().includes(query.toLowerCase()) &&
     (batchFilter === "All" || s.batchYear === Number(batchFilter)) &&
     (companyFilter === "All" || s.offer?.companyName === companyFilter) &&
-    (statusFilter === "All" || (statusFilter === "Unplaced" ? !s.offer :
-      statusFilter === "Placed" ? !!s.offer : s.offer?.offerType === statusFilter)));
+    (statusFilter === "All" || statusOf(s) === statusFilter || s.offer?.offerType === statusFilter));
   const clearFilters = () => {
     setQuery("");
     setBatchFilter("All");
@@ -68,27 +89,31 @@ export default function StudentRecords({ data }: { data: StudentData }) {
     <section className="student-records">
       <div className="section-heading">
         <div><p className="student-breadcrumb">Dashboard / Student records</p><h1>Student records</h1>
-          <p>Saved students and offers from the database. Save each edit to update dashboard statistics.</p></div>
-        <button className="dark-button" disabled={pending || editing !== null}
+          <p>Saved students, placement-cycle registrations and offers from the database. Save each edit to update dashboard statistics.</p></div>
+        <button className="dark-button" disabled={busy}
           onClick={() => { setEditing("new"); setMessage(""); }}>Add student</button>
       </div>
       {message && <p role="status">{message}</p>}
       {editing && <StudentEditorModal onClose={() => { setEditing(null); router.refresh(); }}>
         <StudentEditor key={editing === "new" ? "new" : editing.rollNumber}
-          initial={editing === "new" ? null : editing} companies={data.companies}
-          currentBatchYear={data.currentBatchYear}
+          initial={editing === "new" ? null : editing} options={options}
           onCancel={() => { setEditing(null); router.refresh(); }}
           onSaved={() => { setEditing(null); setMessage("Saved to the database."); }} />
+      </StudentEditorModal>}
+      {registrationsRoll !== null && <StudentEditorModal labelledBy="student-registrations-title"
+        onClose={() => { setRegistrationsRoll(null); router.refresh(); }}>
+        <RegistrationEditor student={students.find(s => s.rollNumber === registrationsRoll) ?? null} options={options}
+          onClose={() => { setRegistrationsRoll(null); router.refresh(); }} />
       </StudentEditorModal>}
       <section className="panel table-panel student-table-card">
         <div className="student-table-card-header">
           <div>
             <p className="student-table-kicker">PLACEMENT ROSTER</p>
             <h2>Student directory</h2>
-            <p>Search, filter, and update each student&apos;s recorded offer.</p>
+            <p>Search, filter, and update each student&apos;s registrations and recorded offer.</p>
           </div>
           <div className="student-table-stats" aria-label="Student record summary">
-            <Stat label="Recorded" value={data.students.length} icon={UsersRound} />
+            <Stat label="Recorded" value={students.length} icon={UsersRound} />
             <Stat label="Placed" value={placedCount} icon={BriefcaseBusiness} tone="placed" />
             <Stat label="Unplaced" value={unplacedCount} icon={CircleSlash2} tone="unplaced" />
           </div>
@@ -98,7 +123,7 @@ export default function StudentRecords({ data }: { data: StudentData }) {
             <label className="student-search">
               <Search size={17} aria-hidden="true" />
               <span className="sr-only">Search students</span>
-              <input value={query} placeholder="Search name, roll number or company"
+              <input value={query} placeholder="Search name, roll number, cycle or company"
                 onChange={e => setQuery(e.target.value)} />
             </label>
             <FilterSelect label="Batch" value={batchFilter} onChange={setBatchFilter}>
@@ -110,7 +135,7 @@ export default function StudentRecords({ data }: { data: StudentData }) {
               {companies.map(company => <option key={company} value={company}>{company}</option>)}
             </FilterSelect>
             <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter}>
-              {["All", "Placed", "Unplaced", ...OFFER_TYPES].map(status => <option key={status}>{status}</option>)}
+              {["All", "Placed", "Unplaced", "Not registered", ...OFFER_TYPES].map(status => <option key={status}>{status}</option>)}
             </FilterSelect>
           </div>
           <div className="student-toolbar-summary">
@@ -121,32 +146,38 @@ export default function StudentRecords({ data }: { data: StudentData }) {
               {activeFilters.length > 0 && <button type="button" className="student-clear-filters" onClick={clearFilters}>Clear all</button>}
             </div>
             <span className="student-result-count" role="status">
-              {visible.length ? `Showing 1–${visible.length} of ${data.students.length}` : `Showing 0 of ${data.students.length}`}
+              {visible.length ? `Showing 1–${visible.length} of ${students.length}` : `Showing 0 of ${students.length}`}
             </span>
           </div>
         </div>
-        {!visible.length && <p className="table-hint" role="status">{data.students.length
+        {!visible.length && <p className="table-hint" role="status">{students.length
           ? "No students match the current filters." : "No student records loaded."}</p>}
         <div className="student-table-scroll">
           <table className="student-db-table">
-            <thead><tr>{["Roll number", "Name", "Batch", "Status", "Company", "Sector", "Job role", "Offer type", "CTC (LPA)", "Offer date", "Actions"]
+            <thead><tr>{["Roll number", "Name", "Programme", "Batch", "Cycles", "Status", "Company", "Sector", "Job role", "Offer type", "CTC (LPA)", "Offer date", "Actions"]
               .map(h => <th key={h}>{h}</th>)}</tr></thead>
             <tbody>{visible.map(s => <tr key={s.rollNumber}>
-              <td>{s.rollNumber}</td><td>{s.name}</td><td>{s.batchYear}</td>
-              <td><span className={`student-status student-status--${s.offer ? "placed" : "unplaced"}`}>
-                {s.offer ? "Placed" : "Unplaced"}
-              </span></td>
+              <td>{s.rollNumber}</td><td>{s.name}</td><td>{s.programmeLabel}</td><td>{s.batchYear}</td>
+              <td>{s.participations.length ? <span className="student-cycles">{s.participations.map(p =>
+                <span key={p.cycleId} title={p.registrationStatus}
+                  className={`student-cycle${p.registrationStatus === "UNREGISTERED" ? " student-cycle--unregistered" : ""}`}>
+                  {p.cycleCode}{p.registrationStatus === "UNREGISTERED" ? " · unregistered" : ""}
+                </span>)}</span> : "—"}</td>
+              <td><span className={`student-status student-status--${statusClass[statusOf(s)]}`}>{statusOf(s)}</span></td>
               <td>{s.offer?.companyName ?? "—"}</td>
-              <td>{data.companies.find(c => c.name === s.offer?.companyName)?.domain ?? "—"}</td>
+              <td>{options.companies.find(c => c.companyId === s.offer?.companyId)?.domain ?? "—"}</td>
               <td>{s.offer?.jobRole ?? "—"}</td><td>{s.offer?.offerType ?? "—"}</td>
               <td>{s.offer?.packageLpa ?? "—"}</td><td>{s.offer?.offerDate ?? "—"}</td>
               <td><div className="student-row-actions">
                 <button className="student-icon-button" type="button" title={`Edit ${s.name}`} aria-label={`Edit ${s.name}`}
-                  disabled={pending || editing !== null} onClick={() => { setEditing(s); setMessage(""); }}><Pencil size={15} /></button>
+                  disabled={busy} onClick={() => { setEditing(s); setMessage(""); }}><Pencil size={15} /></button>
+                <button className="student-icon-button" type="button" title={`${s.name}'s placement-cycle registrations`}
+                  aria-label={`Registrations for ${s.name}`} disabled={busy}
+                  onClick={() => { setRegistrationsRoll(s.rollNumber); setMessage(""); }}><ClipboardList size={15} /></button>
                 {s.offer && <button className="student-icon-button student-icon-button--warning" type="button" title={`Remove ${s.name}'s offer`} aria-label={`Remove ${s.name}'s offer`}
-                  disabled={pending || editing !== null} onClick={() => remove(s, true)}><BriefcaseBusiness size={15} /></button>}
+                  disabled={busy} onClick={() => remove(s, true)}><BriefcaseBusiness size={15} /></button>}
                 <button className="student-icon-button student-icon-button--danger" type="button" title={s.offer ? "Remove the offer before deleting this student." : `Delete ${s.name}`}
-                  aria-label={`Delete ${s.name}`} disabled={pending || editing !== null || !!s.offer}
+                  aria-label={`Delete ${s.name}`} disabled={busy || !!s.offer}
                   onClick={() => remove(s, false)}><Trash2 size={15} /></button>
               </div></td>
             </tr>)}</tbody>
@@ -187,7 +218,11 @@ function FilterSelect({ label, value, onChange, children }: {
   </label>;
 }
 
-function StudentEditorModal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function StudentEditorModal({ children, onClose, labelledBy = "student-editor-title" }: {
+  children: React.ReactNode;
+  onClose: () => void;
+  labelledBy?: string;
+}) {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -199,23 +234,33 @@ function StudentEditorModal({ children, onClose }: { children: React.ReactNode; 
   return <div className="student-modal-backdrop" onMouseDown={(event) => {
     if (event.target === event.currentTarget) onClose();
   }}>
-    <section className="student-modal" role="dialog" aria-modal="true" aria-labelledby="student-editor-title">
+    <section className="student-modal" role="dialog" aria-modal="true" aria-labelledby={labelledBy}>
       {children}
     </section>
   </div>;
 }
 
-function StudentEditor({ initial, companies, currentBatchYear, onCancel, onSaved }: {
+/** Cohort/cycle association for a programme, graduation year and cycle; null when the cohort is new. */
+function cohortLinked(options: Options, programmeId: string, batchYear: number, cycleId: string) {
+  const cohort = options.cohorts.find(c => c.programmeId === programmeId && c.graduationYear === batchYear);
+  return cohort ? cohort.cycleIds.includes(cycleId) : null;
+}
+
+function StudentEditor({ initial, options, onCancel, onSaved }: {
   initial: StudentRecord | null;
-  companies: StudentData["companies"];
-  currentBatchYear: number;
+  options: Options;
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const registered = initial?.participations.filter(p => p.registrationStatus === "REGISTERED") ?? [];
   const baseline = {
     rollNumber: initial ? String(initial.rollNumber) : "", name: initial?.name ?? "",
-    batchYear: initial ? String(initial.batchYear) : "",
-    companyName: initial?.offer?.companyName ?? "", jobRole: initial?.offer?.jobRole ?? "",
+    programmeId: initial?.programmeId ?? "", batchYear: initial ? String(initial.batchYear) : "",
+    admissionYear: initial?.admissionYear == null ? "" : String(initial.admissionYear),
+    cycleId: "", registrationStatus: "",
+    // A new offer on an existing student goes to an explicitly shown cycle: the only REGISTERED one, or the admin's choice.
+    offerCycleId: initial?.offer?.cycleId ?? (registered.length === 1 ? registered[0].cycleId : ""),
+    companyId: initial?.offer?.companyId ?? "", jobRole: initial?.offer?.jobRole ?? "",
     packageLpa: initial?.offer?.packageLpa ?? "", offerType: initial?.offer?.offerType ?? "",
     offerDate: initial?.offer?.offerDate ?? "",
   };
@@ -224,33 +269,59 @@ function StudentEditor({ initial, companies, currentBatchYear, onCancel, onSaved
   const [creatingCompany, setCreatingCompany] = useState(false);
   const [companyDraft, setCompanyDraft] = useState({ name: "", domain: "" });
   const [companyResult, setCompanyResult] = useState<StudentResult>({});
-  const [createdCompanies, setCreatedCompanies] = useState<StudentData["companies"]>([]);
-  const companyOptions = [...companies, ...createdCompanies.filter(created =>
-    !companies.some(company => company.name === created.name))]
+  const [createdCompanies, setCreatedCompanies] = useState<CompanyOption[]>([]);
+  const companyOptions = [...options.companies, ...createdCompanies.filter(created =>
+    !options.companies.some(company => company.companyId === created.companyId))]
     .sort((a, b) => a.name.localeCompare(b.name));
   const [result, setResult] = useState<StudentResult>({});
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   type Field = keyof typeof baseline;
+  // An offer needs a REGISTERED participation: an existing one, or the registration chosen for a new student.
+  const canAddOffer = initial ? registered.length > 0 : draft.cycleId !== "" && draft.registrationStatus === "REGISTERED";
+  const offerOpen = hasOffer && (!!initial?.offer || canAddOffer);
+  const set = (key: Field, value: string) => { setDraft(d => ({ ...d, [key]: value })); setResult({}); };
   function payload() {
-    const offer = { companyName: draft.companyName, jobRole: draft.jobRole,
-      packageLpa: draft.packageLpa, offerType: draft.offerType, offerDate: draft.offerDate };
-    return { rollNumber: draft.rollNumber, name: draft.name, batchYear: draft.batchYear,
-      ...(hasOffer ? { offer } : {}) };
+    const offer = {
+      ...(initial?.offer ? {} : { cycleId: initial ? draft.offerCycleId : draft.cycleId }),
+      companyId: draft.companyId, jobRole: draft.jobRole,
+      packageLpa: draft.packageLpa, offerType: draft.offerType, offerDate: draft.offerDate,
+    };
+    return {
+      rollNumber: draft.rollNumber, name: draft.name, programmeId: draft.programmeId,
+      batchYear: draft.batchYear, admissionYear: draft.admissionYear,
+      ...(!initial && (draft.cycleId || draft.registrationStatus)
+        ? { participation: { cycleId: draft.cycleId, registrationStatus: draft.registrationStatus } } : {}),
+      ...(offerOpen ? { offer } : {}),
+    };
   }
-  function field(key: Field, label: string, extra: { readOnly?: boolean; inputMode?: "numeric" | "decimal"; type?: string; maxLength?: number; min?: string } = {}) {
+  function validateOnBlur(key: string) {
+    const { fieldErrors } = validateStudent(payload(), true);
+    setResult(r => ({ ...r, fieldErrors: { ...r.fieldErrors, [key]: fieldErrors[key] ?? "" } }));
+  }
+  function field(key: Field, label: string, extra: { readOnly?: boolean; inputMode?: "numeric" | "decimal"; type?: string; maxLength?: number } = {}) {
     return <div className="student-field" key={key}>
       <label htmlFor={`student-${key}`}>{label}</label>
       <input id={`student-${key}`} value={draft[key]} {...extra} disabled={pending}
-        onChange={e => { setDraft(d => ({ ...d, [key]: e.target.value })); setResult({}); }}
-        onBlur={() => {
-          const { fieldErrors } = validateStudent(payload(), true);
-          setResult(r => ({ ...r, fieldErrors: { ...r.fieldErrors, [key]: fieldErrors[key] ?? "" } }));
-        }}
+        onChange={e => set(key, e.target.value)} onBlur={() => validateOnBlur(key)}
         aria-invalid={!!result.fieldErrors?.[key]} aria-describedby={`student-error-${key}`} />
       <span className="student-field-error" id={`student-error-${key}`}>{result.fieldErrors?.[key]}</span>
     </div>;
   }
+  function choice(key: Field, label: string, choices: [string, string][], extra: { disabled?: boolean; errorKey?: string } = {}) {
+    const errorKey = extra.errorKey ?? key;
+    return <div className="student-field" key={key}>
+      <label htmlFor={`student-${key}`}>{label}</label>
+      <select id={`student-${key}`} value={draft[key]} disabled={pending || extra.disabled}
+        onChange={e => set(key, e.target.value)}
+        aria-invalid={!!result.fieldErrors?.[errorKey]} aria-describedby={`student-error-${key}`}>
+        {choices.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
+      </select>
+      <span className="student-field-error" id={`student-error-${key}`}>{result.fieldErrors?.[errorKey]}</span>
+    </div>;
+  }
+  const linked = !initial && draft.cycleId && draft.programmeId && /^\d{4}$/.test(draft.batchYear)
+    ? cohortLinked(options, draft.programmeId, Number(draft.batchYear), draft.cycleId) : true;
   return <form className="panel student-editor" noValidate onSubmit={e => {
     e.preventDefault();
     if (creatingCompany || pending) return;
@@ -258,10 +329,11 @@ function StudentEditor({ initial, companies, currentBatchYear, onCancel, onSaved
     const validated = validateStudent(complete, true);
     if (Object.keys(validated.fieldErrors).length) { setResult({ fieldErrors: validated.fieldErrors }); return; }
     const changes: Record<string, unknown> = {};
-    for (const key of ["name", "batchYear"] as const) if (draft[key] !== baseline[key]) changes[key] = draft[key];
-    if (hasOffer) {
+    for (const key of ["name", "admissionYear"] as const) if (draft[key] !== baseline[key]) changes[key] = draft[key];
+    if (offerOpen) {
       const offer: Record<string, unknown> = {};
-      for (const key of ["companyName", "jobRole", "packageLpa", "offerType", "offerDate"] as const) {
+      if (!initial?.offer) offer.cycleId = draft.offerCycleId;
+      for (const key of ["companyId", "jobRole", "packageLpa", "offerType", "offerDate"] as const) {
         if (!initial?.offer || draft[key] !== baseline[key]) offer[key] = draft[key];
       }
       if (Object.keys(offer).length) changes.offer = offer;
@@ -281,20 +353,45 @@ function StudentEditor({ initial, companies, currentBatchYear, onCancel, onSaved
     <div className="student-fields">
       {field("rollNumber", "Roll number (9 digits)", { inputMode: "numeric", readOnly: !!initial })}
       {field("name", "Student name")}
-      {field("batchYear", "Graduating batch", { inputMode: "numeric" })}
+      {choice("programmeId", "Programme", [["", "Choose a programme"], ...options.programmes.map(p => [p.programmeId, p.label] as [string, string])],
+        { disabled: !!initial })}
+      {field("batchYear", "Graduating batch", { inputMode: "numeric", readOnly: !!initial })}
+      {field("admissionYear", "Admission year (optional)", { inputMode: "numeric", maxLength: 4 })}
     </div>
-    {!initial?.offer && <label className="student-offer-toggle"><input type="checkbox" checked={hasOffer} disabled={pending}
+    {!options.programmes.length && <p className="student-note">This department has no undergraduate programme yet, so students cannot be added.</p>}
+    {initial && <p className="student-note">Programme and batch cannot be changed here: moving a student would discard registrations and offer details. Use the registrations button in the table to manage placement cycles.</p>}
+    {!initial && <fieldset disabled={pending} className="student-company-create">
+      <legend>Placement-cycle registration (optional)</legend>
+      <p className="student-note">Choose an existing cycle and the student&apos;s status. Nothing is assumed when this is left blank.</p>
+      <div className="student-fields">
+        {choice("cycleId", "Placement cycle", [["", "No registration yet"], ...options.cycles.map(c => [c.cycleId, c.code] as [string, string])],
+          { errorKey: "participation" })}
+        {choice("registrationStatus", "Registration status", [["", "Choose a status"], ...REGISTRATION_STATUSES.map(s => [s, s] as [string, string])])}
+      </div>
+      {!options.cycles.length && <p className="student-note">No placement cycles exist yet. Cycles are not created from the student editor.</p>}
+      {linked === null && <p className="student-note">This programme has no {draft.batchYear} cohort yet; saving creates it and associates it with the chosen cycle.</p>}
+      {linked === false && <p className="student-note">The {draft.batchYear} cohort is not yet associated with this cycle; saving associates it.</p>}
+    </fieldset>}
+    {!initial?.offer && <label className="student-offer-toggle"><input type="checkbox" checked={hasOffer} disabled={pending || !canAddOffer}
       onChange={e => { setHasOffer(e.target.checked); if (!e.target.checked) setCreatingCompany(false); }} /> Add an offer</label>}
-    {hasOffer && <div className="student-fields">
+    {!initial?.offer && !canAddOffer && <p className="student-note">{initial
+      ? "An offer needs a REGISTERED placement-cycle registration. Add one with the registrations button first."
+      : "To add an offer, choose a placement cycle with the status REGISTERED."}</p>}
+    {offerOpen && <div className="student-fields">
+      {initial?.offer
+        ? <label className="student-field">Placement cycle<input readOnly value={initial.offer.cycleCode} /></label>
+        : initial
+          ? choice("offerCycleId", "Placement cycle", [["", "Choose a cycle"], ...registered.map(p => [p.cycleId, p.cycleCode] as [string, string])])
+          : <label className="student-field">Placement cycle<input readOnly value={options.cycles.find(c => c.cycleId === draft.cycleId)?.code ?? ""} /></label>}
       <div className="student-field">
-        <label htmlFor="student-companyName">Company</label>
-        <select id="student-companyName" value={draft.companyName} disabled={pending} aria-invalid={!!result.fieldErrors?.companyName}
-          aria-describedby="student-error-companyName"
-          onChange={e => { setDraft(d => ({ ...d, companyName: e.target.value })); setResult({}); }}>
+        <label htmlFor="student-companyId">Company</label>
+        <select id="student-companyId" value={draft.companyId} disabled={pending} aria-invalid={!!result.fieldErrors?.companyId}
+          aria-describedby="student-error-companyId"
+          onChange={e => set("companyId", e.target.value)}>
           <option value="">Select an existing company</option>
-          {companyOptions.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+          {companyOptions.map(c => <option key={c.companyId} value={c.companyId}>{c.name}</option>)}
         </select>
-        <span className="student-field-error" id="student-error-companyName">{result.fieldErrors?.companyName}</span>
+        <span className="student-field-error" id="student-error-companyId">{result.fieldErrors?.companyId}</span>
         {!companyOptions.length && <small>No companies yet. Create one below to assign this offer.</small>}
         {!creatingCompany && <button type="button" disabled={pending} onClick={() => {
           setCreatingCompany(true); setCompanyResult({});
@@ -325,7 +422,7 @@ function StudentEditor({ initial, companies, currentBatchYear, onCancel, onSaved
                   if (saved.ok && saved.company) {
                     const company = saved.company;
                     setCreatedCompanies(current => [...current, company]);
-                    setDraft(current => ({ ...current, companyName: company.name }));
+                    setDraft(current => ({ ...current, companyId: company.companyId }));
                     setResult({});
                     setCreatingCompany(false);
                     setCompanyDraft({ name: "", domain: "" });
@@ -338,21 +435,18 @@ function StudentEditor({ initial, companies, currentBatchYear, onCancel, onSaved
           </div>
         </fieldset>}
       </div>
-      <label className="student-field">Sector<input readOnly value={companyOptions.find(c => c.name === draft.companyName)?.domain ?? ""} /></label>
+      <label className="student-field">Sector<input readOnly value={companyOptions.find(c => c.companyId === draft.companyId)?.domain ?? ""} /></label>
       {field("jobRole", "Job role (optional)")}
       {field("packageLpa", "Package in LPA (optional)", { inputMode: "decimal" })}
       <label className="student-field">Offer type (optional)
-        <select value={draft.offerType} disabled={pending} onChange={e => setDraft(d => ({ ...d, offerType: e.target.value }))}>
+        <select value={draft.offerType} disabled={pending} onChange={e => set("offerType", e.target.value)}>
           <option value="">Not recorded</option>{OFFER_TYPES.map(t => <option key={t}>{t}</option>)}
         </select><span className="student-field-error">{result.fieldErrors?.offerType}</span>
       </label>
       <div className="student-field">
         <label htmlFor="student-offerDate">Offer date (optional)</label>
         <DatePicker id="student-offerDate" value={draft.offerDate} disabled={pending}
-          min={Number(draft.batchYear) === currentBatchYear
-            ? companyOptions.find(c => c.name === draft.companyName)?.visitDate ?? undefined
-            : undefined}
-          onChange={(value) => { setDraft((current) => ({ ...current, offerDate: value })); setResult({}); }} />
+          onChange={(value) => set("offerDate", value)} />
         <span className="student-field-error">{result.fieldErrors?.offerDate}</span>
       </div>
     </div>}
@@ -363,4 +457,103 @@ function StudentEditor({ initial, companies, currentBatchYear, onCancel, onSaved
       <button type="button" disabled={pending} onClick={onCancel}>Cancel</button>
     </div>
   </form>;
+}
+
+/**
+ * Placement-cycle registrations of one enrollment. Each change is its own explicit, confirmed save
+ * against the record shown, so it never mixes with an unsaved student draft.
+ */
+function RegistrationEditor({ student, options, onClose }: {
+  student: StudentRecord | null;
+  options: Options;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState({ cycleId: "", registrationStatus: "" });
+  const [result, setResult] = useState<StudentResult>({});
+  const [notice, setNotice] = useState("");
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const heading = <div className="student-editor-heading">
+    <h2 id="student-registrations-title">{student ? `Registrations · ${student.rollNumber} ${student.name}` : "Registrations"}</h2>
+    <button type="button" className="student-editor-close" onClick={onClose} disabled={pending} aria-label="Close registrations">×</button>
+  </div>;
+  if (!student) return <div className="panel student-editor">{heading}<p role="alert">This student no longer exists. Close and refresh the records.</p></div>;
+
+  const expected = JSON.stringify(student);
+  const linkedCycles = options.cohorts.find(c => c.cohortId === student.cohortId)?.cycleIds ?? [];
+  const available = options.cycles.filter(c => !student.participations.some(p => p.cycleId === c.cycleId));
+  function save(action: () => Promise<StudentResult>, done: string) {
+    setResult({});
+    setNotice("");
+    startTransition(async () => {
+      try {
+        const saved = await action();
+        if (saved.ok) {
+          setNotice(done);
+          setDraft({ cycleId: "", registrationStatus: "" });
+          router.refresh();
+        } else setResult(saved);
+      } catch { setResult({ error: "Unable to save. Check your connection and retry." }); }
+    });
+  }
+  const problem = result.error || result.fieldErrors?.form || result.fieldErrors?.participation ||
+    result.fieldErrors?.registrationStatus || result.fieldErrors?.rollNumber;
+  return <div className="panel student-editor">
+    {heading}
+    <p className="student-note">Each change is saved immediately. A cycle that holds the student&apos;s offer cannot become UNREGISTERED or be removed; remove the offer first.</p>
+    {student.participations.length ? <ul className="student-registrations">
+      {student.participations.map(p => {
+        const holdsOffer = student.offer?.cycleId === p.cycleId;
+        const next = p.registrationStatus === "REGISTERED" ? "UNREGISTERED" : "REGISTERED";
+        return <li key={p.cycleId}>
+          <strong>{p.cycleCode}</strong>
+          <span className={`student-status student-status--${p.registrationStatus === "REGISTERED" ? "registered" : "unregistered"}`}>{p.registrationStatus}</span>
+          {holdsOffer && <span className="student-cycle">Offer: {student.offer!.companyName}</span>}
+          <div className="student-row-actions">
+            <button type="button" disabled={pending || (holdsOffer && next === "UNREGISTERED")} onClick={() => {
+              if (!window.confirm(`Mark ${student.name} ${next} for ${p.cycleCode}?`)) return;
+              save(() => setStudentParticipation(student.rollNumber, { cycleId: p.cycleId, registrationStatus: next }, expected),
+                `Marked ${next} for ${p.cycleCode}.`);
+            }}>Mark {next}</button>
+            <button type="button" disabled={pending || holdsOffer} onClick={() => {
+              if (!window.confirm(`Remove ${student.name}'s ${p.cycleCode} registration?`)) return;
+              save(() => removeStudentParticipation(student.rollNumber, p.cycleId, expected), `Removed the ${p.cycleCode} registration.`);
+            }}>Remove</button>
+          </div>
+        </li>;
+      })}
+    </ul> : <p className="student-note">No placement-cycle registration is recorded for this student.</p>}
+    <fieldset disabled={pending} className="student-company-create">
+      <legend>Add a registration</legend>
+      {available.length ? <>
+        <div className="student-fields">
+          <label className="student-field">Placement cycle
+            <select value={draft.cycleId} onChange={e => { setDraft(d => ({ ...d, cycleId: e.target.value })); setResult({}); }}>
+              <option value="">Choose a cycle</option>
+              {available.map(c => <option key={c.cycleId} value={c.cycleId}>{c.code}</option>)}
+            </select>
+          </label>
+          <label className="student-field">Registration status
+            <select value={draft.registrationStatus} onChange={e => { setDraft(d => ({ ...d, registrationStatus: e.target.value })); setResult({}); }}>
+              <option value="">Choose a status</option>
+              {REGISTRATION_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </label>
+        </div>
+        {draft.cycleId && !linkedCycles.includes(draft.cycleId) &&
+          <p className="student-note">The {student.batchYear} cohort is not yet associated with this cycle; saving associates it.</p>}
+        <div className="student-row-actions"><button type="button" onClick={() => {
+          const checked = validateParticipation(draft);
+          if (!checked.data) { setResult({ fieldErrors: checked.fieldErrors }); return; }
+          const code = options.cycles.find(c => c.cycleId === checked.data!.cycleId)?.code ?? "the cycle";
+          save(() => setStudentParticipation(student.rollNumber, checked.data!, expected), `Registered ${checked.data!.registrationStatus} for ${code}.`);
+        }}>Add registration</button></div>
+      </> : <p className="student-note">{options.cycles.length
+        ? "The student already has a registration for every existing cycle."
+        : "No placement cycles exist yet. Cycles are not created from the student editor."}</p>}
+    </fieldset>
+    {problem && <p role="alert">{problem}</p>}
+    {notice && <p role="status">{notice}</p>}
+    <div className="student-row-actions"><button type="button" onClick={onClose} disabled={pending}>Close</button></div>
+  </div>;
 }
