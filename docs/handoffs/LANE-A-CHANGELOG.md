@@ -56,3 +56,31 @@ Entries are chronological, one per commit. SHAs are backfilled by the final
   the workspace root. Whole-repo `npm run lint` then fails on those generated chunks. The
   agent was not permitted to delete the folder. Delete it manually, or lint the source
   paths. It is untracked and never committed.
+
+## 2026-10-22 · MIG-004 · MIG-004: explicit programme, cycle and registration editing for students
+- SHA: _backfilled_
+- Files:
+  - `lib/students/types.ts`
+  - `lib/students/validation.ts`
+  - `lib/students/validation.test.ts`
+  - `lib/students/rules.ts`
+  - `lib/students/rules.test.ts`
+  - `lib/students/read.ts`
+  - `lib/students/queries.ts`
+  - `lib/students/store.ts`
+  - `lib/students/actions.ts`
+  - `lib/students/README.md`
+  - `components/students/StudentRecords.tsx`
+  - `components/students/students.css`
+  - `docs/handoffs/MIG-004.md` (new)
+  - `docs/handoffs/LANE-A-CHANGELOG.md`
+- What and why:
+  - The student contract carries IDs and nested participations.
+  - Create uses an explicit programme, a manual admission year and an optional explicit
+    registration. No cycle is inferred or created.
+  - New registration actions (set, remove) refuse to touch the offer's cycle.
+  - Companies are chosen by ID.
+  - Cohort moves stay rejected.
+- Verify: Lane A tests (27 passed); `tsc --noEmit`; eslint on the Lane A paths; `next build`.
+- Revert: `git revert <SHA>` (restores MIG-001 behavior). Revert before MIG-001 if both
+  go.

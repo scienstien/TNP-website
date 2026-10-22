@@ -1,7 +1,15 @@
-import { OFFER_TYPES } from "@/lib/placements/types";
-import type { OfferChanges, StudentInput } from "./types";
+import { OFFER_TYPES, REGISTRATION_STATUSES, type RegistrationStatusValue } from "@/lib/placements/types";
+import type { OfferChanges, ParticipationInput, StudentInput } from "./types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** A canonical (lower-case) UUID, or null. */
+export const uuid = (value: unknown): string | null =>
+  typeof value === "string" && UUID.test(value) ? value.toLowerCase() : null;
+/** A four-digit year given as a number or a digit string, or null. */
+const fourDigitYear = (value: unknown): number | null =>
+  (typeof value === "string" && /^[1-9][0-9]{3}$/.test(value)) ||
+  (typeof value === "number" && Number.isInteger(value) && value >= 1000 && value <= 9999)
+    ? Number(value) : null;
 
 export const rollProblem = (value: unknown): string | null =>
   (typeof value === "string" && /^[1-9][0-9]{8}$/.test(value)) ||
@@ -19,11 +27,31 @@ const object = (value: unknown): value is Record<string, unknown> =>
   Object.getPrototypeOf(value) === Object.prototype;
 const own = (value: object, key: string) => Object.hasOwn(value, key);
 
+/** An explicit registration: a placement cycle and a chosen status. Nothing is defaulted. */
+export function validateParticipation(input: unknown): { data: ParticipationInput | null; fieldErrors: Record<string, string> } {
+  if (!object(input)) return { data: null, fieldErrors: { participation: "Choose a placement cycle and a registration status." } };
+  const fieldErrors: Record<string, string> = {};
+  if (Object.keys(input).some((key) => key !== "cycleId" && key !== "registrationStatus")) {
+    fieldErrors.form = "Only the placement cycle and registration status can be set.";
+  }
+  const cycleId = uuid(input.cycleId);
+  if (!cycleId) fieldErrors.participation = "Choose a placement cycle.";
+  const status = input.registrationStatus;
+  const known = REGISTRATION_STATUSES.includes(status as RegistrationStatusValue);
+  if (!known) fieldErrors.registrationStatus = "Choose REGISTERED or UNREGISTERED.";
+  return {
+    data: cycleId && known ? { cycleId, registrationStatus: status as RegistrationStatusValue } : null,
+    fieldErrors,
+  };
+}
+
 export function validateStudent(input: unknown, create: boolean) {
   const fieldErrors: Record<string, string> = {};
   const data: StudentInput = {};
   if (!object(input)) return { data, fieldErrors: { form: "Invalid student data." } };
-  const allowed = create ? ["rollNumber", "name", "batchYear", "offer"] : ["name", "batchYear", "offer"];
+  const allowed = create
+    ? ["rollNumber", "name", "programmeId", "batchYear", "admissionYear", "participation", "offer"]
+    : ["name", "programmeId", "batchYear", "admissionYear", "offer"];
   for (const key of Object.keys(input)) {
     if (!allowed.includes(key)) fieldErrors.form = `Field "${key}" cannot be changed.`;
   }
@@ -37,31 +65,50 @@ export function validateStudent(input: unknown, create: boolean) {
     else {
       const name = input.name.trim().replace(/\s+/gu, " ").normalize("NFC");
       if (Array.from(name).length < 1 || Array.from(name).length > 100 ||
-          !/\p{L}/u.test(name) || !/^[\p{L}\p{M} .'\u2019-]+$/u.test(name)) {
+          !/\p{L}/u.test(name) || !/^[\p{L}\p{M} .'’-]+$/u.test(name)) {
         fieldErrors.name = "Use 1–100 characters: letters, spaces, apostrophes, periods or hyphens; no digits.";
       } else data.name = name;
     }
   }
+  if (create || own(input, "programmeId")) {
+    const programmeId = uuid(input.programmeId);
+    if (!programmeId) fieldErrors.programmeId = "Choose a programme.";
+    else data.programmeId = programmeId;
+  }
   if (create || own(input, "batchYear")) {
-    const year = input.batchYear;
-    if (!((typeof year === "string" && /^[1-9][0-9]{3}$/.test(year)) ||
-      (typeof year === "number" && Number.isInteger(year) && year >= 1000 && year <= 9999))) {
-      fieldErrors.batchYear = "Enter a four-digit graduating year.";
-    } else data.batchYear = Number(year);
+    const year = fourDigitYear(input.batchYear);
+    if (year === null) fieldErrors.batchYear = "Enter a four-digit graduating year.";
+    else data.batchYear = year;
+  }
+  if (create || own(input, "admissionYear")) {
+    const value = input.admissionYear;
+    if (value === undefined || value === null || value === "") data.admissionYear = null;
+    else {
+      const year = fourDigitYear(value);
+      if (year === null) fieldErrors.admissionYear = "Enter a four-digit admission year or leave it blank.";
+      else data.admissionYear = year;
+    }
+  }
+  if (create && own(input, "participation") && input.participation !== null) {
+    const participation = validateParticipation(input.participation);
+    Object.assign(fieldErrors, participation.fieldErrors);
+    if (participation.data) data.participation = participation.data;
   }
   if (own(input, "offer")) {
     if (!object(input.offer)) fieldErrors.offer = "Invalid offer. Use Remove offer to clear it.";
     else {
       const offer: OfferChanges = {};
-      const keys = ["cycleId", "companyName", "jobRole", "packageLpa", "offerType", "offerDate"];
+      const keys = ["cycleId", "companyId", "jobRole", "packageLpa", "offerType", "offerDate"];
       for (const [key, value] of Object.entries(input.offer)) {
         if (!keys.includes(key)) { fieldErrors.form = `Offer field "${key}" cannot be changed.`; continue; }
         if (key === "cycleId") {
-          if (typeof value !== "string" || !UUID.test(value)) fieldErrors.offer = "Choose a valid placement cycle.";
-          else offer.cycleId = value.toLowerCase();
-        } else if (key === "companyName") {
-          if (typeof value !== "string" || !value.trim()) fieldErrors.companyName = "Select an existing company.";
-          else offer.companyName = value;
+          const cycleId = uuid(value);
+          if (!cycleId) fieldErrors.offer = "Choose a valid placement cycle.";
+          else offer.cycleId = cycleId;
+        } else if (key === "companyId") {
+          const companyId = uuid(value);
+          if (!companyId) fieldErrors.companyId = "Select an existing company.";
+          else offer.companyId = companyId;
         } else if (key === "jobRole") {
           if (value !== null && typeof value !== "string") fieldErrors.jobRole = "Enter a job role or leave it blank.";
           else offer.jobRole = typeof value === "string" ? value.trim() || null : null;
@@ -82,7 +129,7 @@ export function validateStudent(input: unknown, create: boolean) {
           } else offer.offerDate = value;
         }
       }
-      if (create && !offer.companyName) fieldErrors.companyName = "Select an existing company.";
+      if (create && !offer.companyId && !fieldErrors.companyId) fieldErrors.companyId = "Select an existing company.";
       data.offer = offer;
     }
   }

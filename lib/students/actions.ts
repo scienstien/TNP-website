@@ -29,6 +29,14 @@ export async function createStudent(input: unknown) { return run("create", input
 export async function patchStudent(roll: unknown, changes: unknown, expected: unknown) { return run("patch", changes, roll, expected); }
 export async function removeStudentOffer(roll: unknown, expected: unknown) { return run("removeOffer", null, roll, expected); }
 export async function deleteStudent(roll: unknown, expected: unknown) { return run("removeStudent", null, roll, expected); }
+/** Registers the student for an explicit cycle, or changes that registration's status. */
+export async function setStudentParticipation(roll: unknown, participation: unknown, expected: unknown) {
+  return run("setParticipation", participation, roll, expected);
+}
+/** Removes one registration; refused while that cycle holds the student's offer. */
+export async function removeStudentParticipation(roll: unknown, cycleId: unknown, expected: unknown) {
+  return run("removeParticipation", { cycleId }, roll, expected);
+}
 
 /** Explicit creation only: never overwrite a company's existing profile or contacts. */
 export async function createStudentCompany(input: unknown): Promise<CompanyResult> {
@@ -40,10 +48,10 @@ export async function createStudentCompany(input: unknown): Promise<CompanyResul
     const [company] = await db.insert(companies)
       .values({ name: data.name, domain: data.domain })
       .onConflictDoNothing({ target: companies.name })
-      .returning({ name: companies.name, domain: companies.domain });
+      .returning({ companyId: companies.companyId, name: companies.name, domain: companies.domain });
     if (!company) return { fieldErrors: { name: "This company already exists. Select it from the list." } };
     revalidatePath("/");
-    return { ok: true, company: { ...company, visitDate: null } };
+    return { ok: true, company };
   } catch {
     return { error: "Unable to create the company. Your student draft has not been changed." };
   }

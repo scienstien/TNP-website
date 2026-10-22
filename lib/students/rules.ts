@@ -2,8 +2,9 @@
  * Pure participation rules for student writes. No database access, so they are unit-tested
  * directly; lib/students/store.ts applies them to rows it has locked inside its transaction.
  */
+import type { RegistrationStatusValue } from "@/lib/placements/types";
 
-export type RegistrationStatus = "REGISTERED" | "UNREGISTERED";
+export type RegistrationStatus = RegistrationStatusValue;
 
 export interface Participation {
   cycleId: string;
@@ -46,6 +47,27 @@ export function offerTarget(
     return { problem: "An UNREGISTERED student cannot have an offer in that placement cycle." };
   }
   return { cycleId };
+}
+
+/**
+ * Registration changes never remove an offer to make themselves succeed: a participation holding
+ * the enrollment's offer cannot become UNREGISTERED (TASKS.md MIG-001 decision).
+ */
+export function registrationChangeProblem(
+  offerCycleId: string | null,
+  cycleId: string,
+  registrationStatus: RegistrationStatus,
+): string | null {
+  return registrationStatus === "UNREGISTERED" && offerCycleId === cycleId
+    ? "This placement cycle holds the student's offer. Remove the offer before marking the student UNREGISTERED."
+    : null;
+}
+
+/** A participation holding the enrollment's offer cannot be removed (the offer depends on it). */
+export function participationRemovalProblem(offerCycleId: string | null, cycleId: string): string | null {
+  return offerCycleId === cycleId
+    ? "This placement cycle holds the student's offer. Remove the offer before removing the registration."
+    : null;
 }
 
 /**

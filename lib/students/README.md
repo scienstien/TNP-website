@@ -1,47 +1,78 @@
 # Student records
 
-`getStudentData()` requires ADMIN and returns names, integer roll numbers, batch
-years, optional offers (decimal LPA strings), and existing company choices.
-Professor analytics remain name-free. `StudentRecords` renders only these persisted
-rows; add/edit forms keep clearly marked drafts until the server saves them.
+`getStudentData()` requires ADMIN (SUPERADMIN included) and returns the chosen
+department's **undergraduate enrollments** and the editor's choices. It returns
+null when a SUPERADMIN has not chosen a department.
 
-`createStudent`, `patchStudent`, `removeStudentOffer`, and `deleteStudent` are
-Server Actions. Each rechecks the database-backed role before validation or writes.
-Patch accepts only name, batchYear, and allowlisted offer fields. Roll is immutable.
-Names are normalized natural-name strings of 1–100 Unicode characters; nine-digit
-rolls and four-digit batches are strictly parsed. No exponent, fractional, signed
-or zero-prefixed identifiers are accepted. Optional dates are real ISO dates.
-Package inputs are nonnegative plain-decimal strings, never parsed to floats for
-storage. Nullable offer fields can be explicitly cleared; omitted fields are untouched.
+Each `StudentRecord` is one enrollment (roll number). It carries:
+- stable IDs: `studentId`, `enrollmentId`, `programmeId`, `cohortId`;
+- the programme label and the cohort's graduation year (`batchYear`);
+- a manual, nullable `admissionYear`;
+- its explicit placement-cycle `participations` (`cycleId`, `cycleCode`,
+  `registrationStatus`), ordered by cycle code;
+- its one final `offer` (`offerId`, `cycleId`, `cycleCode`, `companyId`,
+  `companyName`, job role, LPA decimal string, offer type, date), or null.
 
-Select an existing company or use **Create new company** beside the selector.
-`createStudentCompany` checks ADMIN and validates a 2–120 character company name
-and optional sector (up to 80 characters), then inserts without overwriting an
-existing company. Duplicate names return a field error. No contacts or visit date
-are invented. After the database confirms creation, the company is selected and
-the student draft remains intact. Company creation is a separate explicit save;
-cancelling the student draft does not delete the company.
-Existing company profiles/sectors cannot be edited here.
-Offer existence defines placement status, independently of nullable offer type.
-No package/date defaults are invented. Deleting an offer requires confirmation;
-deleting a student is blocked until there is no offer.
+The options are the department's UG programmes and cohorts (with the cycles each cohort
+is associated with), **every existing** placement cycle, and every company by ID.
+Nothing is inferred from today's date or a graduation year, and no placement cycle is
+created here. Professor analytics remain name-free.
 
-Writes run in a transaction and lock the student row. Updates/removals compare an
-expected serialized snapshot to the current database record. Stale drafts return an
-error; Cancel and reopen to load fresh values. Unique/FK constraints remain the final
-concurrency guard. Errors preserve the draft; successful writes revalidate `/` and
-refresh server props, including dashboard analytics. External DB edits require refresh.
+## Server Actions (`actions.ts`)
 
-The old local-only CSV importer and legacy editors were removed. Importing files is
-a separate workflow requiring actual source inspection and the same validation rules.
+Every action rechecks the database-backed role and the department
+(`resolveDepartment`) before validating or writing. The "All departments" scope is
+rejected.
+
+| Action | Does |
+| --- | --- |
+| `createStudent(input)` | A new person plus an enrollment in an explicitly chosen UG programme of the department and a graduation year; the cohort is created when missing. Optional `admissionYear` (stays null when blank). Optional `participation: { cycleId, registrationStatus }`: an existing cycle and an explicit status, never defaulted. Optional `offer`, only for a REGISTERED participation. |
+| `patchStudent(roll, changes, expected)` | Name, admission year and offer fields. A different programme or batch (cohort move) is **rejected**: moving would discard registrations and offer details. |
+| `setStudentParticipation(roll, { cycleId, registrationStatus }, expected)` | Adds a registration for an existing cycle or changes its status. Choosing a cycle the cohort is not associated with records that association in `cycle_cohorts`, as the admin's explicit choice. The cycle holding the offer cannot become UNREGISTERED. |
+| `removeStudentParticipation(roll, cycleId, expected)` | Removes one registration; refused for the cycle holding the offer. |
+| `removeStudentOffer(roll, expected)` | Deletes the final offer (confirmed in the UI). |
+| `deleteStudent(roll, expected)` | Deletes the enrollment and its registrations, and the person if no other enrollment remains. Refused while an offer exists. |
+| `createStudentCompany({ name, domain })` | Explicit company creation that never overwrites an existing company. Returns `{ companyId, name, domain }`. |
+
+## Rules (`rules.ts`, pure and unit-tested)
+
+- `offerTarget()`: an offer write goes to the existing offer's own cycle, or an
+  explicit `offer.cycleId`, or the only participation. With more participations it is
+  rejected as ambiguous. The target must be REGISTERED: an UNREGISTERED candidate
+  cannot have an offer.
+- `registrationChangeProblem()` and `participationRemovalProblem()`: the
+  participation holding the offer cannot become UNREGISTERED or be removed. An offer is
+  never deleted to make either succeed.
+- `sharedPersonProblem()`: a rename is rejected when the person also has an enrollment
+  in another department. A cross-department ownership policy is still undecided.
+
+## Concurrency and stale edits
+
+Every write runs in one transaction. It locks the enrollment row, compares the
+`expected` JSON snapshot (the full `StudentRecord`, including IDs, participations and
+offer) with the current record, then locks the person, participation and offer rows it
+touches, always in that order. Every rejection after the first write throws, so the
+transaction rolls back. Unique and FK constraints remain the final guard. Offers are
+updated by `offer_id`. Columns the editor does not show, such as the monthly stipend,
+are never written, so they are preserved.
+
+## Known limits
+
+- Drive and role selection by ID is MIG-005. A job title is still linked through the
+  first drive of the company in the offer's cycle, created if missing.
+- The editor still rejects an offer date before the company's earliest PPT in the offer's
+  cycle; MIG-005 removes that rule.
+- Creating a student always creates a new person. Reusing an existing person needs an
+  explicit identity and shared-person policy, never a name match.
+- PG enrollments are not shown (AGENTS.md), and cohort moves are not supported.
 
 ## Verification
 
-Run shared-validator tests with `npx tsx --test lib/students/validation.test.ts`,
-then `npm run db:check`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`.
+```bash
+npx tsx --test lib/students/rules.test.ts lib/students/validation.test.ts
+# Windows + Node 24, where the tsx CLI fails with uv_os_get_passwd ENOMEM:
+node -e "process.geteuid=()=>0; require('tsx/cjs/api').register(); require('./lib/students/rules.test.ts'); require('./lib/students/validation.test.ts')"
+```
 
-Local integration verification covered 28 browser/HTTP checks: invalid drafts and
-forged payloads, persistence/reload, optional offers, field-only updates, dashboard
-refresh, stale edits, guarded removal, and denied professor/signed-out mutations.
-Ten direct PostgreSQL constraint checks ran inside rolled-back transactions.
-Disposable accounts, companies, students, and offers were removed afterward.
+Then run `npx tsc --noEmit`, `npm run lint` and `npm run build`. Database-level
+verification is recorded in `docs/handoffs/LANE-A-CHANGELOG.md`.

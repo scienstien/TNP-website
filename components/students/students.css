@@ -40,16 +40,26 @@
 .student-stat strong { color: #e8f0ff; font-size: 14px; }
 .student-stat--placed { border-color: rgb(75 180 138 / .35); color: #69c6a0; }
 .student-stat--unplaced { border-color: rgb(198 152 79 / .36); color: #e0b768; }
-.student-db-table { width: 100%; min-width: 1120px; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13px; }
+.student-db-table { width: 100%; min-width: 1360px; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13px; }
 .student-db-table th, .student-db-table td { padding: 14px 12px; border-bottom: 1px solid #68718155; vertical-align: middle; }
 .student-db-table th { position: sticky; top: 0; z-index: 1; white-space: nowrap; color: #91a0b9; background: #182338; font: 10px "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
 .student-db-table tbody tr { transition: background .16s ease; }
 .student-db-table tbody tr:hover { background: rgb(55 94 160 / .14); }
 .student-db-table tbody tr:last-child td { border-bottom: 0; }
-.student-db-table td:nth-child(1), .student-db-table td:nth-child(3), .student-db-table td:nth-child(8), .student-db-table td:nth-child(9), .student-db-table td:nth-child(10) { color: #b5c4dc; font-family: "DM Mono", monospace; font-size: 12px; white-space: nowrap; }
+.student-db-table td:nth-child(1), .student-db-table td:nth-child(4), .student-db-table td:nth-child(10), .student-db-table td:nth-child(11), .student-db-table td:nth-child(12) { color: #b5c4dc; font-family: "DM Mono", monospace; font-size: 12px; white-space: nowrap; }
 .student-status { display: inline-flex; align-items: center; padding: 4px 8px; border: 1px solid; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .student-status--placed { border-color: rgb(74 179 135 / .45); background: rgb(36 123 93 / .16); color: #7ed4ae; }
 .student-status--unplaced { border-color: rgb(159 174 202 / .28); background: rgb(120 137 166 / .1); color: #b8c5da; }
+.student-status--unregistered { border-color: rgb(198 152 79 / .36); background: rgb(109 82 25 / .14); color: #e0b768; }
+.student-status--registered { border-color: rgb(112 160 255 / .4); background: rgb(29 52 92 / .3); color: #9db9ef; }
+.student-cycles { display: flex; flex-wrap: wrap; gap: 4px; }
+.student-cycle { padding: 2px 6px; border: 1px solid rgb(112 160 255 / .32); border-radius: 5px; color: #b5c4dc; font: 11px "DM Mono", monospace; white-space: nowrap; }
+.student-cycle--unregistered { border-style: dashed; border-color: rgb(198 152 79 / .45); color: #e0b768; }
+.student-note { margin: 8px 0; color: #9aa7be; font-size: 12px; }
+.student-registrations { display: grid; gap: 8px; margin: 12px 0; padding: 0; list-style: none; }
+.student-registrations li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #68718155; border-radius: 6px; }
+.student-registrations li > .student-row-actions { margin-left: auto; }
+.student-records .student-registrations button { padding: 6px 10px; border: 1px solid #687181; border-radius: 5px; color: inherit; background: transparent; }
 .student-toolbar { display: grid; gap: 14px; margin: 0; padding: 18px 20px; border-bottom: 1px solid var(--line); background: rgb(10 17 29 / .16); }
 .student-toolbar-controls { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .student-search, .student-filter-select { height: 38px; border: 1px solid #687181; border-radius: 7px; background: #131c2b; }

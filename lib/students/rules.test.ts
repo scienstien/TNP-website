@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { offerTarget, sharedPersonProblem, type Participation } from "./rules";
+import {
+  offerTarget,
+  participationRemovalProblem,
+  registrationChangeProblem,
+  sharedPersonProblem,
+  type Participation,
+} from "./rules";
 
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";
@@ -33,6 +39,19 @@ test("UNREGISTERED participation cannot hold an offer, new or existing", () => {
   assert.ok(offerTarget([unregistered(A), registered(B)], null, A).problem);
   assert.ok(offerTarget([unregistered(A)], A).problem, "editing an offer attached to UNREGISTERED participation is rejected");
   assert.deepEqual(offerTarget([unregistered(A), registered(B)], null, B), { cycleId: B });
+});
+
+test("a participation holding the offer cannot become UNREGISTERED; others can", () => {
+  assert.ok(registrationChangeProblem(A, A, "UNREGISTERED"), "never removes an offer to make unregistration succeed");
+  assert.equal(registrationChangeProblem(A, A, "REGISTERED"), null);
+  assert.equal(registrationChangeProblem(A, B, "UNREGISTERED"), null, "another cycle of the same enrollment");
+  assert.equal(registrationChangeProblem(null, A, "UNREGISTERED"), null);
+});
+
+test("a participation holding the offer cannot be removed; others can", () => {
+  assert.ok(participationRemovalProblem(A, A));
+  assert.equal(participationRemovalProblem(A, B), null);
+  assert.equal(participationRemovalProblem(null, A), null);
 });
 
 test("shared-person edits are limited to people whose enrollments are all in the department", () => {
