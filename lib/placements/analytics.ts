@@ -2,9 +2,10 @@
  * Dashboard analytics: pure functions over PlacementRecord[] shared by every KPI and chart.
  *
  * Definitions (AGENTS.md, db/README.md):
- * - Population: participation records in the selected placement cycle and batch (all values
- *   when a filter is not chosen).
- * - Placed: the student has an offer (one offer per student, so offers = placed students).
+ * - Population: REGISTERED participation records in the selected placement cycle and batch
+ *   (all values when a filter is not chosen).
+ * - Placed: a registered participation has an offer; registered without an offer is unplaced.
+ *   UNREGISTERED participation is outside the placement-rate population.
  * - Offer filters (company, sector, offer type, CTC range) narrow which offers count as
  *   "matching". The population and the unplaced count never change with offer filters.
  * - CTC statistics use matching offers whose package is recorded; missing packages are
@@ -23,6 +24,7 @@ export const NOT_RECORDED = "Not recorded";
 
 export interface DashboardFilterState {
   cycleId: string | null;
+  comparisonCycleId: string | null;
   batchYear: number | null;
   company: string | null;
   sector: string | null;
@@ -33,6 +35,7 @@ export interface DashboardFilterState {
 
 export const EMPTY_FILTERS: DashboardFilterState = {
   cycleId: null,
+  comparisonCycleId: null,
   batchYear: null,
   company: null,
   sector: null,
@@ -89,6 +92,18 @@ export function defaultFilters(
   return { ...EMPTY_FILTERS, batchYear: batchYears(records)[0] ?? null };
 }
 
+export function mergeDashboardFilters(
+  current: DashboardFilterState,
+  patch: Partial<DashboardFilterState>,
+): DashboardFilterState {
+  const next = { ...current, ...patch };
+  if (
+    next.cycleId === null ||
+    next.cycleId === next.comparisonCycleId
+  ) next.comparisonCycleId = null;
+  return next;
+}
+
 /* ---------------------------------------------------------------- scoping */
 
 export function sectorOf(offer: PlacementOffer): string {
@@ -124,12 +139,17 @@ export interface Scope {
   matching: PlacedRecord[];
 }
 
+export function isRegisteredParticipation(record: PlacementRecord): boolean {
+  return record.registrationStatus === "REGISTERED";
+}
+
 export function scopeRecords(
   records: PlacementRecord[],
   filters: DashboardFilterState,
 ): Scope {
   const population = records.filter(
     (record) =>
+      isRegisteredParticipation(record) &&
       (filters.cycleId === null || record.cycleId === filters.cycleId) &&
       (filters.batchYear === null || record.batchYear === filters.batchYear),
   );
@@ -149,13 +169,14 @@ export interface ModeResult {
 }
 
 export interface Kpis {
+  /** Registered participation records in the selected cycle and batch. */
   total: number;
   placed: number;
   /** Students without any offer (independent of offer filters). */
   unplaced: number;
   /** Students placed through offers outside the current offer filters. */
   placedElsewhere: number;
-  /** placed / total × 100, or null for an empty population. */
+  /** placed / registered total × 100, or null for an empty registered population. */
   placementPct: number | null;
   average: number | null;
   median: number | null;
@@ -183,23 +204,35 @@ export function computeKpis(scope: Scope): Kpis {
   };
 }
 
-/** KPIs of the batch before the selected one, under the same offer filters, if it exists. */
-export function previousBatchKpis(
+export interface CycleComparisonKpis {
+  cycleId: string;
+  cycleCode: string;
+  kpis: Kpis;
+}
+
+/** KPIs for the explicitly selected comparison cycle under the same remaining filters. */
+export function comparisonCycleKpis(
   records: PlacementRecord[],
   filters: DashboardFilterState,
-): { batchYear: number; kpis: Kpis } | null {
-  if (filters.batchYear === null) return null;
-  const cycleRecords = filters.cycleId === null
-    ? records
-    : records.filter((record) => record.cycleId === filters.cycleId);
-  const previous = batchYears(cycleRecords).find(
-    (year) => year < filters.batchYear!,
+): CycleComparisonKpis | null {
+  if (
+    filters.cycleId === null ||
+    filters.comparisonCycleId === null ||
+    filters.cycleId === filters.comparisonCycleId
+  ) return null;
+  const comparisonRecord = records.find(
+    (record) => record.cycleId === filters.comparisonCycleId,
   );
-  if (previous === undefined) return null;
+  if (!comparisonRecord) return null;
   return {
-    batchYear: previous,
+    cycleId: comparisonRecord.cycleId,
+    cycleCode: comparisonRecord.cycleCode,
     kpis: computeKpis(
-      scopeRecords(records, { ...filters, batchYear: previous }),
+      scopeRecords(records, {
+        ...filters,
+        cycleId: comparisonRecord.cycleId,
+        comparisonCycleId: null,
+      }),
     ),
   };
 }

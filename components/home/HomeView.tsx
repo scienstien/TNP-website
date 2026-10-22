@@ -9,13 +9,9 @@ import "./home.css";
 export default function HomeView({
   firstName,
   placementRecords,
-  today,
-  canChooseBatch,
 }: {
   firstName: string;
   placementRecords: PlacementRecord[];
-  today: string;
-  canChooseBatch: boolean;
 }) {
   const router = useRouter();
   const onDashboard = () => router.push("/dashboard");
@@ -31,11 +27,7 @@ export default function HomeView({
           </h1>
           <HomeActions onDashboard={onDashboard} onCalendar={onCalendar} />
         </div>
-        <PlacementProgress
-          placementRecords={placementRecords}
-          canChooseBatch={canChooseBatch}
-          today={today}
-        />
+        <PlacementProgress placementRecords={placementRecords} />
       </div>
       <div className="home-grid">
         <button className="home-card coral-card" onClick={onDashboard}>

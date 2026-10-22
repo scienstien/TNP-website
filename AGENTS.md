@@ -345,10 +345,19 @@ Ported analytics and student/company integration:
   tables. PlacementRecord now represents one explicit undergraduate student-cycle
   participation and includes cycle identity, optional cycle dates, registration
   status, department, roll, batch and the offer for that same cycle. The analytics
-  functions and charts can filter by explicit cycle and graduating batch. They do
-  not yet exclude UNREGISTERED participation, so the registered-student
-  denominator above is not applied yet. Server-side cycle filtering is tracked as
-  a later optimization; authorization remains server-enforced.
+  functions and charts can filter by explicit cycle and graduating batch and use
+  REGISTERED participation as their population. UNREGISTERED participation is
+  excluded before placed/unplaced and offer analytics are derived. Server-side
+  cycle filtering is tracked as a later optimization; authorization remains
+  server-enforced.
+- Dashboard KPI deltas compare a user-selected primary cycle with a different
+  user-selected comparison cycle under the same batch and offer filters. Never
+  infer a previous cycle from its code or optional dates.
+- The home placement wheel and comparison use full-cycle summaries for two
+  different cycles explicitly selected by the user. They exclude UNREGISTERED
+  participation and do not infer cycle identity or boundaries from dates or
+  graduating batches. Their company figure means distinct companies attached to
+  final offers; it is not a company-visit metric.
 - Student editors remain ADMIN-only (SUPERADMIN included) with role and department
   rechecks on every mutation, explicit offer removal, draft Save/Cancel and
   no-overwrite company creation. A student's job role is stored as a drive role;

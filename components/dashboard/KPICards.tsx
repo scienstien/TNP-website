@@ -3,13 +3,13 @@ import { formatLpa, formatPct } from "./format";
 
 interface Props {
   kpis: Kpis;
-  previous: { batchYear: number; kpis: Kpis } | null;
+  comparison: { cycleCode: string; kpis: Kpis } | null;
   offerFiltersActive: boolean;
 }
 
 type Direction = "higher-is-better" | "lower-is-better";
 
-/** Signed change versus the previous batch, with an arrow and words, never colour alone. */
+/** Signed change versus the selected comparison cycle, with words as well as colour. */
 function Delta({
   current,
   previous,
@@ -23,12 +23,15 @@ function Delta({
   direction?: Direction;
   format?: (value: number) => string;
 }) {
-  if (current === null || previous === null || previous === undefined) {
+  if (previous === undefined) {
     return (
       <span className="mme-delta mme-delta--none">
-        No earlier batch to compare
+        Select a comparison cycle
       </span>
     );
+  }
+  if (current === null || previous === null) {
+    return <span className="mme-delta mme-delta--none">Comparison unavailable</span>;
   }
   const change = current - previous;
   const good = direction === "higher-is-better" ? change > 0 : change < 0;
@@ -49,27 +52,27 @@ const lpaShort = (v: number) => v.toFixed(1);
 /** KPI cards computed from the filtered placement records. */
 export default function KPICards({
   kpis,
-  previous,
+  comparison,
   offerFiltersActive,
 }: Props) {
-  const prev = previous?.kpis;
-  const vs = previous ? `vs ${previous.batchYear}` : "";
+  const compared = comparison?.kpis;
+  const vs = comparison ? `vs ${comparison.cycleCode}` : "";
 
   return (
     <section className="mme-kpis" aria-label="Key figures">
       <article className="mme-kpi">
-        <p>Total students</p>
+        <p>Registered students</p>
         <strong>{kpis.total}</strong>
-        <Delta current={kpis.total} previous={prev?.total} label={vs} />
+        <Delta current={kpis.total} previous={compared?.total} label={vs} />
       </article>
 
       <article className="mme-kpi">
         <p>Placed students</p>
         <strong>{kpis.placed}</strong>
         <span className="mme-kpi-pct">
-          {formatPct(kpis.placementPct)} <small>of recorded students</small>
+          {formatPct(kpis.placementPct)} <small>of registered students</small>
         </span>
-        <Delta current={kpis.placed} previous={prev?.placed} label={vs} />
+        <Delta current={kpis.placed} previous={compared?.placed} label={vs} />
       </article>
 
       <article className="mme-kpi">
@@ -77,11 +80,11 @@ export default function KPICards({
         <strong>{kpis.unplaced}</strong>
         <span className="mme-kpi-pct">
           {formatPct(kpis.total ? (kpis.unplaced / kpis.total) * 100 : null)}{" "}
-          <small>without an offer</small>
+          <small>of registered students</small>
         </span>
         <Delta
           current={kpis.unplaced}
-          previous={prev?.unplaced}
+          previous={compared?.unplaced}
           label={vs}
           direction="lower-is-better"
         />
@@ -92,7 +95,7 @@ export default function KPICards({
         <strong>{formatLpa(kpis.average)}</strong>
         <Delta
           current={kpis.average}
-          previous={prev?.average}
+          previous={compared?.average}
           label={vs}
           format={lpaShort}
         />
@@ -103,7 +106,7 @@ export default function KPICards({
         <strong>{formatLpa(kpis.median)}</strong>
         <Delta
           current={kpis.median}
-          previous={prev?.median}
+          previous={compared?.median}
           label={vs}
           format={lpaShort}
         />
@@ -120,8 +123,8 @@ export default function KPICards({
       </article>
 
       <p className="mme-kpi-note">
-        Placement % is placed ÷ recorded students and assumes the batch roster
-        is complete.
+        Placement % is placed ÷ registered students in the selected cycle and
+        batch. Unregistered students are excluded.
         {kpis.packagesMissing > 0 &&
           ` CTC figures exclude ${kpis.packagesMissing} offer${kpis.packagesMissing === 1 ? "" : "s"} without a recorded package.`}
         {offerFiltersActive &&

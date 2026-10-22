@@ -47,6 +47,15 @@ export default function DashboardFilters({
       clear: () => onChange({ cycleId: null }),
     });
   }
+  if (filters.comparisonCycleId) {
+    const cycle = options.cycles.find(
+      (option) => option.id === filters.comparisonCycleId,
+    );
+    chips.push({
+      label: `Compare ${cycle?.code ?? filters.comparisonCycleId}`,
+      clear: () => onChange({ comparisonCycleId: null }),
+    });
+  }
   if (filters.batchYear !== null)
     chips.push({
       label: `Batch ${filters.batchYear}`,
@@ -89,6 +98,27 @@ export default function DashboardFilters({
                 {cycle.code}
               </option>
             ))}
+          </select>
+        </label>
+
+        <label className="mme-field" htmlFor={`${id}-comparison-cycle`}>
+          <span>Compare with cycle</span>
+          <select
+            id={`${id}-comparison-cycle`}
+            value={filters.comparisonCycleId ?? ""}
+            disabled={!filters.cycleId}
+            onChange={(e) =>
+              onChange({ comparisonCycleId: e.target.value || null })
+            }
+          >
+            <option value="">Select comparison</option>
+            {options.cycles
+              .filter((cycle) => cycle.id !== filters.cycleId)
+              .map((cycle) => (
+                <option key={cycle.id} value={cycle.id}>
+                  {cycle.code}
+                </option>
+              ))}
           </select>
         </label>
 

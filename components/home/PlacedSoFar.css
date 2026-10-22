@@ -392,11 +392,11 @@
   background: var(--psf-lead-bg);
   color: var(--psf-text);
 }
-.psf-tab--new.is-active {
+.psf-tab--primary.is-active {
   border-color: var(--psf-good);
   color: var(--psf-good);
 }
-.psf-tab--missed.is-active {
+.psf-tab--comparison.is-active {
   border-color: var(--psf-bad);
   color: var(--psf-bad);
 }
@@ -449,24 +449,24 @@
   color: var(--psf-muted);
   font-size: 15px;
 }
-.psf-company--new {
+.psf-company--primary {
   border-color: rgba(117, 199, 166, 0.45);
   border-left-color: var(--psf-good);
   background: rgba(117, 199, 166, 0.09);
 }
-.psf-company--new .psf-company-name,
-.psf-company--new .psf-company-name small,
-.psf-company--new .psf-mark {
+.psf-company--primary .psf-company-name,
+.psf-company--primary .psf-company-name small,
+.psf-company--primary .psf-mark {
   color: var(--psf-good);
 }
-.psf-company--missed {
+.psf-company--comparison {
   border-color: rgba(255, 77, 79, 0.5);
   border-left-color: var(--psf-bad);
   background: rgba(255, 77, 79, 0.1);
 }
-.psf-company--missed .psf-company-name,
-.psf-company--missed .psf-company-name small,
-.psf-company--missed .psf-mark {
+.psf-company--comparison .psf-company-name,
+.psf-company--comparison .psf-company-name small,
+.psf-company--comparison .psf-mark {
   color: var(--psf-bad);
 }
 .psf-dialog-empty {

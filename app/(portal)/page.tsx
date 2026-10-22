@@ -1,6 +1,5 @@
 import HomeView from "@/components/home/HomeView";
 import { requireUser } from "@/lib/auth/dal";
-import { todayInInstituteZone } from "@/lib/calendar/dates";
 import { getPlacementRecords } from "@/lib/placements/queries";
 
 export default async function HomePage() {
@@ -12,8 +11,6 @@ export default async function HomePage() {
     <HomeView
       firstName={displayName.split(/[\s@]/)[0]}
       placementRecords={placementRecords}
-      today={todayInInstituteZone()}
-      canChooseBatch={user.role !== "PROFESSOR"}
     />
   );
 }

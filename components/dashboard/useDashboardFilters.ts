@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import {
   defaultFilters,
+  mergeDashboardFilters,
   type DashboardFilterState,
 } from "@/lib/placements/analytics";
 import type { PlacementRecord } from "@/lib/placements/types";
@@ -18,7 +19,7 @@ export function useDashboardFilters(records: PlacementRecord[]) {
 
   const update = useCallback(
     (patch: Partial<DashboardFilterState>) =>
-      setFilters((current) => ({ ...current, ...patch })),
+      setFilters((current) => mergeDashboardFilters(current, patch)),
     [],
   );
 

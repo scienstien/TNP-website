@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   cohorts,
@@ -14,6 +14,7 @@ import {
   studentCycles,
 } from "@/db/schema";
 import { requireUser, resolveDepartment } from "@/lib/auth/dal";
+import { offerForParticipation, placementRecordsScope } from "./query-conditions";
 import type { PlacementRecord } from "./types";
 
 /**
@@ -50,17 +51,10 @@ export async function getPlacementRecords(): Promise<PlacementRecord[]> {
     .innerJoin(placementCycles, eq(placementCycles.cycleId, studentCycles.cycleId))
     .leftJoin(
       placementOffers,
-      and(
-        eq(placementOffers.enrollmentId, studentCycles.enrollmentId),
-        eq(placementOffers.cycleId, studentCycles.cycleId),
-      ),
+      offerForParticipation(),
     )
     .leftJoin(companies, eq(companies.companyId, placementOffers.companyId))
-    .where(
-      department
-        ? and(eq(degrees.level, "UG"), eq(departments.departmentId, department.departmentId))
-        : eq(degrees.level, "UG"),
-    )
+    .where(placementRecordsScope(department?.departmentId ?? null))
     .orderBy(
       departments.code,
       placementCycles.code,

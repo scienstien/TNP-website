@@ -4,13 +4,13 @@ import { useMemo } from "react";
 import {
   batchYears,
   companyNames,
+  comparisonCycleKpis,
   computeKpis,
   ctcBounds,
   ctcHistogram,
   hasOfferFilters,
   offerTypeSplit,
   placementCycles,
-  previousBatchKpis,
   scopeRecords,
   sectorNames,
   sectorPlacement,
@@ -52,7 +52,7 @@ export default function PlacementAnalytics({ records, role, department }: Props)
     const scope = scopeRecords(records, filters);
     return {
       kpis: computeKpis(scope),
-      previous: previousBatchKpis(records, filters),
+      comparison: comparisonCycleKpis(records, filters),
       companies: topCompanies(scope),
       offerTypes: offerTypeSplit(scope),
       sectors: sectorPlacement(scope),
@@ -88,7 +88,7 @@ export default function PlacementAnalytics({ records, role, department }: Props)
       />
       <KPICards
         kpis={view.kpis}
-        previous={view.previous}
+        comparison={view.comparison}
         offerFiltersActive={hasOfferFilters(filters)}
       />
 
