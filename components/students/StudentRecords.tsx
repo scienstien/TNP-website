@@ -281,7 +281,7 @@ function StudentEditor({ initial, companies, currentBatchYear, onCancel, onSaved
     <div className="student-fields">
       {field("rollNumber", "Roll number (9 digits)", { inputMode: "numeric", readOnly: !!initial })}
       {field("name", "Student name")}
-      {field("batchYear", "Graduating batch", { inputMode: "numeric" })}
+      {field("batchYear", "Graduating batch", { inputMode: "numeric", readOnly: !!initial })}
     </div>
     {!initial?.offer && <label className="student-offer-toggle"><input type="checkbox" checked={hasOffer} disabled={pending}
       onChange={e => { setHasOffer(e.target.checked); if (!e.target.checked) setCreatingCompany(false); }} /> Add an offer</label>}

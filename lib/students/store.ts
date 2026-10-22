@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   cohorts,
@@ -17,15 +17,15 @@ import {
 import { visitDatesByCompany } from "@/lib/companies/visit";
 import { ensureCycleId } from "@/lib/placements/cycles";
 import { readStudents, type Transaction } from "./read";
-import type { StudentOffer, StudentResult } from "./types";
+import { offerTarget, sharedPersonProblem } from "./rules";
+import type { OfferChanges, StudentResult } from "./types";
 import { offerDateProblem, rollProblem, validateStudent } from "./validation";
 
 export type Operation = "create" | "patch" | "removeOffer" | "removeStudent";
 
-interface Context {
-  departmentId: string;
+/** The student-cycle an offer is written for. */
+interface OfferContext {
   enrollmentId: string;
-  cohortId: string;
   cycleId: string;
 }
 
@@ -56,7 +56,7 @@ async function ensureCohort(tx: Transaction, departmentId: string, batchYear: nu
 }
 
 /** Drive and role records so the offer's job title has somewhere to live. */
-async function linkRole(tx: Transaction, context: Context, companyId: string, jobRole: string | null) {
+async function linkRole(tx: Transaction, context: OfferContext, companyId: string, jobRole: string | null) {
   if (!jobRole) return { driveId: null, roleId: null };
   let [drive] = await tx
     .select({ driveId: drives.driveId })
@@ -81,12 +81,27 @@ async function linkRole(tx: Transaction, context: Context, companyId: string, jo
   return { driveId: drive.driveId, roleId: role.roleId };
 }
 
-async function upsertOffer(tx: Transaction, context: Context, patch: Partial<StudentOffer>) {
+/**
+ * Creates or updates the enrollment's final offer. The enrollment's participations and offer are
+ * locked first, so registration and offer writes are serialized, and the offer is written for the
+ * one REGISTERED student-cycle offerTarget() accepts; ambiguous targets are rejected.
+ */
+async function writeOffer(tx: Transaction, enrollmentId: string, patch: OfferChanges) {
+  const participations = await tx
+    .select({ cycleId: studentCycles.cycleId, registrationStatus: studentCycles.registrationStatus })
+    .from(studentCycles)
+    .where(eq(studentCycles.enrollmentId, enrollmentId))
+    .orderBy(studentCycles.cycleId)
+    .for("update");
   const [existing] = await tx
     .select({ offer: placementOffers, jobTitle: driveRoles.jobTitle })
     .from(placementOffers)
     .leftJoin(driveRoles, eq(driveRoles.roleId, placementOffers.roleId))
-    .where(eq(placementOffers.enrollmentId, context.enrollmentId));
+    .where(eq(placementOffers.enrollmentId, enrollmentId))
+    .for("update", { of: placementOffers });
+  const target = offerTarget(participations, existing?.offer.cycleId ?? null, patch.cycleId);
+  if (target.problem !== undefined) throw new StudentError(target.problem, "offer");
+  const context: OfferContext = { enrollmentId, cycleId: target.cycleId };
 
   let companyId = existing?.offer.companyId;
   if (patch.companyName !== undefined || !existing) {
@@ -112,6 +127,7 @@ async function upsertOffer(tx: Transaction, context: Context, patch: Partial<Stu
   const link = keepLink
     ? { driveId: existing.offer.driveId, roleId: existing.offer.roleId }
     : await linkRole(tx, context, companyId, jobRole);
+  // Columns the editor does not show (such as the monthly stipend) are never written here.
   const values = {
     companyId,
     ...link,
@@ -120,48 +136,18 @@ async function upsertOffer(tx: Transaction, context: Context, patch: Partial<Stu
     offerDate: offerDate ?? null,
   };
   if (existing) {
-    await tx.update(placementOffers).set(values).where(eq(placementOffers.enrollmentId, context.enrollmentId));
+    await tx.update(placementOffers).set(values).where(eq(placementOffers.offerId, existing.offer.offerId));
   } else {
-    await tx.insert(placementOffers).values({
-      enrollmentId: context.enrollmentId,
-      cycleId: context.cycleId,
-      ...values,
-    });
+    await tx.insert(placementOffers).values({ enrollmentId, cycleId: context.cycleId, ...values });
   }
-}
-
-/** Moves an enrollment to another graduating year, carrying its offer without drive links. */
-async function moveBatch(tx: Transaction, context: Context, batchYear: number) {
-  const target = await ensureCohort(tx, context.departmentId, batchYear);
-  const [offer] = await tx.select().from(placementOffers).where(eq(placementOffers.enrollmentId, context.enrollmentId));
-  if (offer) await tx.delete(placementOffers).where(eq(placementOffers.enrollmentId, context.enrollmentId));
-  await tx.delete(studentCycles).where(eq(studentCycles.enrollmentId, context.enrollmentId));
-  await tx.update(enrollments).set({ cohortId: target.cohortId }).where(eq(enrollments.enrollmentId, context.enrollmentId));
-  await tx.insert(studentCycles).values({
-    cycleId: target.cycleId,
-    enrollmentId: context.enrollmentId,
-    cohortId: target.cohortId,
-    registrationStatus: "REGISTERED",
-  });
-  if (offer) {
-    await tx.insert(placementOffers).values({
-      enrollmentId: context.enrollmentId,
-      cycleId: target.cycleId,
-      companyId: offer.companyId,
-      packageLpa: offer.packageLpa,
-      monthlyStipendInr: offer.monthlyStipendInr,
-      offerType: offer.offerType,
-      offerDate: offer.offerDate,
-    });
-  }
-  return { ...context, cohortId: target.cohortId, cycleId: target.cycleId };
 }
 
 /**
  * Internal persistence only. All public entrypoints must authorize and pass the caller's
  * department before calling; a roll number outside that department is reported as missing.
- * An offer needs a REGISTERED student-cycle (db/README.md), so students created or moved here
- * are registered for their batch's cycle.
+ * Students created here are registered for their batch's cycle (MIG-004 replaces this with an
+ * explicit cycle and registration). Every rejection inside the transaction throws, so a failed
+ * request leaves no partial write behind.
  */
 export async function mutateStudent(
   departmentId: string, operation: Operation, input: unknown, roll?: unknown, expected?: unknown,
@@ -176,7 +162,7 @@ export async function mutateStudent(
   try {
     return await db.transaction(async tx => {
       const { data } = parsed;
-      let context: Context;
+      let enrollmentId: string;
       if (operation === "create") {
         const target = await ensureCohort(tx, departmentId, data.batchYear!);
         const [person] = await tx.insert(students).values({ name: data.name! }).returning({ studentId: students.studentId });
@@ -192,7 +178,7 @@ export async function mutateStudent(
           cohortId: target.cohortId,
           registrationStatus: "REGISTERED",
         });
-        context = { departmentId, enrollmentId: enrollment.enrollmentId, ...target };
+        enrollmentId = enrollment.enrollmentId;
       } else {
         const id = Number(roll);
         // Serialize writes for the student and detect edits based on stale server data. The
@@ -202,7 +188,6 @@ export async function mutateStudent(
           .select({
             enrollmentId: enrollments.enrollmentId,
             studentId: enrollments.studentId,
-            cohortId: enrollments.cohortId,
           })
           .from(enrollments)
           .innerJoin(cohorts, eq(cohorts.cohortId, enrollments.cohortId))
@@ -211,14 +196,9 @@ export async function mutateStudent(
         const [current] = row ? await readStudents(tx, departmentId, id) : [];
         if (!row || !current) return { error: "This student no longer exists. Refresh the records." };
         if (JSON.stringify(current) !== expected) return { error: "This record changed. Cancel and reopen it to load the latest values." };
-        const [cycleRow] = await tx
-          .select({ cycleId: studentCycles.cycleId })
-          .from(studentCycles)
-          .where(eq(studentCycles.enrollmentId, row.enrollmentId))
-          .limit(1);
-        if (!cycleRow) return { error: "This student has no placement-cycle registration to edit." };
-        context = { departmentId, enrollmentId: row.enrollmentId, cohortId: row.cohortId, cycleId: cycleRow.cycleId };
+        enrollmentId = row.enrollmentId;
 
+        // Enrollment-level operations never need a placement-cycle participation.
         if (operation === "removeOffer") {
           if (!current.offer) return { error: "This student no longer has an offer." };
           await tx.delete(placementOffers).where(eq(placementOffers.enrollmentId, row.enrollmentId));
@@ -234,14 +214,27 @@ export async function mutateStudent(
           ));
           return { ok: true };
         }
-        if (data.name !== undefined) {
+        // A batch move used to delete every participation and re-create the offer in a cycle
+        // inferred from the year, dropping its drive and role. It stays blocked until a move can
+        // preserve that history (TASKS.md MIG-001/MIG-004).
+        if (data.batchYear !== undefined && data.batchYear !== current.batchYear) {
+          throw new StudentError("Moving a student to another batch is not supported; it would discard registrations and offer details.", "batchYear");
+        }
+        if (data.name !== undefined && data.name !== current.name) {
+          // The name belongs to the person, who may also be enrolled elsewhere.
+          await tx.execute(sql`select 1 from students where student_id = ${row.studentId} for update`);
+          const others = await tx
+            .select({ departmentId: programmes.departmentId })
+            .from(enrollments)
+            .innerJoin(cohorts, eq(cohorts.cohortId, enrollments.cohortId))
+            .innerJoin(programmes, eq(programmes.programmeId, cohorts.programmeId))
+            .where(and(eq(enrollments.studentId, row.studentId), ne(enrollments.enrollmentId, row.enrollmentId)));
+          const problem = sharedPersonProblem(departmentId, others.map((other) => other.departmentId));
+          if (problem) throw new StudentError(problem, "name");
           await tx.update(students).set({ name: data.name }).where(eq(students.studentId, row.studentId));
         }
-        if (data.batchYear !== undefined && data.batchYear !== current.batchYear) {
-          context = await moveBatch(tx, context, data.batchYear);
-        }
       }
-      if (data.offer && Object.keys(data.offer).length) await upsertOffer(tx, context, data.offer);
+      if (data.offer && Object.keys(data.offer).length) await writeOffer(tx, enrollmentId, data.offer);
       return { ok: true };
     });
   } catch (error) {

@@ -1,5 +1,7 @@
 import { OFFER_TYPES } from "@/lib/placements/types";
-import type { StudentInput, StudentOffer } from "./types";
+import type { OfferChanges, StudentInput } from "./types";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const rollProblem = (value: unknown): string | null =>
   (typeof value === "string" && /^[1-9][0-9]{8}$/.test(value)) ||
@@ -50,11 +52,14 @@ export function validateStudent(input: unknown, create: boolean) {
   if (own(input, "offer")) {
     if (!object(input.offer)) fieldErrors.offer = "Invalid offer. Use Remove offer to clear it.";
     else {
-      const offer: Partial<StudentOffer> = {};
-      const keys = ["companyName", "jobRole", "packageLpa", "offerType", "offerDate"];
+      const offer: OfferChanges = {};
+      const keys = ["cycleId", "companyName", "jobRole", "packageLpa", "offerType", "offerDate"];
       for (const [key, value] of Object.entries(input.offer)) {
         if (!keys.includes(key)) { fieldErrors.form = `Offer field "${key}" cannot be changed.`; continue; }
-        if (key === "companyName") {
+        if (key === "cycleId") {
+          if (typeof value !== "string" || !UUID.test(value)) fieldErrors.offer = "Choose a valid placement cycle.";
+          else offer.cycleId = value.toLowerCase();
+        } else if (key === "companyName") {
           if (typeof value !== "string" || !value.trim()) fieldErrors.companyName = "Select an existing company.";
           else offer.companyName = value;
         } else if (key === "jobRole") {

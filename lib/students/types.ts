@@ -23,10 +23,12 @@ export interface StudentData {
   currentBatchYear: number;
   companies: { name: string; domain: string | null; visitDate: string | null }[];
 }
+/** Offer edits, optionally naming the placement cycle (student-cycle) a new offer belongs to. */
+export type OfferChanges = Partial<StudentOffer> & { cycleId?: string };
 export type StudentChanges = {
   name?: string;
   batchYear?: number;
-  offer?: Partial<StudentOffer>;
+  offer?: OfferChanges;
 };
 export type StudentInput = StudentChanges & { rollNumber?: number };
 export interface StudentResult {

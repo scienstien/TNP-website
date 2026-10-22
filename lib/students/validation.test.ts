@@ -50,6 +50,13 @@ test("offer nullability, decimals, calendar dates and enum", () => {
   assert.deepEqual(validateStudent({ offer: { packageLpa: "" } }, false).data.offer, { packageLpa: null });
   assert.deepEqual(validateStudent({ name: "Updated Name" }, false).data, { name: "Updated Name" });
 });
+test("an offer may name its placement cycle by UUID only", () => {
+  const cycleId = "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA";
+  assert.deepEqual(validateStudent({ offer: { cycleId } }, false).data.offer, { cycleId: cycleId.toLowerCase() });
+  for (const bad of ["2026-27", "", null, 2026, "aaaaaaaa-aaaa-4aaa-8aaa"]) {
+    assert.ok(validateStudent({ offer: { cycleId: bad } }, false).fieldErrors.offer);
+  }
+});
 test("offer dates cannot precede the company's visit date", () => {
   assert.equal(offerDateProblem("2026-05-10", "2026-05-11"),
     "Offer date cannot be before the company's campus visit date.");
