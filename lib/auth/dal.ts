@@ -45,6 +45,16 @@ const getSession = cache(() => auth());
 
 /** The signed-in user, verified against the database, or null. Memoised per request. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  if (isLocalAuthBypassEnabled()) {
+    return {
+      id: "00000000-0000-4000-8000-000000000000",
+      name: "Local superadmin",
+      email: "local-superadmin@nitt.edu",
+      role: "SUPERADMIN",
+      department: null,
+    };
+  }
+
   const session = await getSession();
   const id = session?.user?.id;
   if (!id || !UUID.test(id)) return null;
@@ -83,22 +93,6 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
  * only sees a validly signed cookie, would send the visitor straight back here in a loop.
  */
 export async function requireUser(): Promise<CurrentUser> {
-  if (isLocalAuthBypassEnabled()) {
-    const db = await getDb();
-    const [department] = await db.select().from(departments).orderBy(departments.code).limit(1);
-    if (!department) throw new Error("AUTH_BYPASS requires at least one department.");
-    return {
-      id: "00000000-0000-4000-8000-000000000000",
-      name: "Local preview",
-      email: "local-preview@nitt.edu",
-      role: "PROFESSOR",
-      department: {
-        departmentId: department.departmentId,
-        code: department.code,
-        name: department.name,
-      },
-    };
-  }
   const user = await getCurrentUser();
   if (user) return user;
   const session = await getSession();
@@ -131,8 +125,18 @@ export const DEPARTMENT_COOKIE = "tnp-department";
 export async function resolveDepartment(user: CurrentUser): Promise<DepartmentRef | null> {
   if (user.role !== "SUPERADMIN") return user.department;
   const code = (await cookies()).get(DEPARTMENT_COOKIE)?.value;
-  if (!code) return null;
   const db = await getDb();
+  if (!code) {
+    if (!isLocalAuthBypassEnabled()) return null;
+    const [firstDepartment] = await db
+      .select()
+      .from(departments)
+      .orderBy(departments.code)
+      .limit(1);
+    if (!firstDepartment)
+      throw new Error("AUTH_BYPASS requires at least one department.");
+    return firstDepartment;
+  }
   const [row] = await db
     .select()
     .from(departments)
