@@ -1,317 +1,62 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { relativeLabel, toIsoDate } from "@/lib/calendar/dates";
-import { DatePicker } from "@/components/ui/date-picker";
+import { PROCESS_LABELS } from "@/lib/calendar/labels";
+import { createEvent, updateEvent, deleteEvent } from "@/lib/calendar/actions";
+import type { CalendarEvent, CalendarWindow, EventInput, EventResult } from "@/lib/calendar/types";
+import type { DriveOption } from "@/lib/drives/types";
+import BrowserEntries from "./BrowserEntries";
+import EventForm from "./EventForm";
 import "./calendar.css";
 
-type ProcessStage =
-  | "PPT"
-  | "OT"
-  | "Group Discussion"
-  | "Resume Shortlisting"
-  | "PI";
-
-interface ProcessEvent {
-  id: string;
-  company: string;
-  date: string;
-  stage: ProcessStage;
-  notes: string;
-}
-
-interface Props {
-  today: string;
-  isAdmin: boolean;
-  /** Department code (or "all"): each department keeps its own entries in this browser. */
-  scope: string;
-}
-
-type Draft = Omit<ProcessEvent, "id">;
-
+interface Props { today: string; canEdit: boolean; scope: string; window: CalendarWindow; events: CalendarEvent[]; drives: DriveOption[] }
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const STAGES: ProcessStage[] = [
-  "PPT",
-  "OT",
-  "Group Discussion",
-  "Resume Shortlisting",
-  "PI",
-];
-const EVENT_STORAGE_KEY = "mme-process-calendar-events";
-const EVENT_CHANGE_EVENT = "mme-process-calendar-events-change";
 
-const subscribeToEvents = (callback: () => void) => {
-  window.addEventListener("storage", callback);
-  window.addEventListener(EVENT_CHANGE_EVENT, callback);
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener(EVENT_CHANGE_EVENT, callback);
+export default function DriveCalendar({ today, canEdit, scope, window: visibleWindow, events, drives }: Props) {
+  const router = useRouter();
+  const [selected, setSelected] = useState(today >= visibleWindow.startsOn && today <= visibleWindow.endsOn ? today : visibleWindow.startsOn);
+  const [editing, setEditing] = useState<CalendarEvent | "new" | null>(null);
+  const [message, setMessage] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [year, month] = visibleWindow.startsOn.split("-").map(Number);
+  const monthLabel = new Date(`${visibleWindow.startsOn}T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
+  const blanks = (new Date(`${visibleWindow.startsOn}T00:00:00Z`).getUTCDay() + 6) % 7;
+  const days = Number(visibleWindow.endsOn.slice(-2));
+  const changeMonth = (offset: number) => {
+    const next = new Date(Date.UTC(year, month - 1 + offset, 1));
+    if (next.getUTCFullYear() < 1000 || next.getUTCFullYear() > 9999) return;
+    router.push(`/calendar?month=${toIsoDate(next.getUTCFullYear(), next.getUTCMonth(), 1).slice(0, 7)}`);
   };
-};
-
-const parseEvents = (raw: string): ProcessEvent[] => {
-  try {
-    const saved = JSON.parse(raw) as unknown;
-    if (!Array.isArray(saved)) return [];
-    return saved.filter((value): value is ProcessEvent => {
-      if (!value || typeof value !== "object") return false;
-      const event = value as Partial<ProcessEvent>;
-      return Boolean(
-        typeof event.id === "string" &&
-        typeof event.company === "string" &&
-        typeof event.date === "string" &&
-        typeof event.notes === "string" &&
-        event.stage && STAGES.includes(event.stage),
-      );
-    });
-  } catch {
-    return [];
-  }
-};
-
-const formatLong = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
+  const run = (action: () => Promise<EventResult>, close = false) => startTransition(async () => {
+    setMessage("");
+    try { const result = await action(); setMessage(result.error ?? "Event saved to the database."); if (result.ok) { if (close) setEditing(null); router.refresh(); } }
+    catch { setMessage("Unable to save. Your draft is unchanged; please retry."); }
   });
-
-export default function DriveCalendar({ today, isAdmin, scope }: Props) {
-  const storageKey = `${EVENT_STORAGE_KEY}:${scope}`;
-  const getStoredEvents = useCallback(
-    () => window.localStorage.getItem(storageKey) ?? "[]",
-    [storageKey],
-  );
-  const storedEvents = useSyncExternalStore(
-    subscribeToEvents,
-    getStoredEvents,
-    () => "[]",
-  );
-  const events = useMemo(() => parseEvents(storedEvents), [storedEvents]);
-  const [selected, setSelected] = useState(today);
-  const [cursor, setCursor] = useState(() => ({
-    year: Number(today.slice(0, 4)),
-    month: Number(today.slice(5, 7)) - 1,
-  }));
-  const [editing, setEditing] = useState<ProcessEvent | "new" | null>(null);
-
-  const updateEvents = (next: ProcessEvent[]) => {
-    window.localStorage.setItem(storageKey, JSON.stringify(next));
-    window.dispatchEvent(new Event(EVENT_CHANGE_EVENT));
-  };
-
-  const byDate = useMemo(() => {
-    const map = new Map<string, ProcessEvent[]>();
-    for (const event of events) {
-      const list = map.get(event.date) ?? [];
-      list.push(event);
-      map.set(event.date, list);
-    }
-    return map;
-  }, [events]);
-
-  const selectedEvents = byDate.get(selected) ?? [];
-  const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleString(
-    "en-US",
-    { month: "long", year: "numeric" },
-  );
-  const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
-  const leading = (new Date(cursor.year, cursor.month, 1).getDay() + 6) % 7;
-
-  const moveMonth = (offset: number) => {
-    const next = new Date(cursor.year, cursor.month + offset, 1);
-    setCursor({ year: next.getFullYear(), month: next.getMonth() });
-  };
-
-  const goTo = (date: string) => {
-    setSelected(date);
-    setCursor({
-      year: Number(date.slice(0, 4)),
-      month: Number(date.slice(5, 7)) - 1,
-    });
-    setEditing(null);
-  };
-
-  const save = (draft: Draft, id?: string) => {
-    if (id) {
-      updateEvents(
-        events.map((event) => (event.id === id ? { ...draft, id } : event)),
-      );
-    } else {
-      updateEvents([
-        ...events,
-        { ...draft, id: crypto.randomUUID() },
-      ]);
-    }
-    goTo(draft.date);
-  };
-
-  return (
-    <section className="cal" aria-label="Recruitment process calendar">
-      <div className="cal-grid-card panel">
-        <div className="cal-toolbar">
-          <div>
-            <h2 aria-live="polite">{monthLabel}</h2>
-            <p className="cal-local-note">Temporary planning calendar · not saved to the database</p>
-          </div>
-          <div className="cal-nav">
-            <button type="button" onClick={() => goTo(today)}>Today</button>
-            <button type="button" aria-label="Previous month" onClick={() => moveMonth(-1)}>‹</button>
-            <button type="button" aria-label="Next month" onClick={() => moveMonth(1)}>›</button>
-          </div>
-        </div>
-
-        <div className="cal-weekdays" aria-hidden="true">
-          {WEEKDAYS.map((day) => <span key={day}>{day}</span>)}
-        </div>
-        <div className="cal-days" role="grid" aria-label={monthLabel}>
-          {Array.from(
-            { length: Math.ceil((leading + daysInMonth) / 7) * 7 },
-            (_, index) => {
-              const day = index - leading + 1;
-              if (day < 1 || day > daysInMonth) {
-                return <div key={index} className="cal-blank" />;
-              }
-              const date = toIsoDate(cursor.year, cursor.month, day);
-              const dayEvents = byDate.get(date) ?? [];
-              return (
-                <button
-                  key={date}
-                  type="button"
-                  role="gridcell"
-                  className={[
-                    "cal-day",
-                    date === today && "is-today",
-                    date === selected && "is-selected",
-                    date < today && "is-past",
-                  ].filter(Boolean).join(" ")}
-                  aria-selected={date === selected}
-                  aria-label={`${formatLong(date)}. ${dayEvents.length} process ${dayEvents.length === 1 ? "entry" : "entries"}`}
-                  onClick={() => goTo(date)}
-                >
-                  <span className="cal-num">{day}</span>
-                  <span className="cal-chips">
-                    {dayEvents.slice(0, 2).map((event) => (
-                      <span key={event.id} className="cal-chip" title={`${event.company}: ${event.stage}`}>
-                        {event.company} · {event.stage}
-                      </span>
-                    ))}
-                    {dayEvents.length > 2 && <span className="cal-more">+{dayEvents.length - 2} more</span>}
-                  </span>
-                  {dayEvents.length > 0 && <span className="cal-dot" aria-hidden="true" />}
-                </button>
-              );
-            },
-          )}
-        </div>
-      </div>
-
-      <aside className="cal-side panel">
-        <div className="cal-day-head">
-          <div>
-            <p className="eyebrow">{relativeLabel(selected, today).toUpperCase()}</p>
-            <h3>{formatLong(selected)}</h3>
-          </div>
-          {isAdmin && !editing && (
-            <button type="button" className="cal-primary" onClick={() => setEditing("new")}>+ Add process</button>
-          )}
-        </div>
-
-        {editing && (
-          <ProcessForm
-            event={editing === "new" ? undefined : editing}
-            selectedDate={selected}
-            onSave={save}
-            onCancel={() => setEditing(null)}
-          />
-        )}
-
-        {!editing && selectedEvents.length === 0 && (
-          <p className="cal-empty">
-            No recruitment process scheduled for this day.
-            {isAdmin ? " Use “Add process” to create one." : ""}
-          </p>
-        )}
-
-        <ul className="cal-list">
-          {selectedEvents.map((event) => (
-            <li key={event.id} className="cal-card">
-              <div className="cal-card-top">
-                <strong>{event.company}</strong>
-                <span className="cal-stage">{event.stage}</span>
-              </div>
-              {event.notes && <p className="cal-process-notes">{event.notes}</p>}
-              {isAdmin && (
-                <div className="cal-actions">
-                  <button type="button" onClick={() => setEditing(event)}>Edit</button>
-                  <button
-                    type="button"
-                    className="cal-danger-ghost"
-                    onClick={() => updateEvents(events.filter((item) => item.id !== event.id))}
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+  const save = (input: EventInput) => run(() => editing && editing !== "new" ? updateEvent(editing.eventId, input, JSON.stringify(editing)) : createEvent(input), true);
+  const renderEvent = (event: CalendarEvent) => <li className="cal-card" key={event.eventId}><div className="cal-card-top"><strong>{event.companyName}</strong><span className="cal-stage">{PROCESS_LABELS[event.processType]}</span></div>
+    <p className="cal-process-notes">{event.cycleCode} ? {event.driveReference ?? "No drive reference"} ? {event.driveId.slice(0, 8)} ? Event {event.eventId.slice(0, 8)}</p>
+    <p className="cal-process-notes">{event.scheduledDate ?? "Unscheduled"} ? {event.scope === "WHOLE_DRIVE" ? "Whole drive" : "Selected roles"}</p>
+    {event.roles.length > 0 && <ul className="cal-selected-roles">{event.roles.map(role => <li key={role.roleId}>{role.jobTitle ?? "Unknown title"} ? {role.roleId.slice(0, 8)}</li>)}</ul>}
+    {event.label && <p className="cal-process-notes">{event.label}</p>}
+    {canEdit && <div className="cal-actions"><button type="button" disabled={pending || editing !== null} onClick={() => setEditing(event)}>Edit</button><button type="button" disabled={pending || editing !== null} onClick={() => { if (window.confirm("Delete this drive-stage event and its role links?")) run(() => deleteEvent(event.eventId, JSON.stringify(event))); }}>Delete</button></div>}
+  </li>;
+  const dated = events.filter(event => event.scheduledDate === selected);
+  const undated = events.filter(event => event.scheduledDate === null);
+  return <div className="cal-container"><div className="cal-refresh"><p>Events are saved to the database and shared across browsers. Refresh to load recent changes.</p><button type="button" disabled={pending} onClick={() => router.refresh()}>Refresh events</button></div>
+    {message && <p className="cal-feedback" role="status">{message}</p>}
+    <section className="cal"><div className="cal-month panel"><div className="cal-toolbar"><div><h2>{monthLabel}</h2><p className="cal-local-note">Scheduled drive stages</p></div><div className="cal-nav"><button type="button" aria-label="Previous month" disabled={pending || editing !== null} onClick={() => changeMonth(-1)}>‹</button><button type="button" disabled={pending || editing !== null} onClick={() => router.push(`/calendar?month=${today.slice(0, 7)}`)}>Today</button><button type="button" aria-label="Next month" disabled={pending || editing !== null} onClick={() => changeMonth(1)}>›</button></div></div>
+      <div className="cal-weekdays">{WEEKDAYS.map(day => <span key={day}>{day}</span>)}</div><div className="cal-days" aria-label={monthLabel}>
+        {Array.from({ length: blanks }, (_, index) => <span className="cal-blank" key={`blank-${index}`} />)}
+        {Array.from({ length: days }, (_, index) => { const date = toIsoDate(year, month - 1, index + 1); const dayEvents = events.filter(event => event.scheduledDate === date); return <button type="button" className={`cal-day${date === selected ? " cal-day--selected" : ""}${date === today ? " cal-day--today" : ""}`} key={date} aria-pressed={date === selected} aria-label={`${date}, ${dayEvents.length} events`} disabled={pending || editing !== null} onClick={() => setSelected(date)}><span className="cal-num">{index + 1}</span><span className="cal-chips">{dayEvents.slice(0, 2).map(event => <span className="cal-chip" key={event.eventId}>{event.companyName} ? {PROCESS_LABELS[event.processType]}</span>)}{dayEvents.length > 2 && <span className="cal-more">+{dayEvents.length - 2} more</span>}</span>{dayEvents.length > 0 && <span className="cal-dot" aria-hidden="true" />}</button>; })}
+      </div></div>
+      <aside className="cal-side panel"><div className="cal-day-head"><div><p className="cal-hint">{relativeLabel(selected, today)}</p><h3>{selected}</h3></div>{canEdit && !editing && <button type="button" className="cal-primary" disabled={pending} onClick={() => setEditing("new")}>+ Add stage</button>}</div>
+        {editing && canEdit && <EventForm key={editing === "new" ? "new" : editing.eventId} event={editing === "new" ? null : editing} date={selected} drives={drives} pending={pending} onSave={save} onCancel={() => setEditing(null)} />}
+        {!dated.length && <p className="cal-empty">No drive stages scheduled for this day.</p>}<ul className="cal-list">{dated.map(renderEvent)}</ul>
+        <h3>Unscheduled</h3><p className="cal-hint">All undated events, across cycles.</p>{!undated.length && <p className="cal-empty">No unscheduled events.</p>}<ul className="cal-list">{undated.map(renderEvent)}</ul>
+        {!canEdit && <p className="cal-hint">Only SUPERADMIN with a department chosen can edit institute-wide drive stages.</p>}
       </aside>
-    </section>
-  );
-}
-
-function ProcessForm({
-  event,
-  selectedDate,
-  onSave,
-  onCancel,
-}: {
-  event?: ProcessEvent;
-  selectedDate: string;
-  onSave: (draft: Draft, id?: string) => void;
-  onCancel: () => void;
-}) {
-  const [company, setCompany] = useState(event?.company ?? "");
-  const [date, setDate] = useState(event?.date ?? selectedDate);
-  const [stage, setStage] = useState<ProcessStage>(event?.stage ?? "OT");
-  const [notes, setNotes] = useState(event?.notes ?? "");
-  const [error, setError] = useState("");
-
-  return (
-    <form
-      className="cal-form"
-      onSubmit={(submitEvent) => {
-        submitEvent.preventDefault();
-        const normalizedCompany = company.trim();
-        if (!normalizedCompany) {
-          setError("Enter a company or process name.");
-          return;
-        }
-        onSave(
-          { company: normalizedCompany, date, stage, notes: notes.trim() },
-          event?.id,
-        );
-      }}
-    >
-      <h4>{event ? "Update process" : "Add recruitment process"}</h4>
-      <label htmlFor="process-company">Company / title</label>
-      <input id="process-company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company name" />
-      <label htmlFor="process-date">Date</label>
-      <DatePicker id="process-date" value={date} onChange={setDate} required />
-      <label htmlFor="process-stage">Process stage</label>
-      <select id="process-stage" value={stage} onChange={(e) => setStage(e.target.value as ProcessStage)}>
-        {STAGES.map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
-      <label htmlFor="process-notes">Notes</label>
-      <textarea id="process-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional details" />
-      {error && <p className="cal-error" role="alert">{error}</p>}
-      <div className="cal-form-actions">
-        <button type="submit" className="cal-primary">{event ? "Save changes" : "Add to calendar"}</button>
-        <button type="button" onClick={onCancel}>Cancel</button>
-      </div>
-    </form>
-  );
+    </section><BrowserEntries scope={scope} />
+  </div>;
 }

@@ -1,24 +1,25 @@
 # Company directory
 
-`getCompanies` is the signed-in read query used by the dashboard's Companies
-view. It accepts the current graduating year and returns companies linked
-to an offer for a student in that batch, plus companies with no offers in any
-batch. Companies linked exclusively to other batches remain excluded. The page
-computes that year from the current institute calendar date. `updateCompany` is the ADMIN-only mutation for
-existing companies; the company name is never accepted as an editable field
-because it is the primary key referenced by offers.
+`getCompanies(cycleId: string | null)` uses explicit existing placement cycles. With a
+cycle it includes companies with a drive in that cycle, OR same-cycle final offers
+to UG enrollments in the chosen department, OR no offers anywhere. All-scope reads
+apply the UG/cycle predicates across departments. Without a cycle it lists global
+contacts with no cycle-specific columns. No batch filter or date-derived cycle.
 
-The directory's **Add company** form calls `createCompany`, which rechecks ADMIN
-authorization and inserts only a company row. It reuses student-editor name
-validation and directory contact validation. Name is required; contact fields
-are optional and PVR defaults to No (Unknown is still available). Duplicate
-names are rejected without overwriting existing data. Successful writes refresh
-the directory; offerless companies remain visible after reload. Contacts are
-still global company fields, not batch-specific; explicit batch associations
-and per-batch contacts are deferred. No migration is required.
+`getCompanyCycles()` lists `{ cycleId, code }` by code descending. The route validates
+`?cycle=<uuid>` against these rows. Empty lists never cause cycle creation.
 
-The update validation is shared with calendar visit writes. It normalizes
-contact fields, preserves PVR as Yes/No/Unknown (`true`/`false`/`NULL`),
-accepts a nullable real ISO date, and rejects a visit date later than an
-existing offer date. Student offer validation separately rejects offer dates
-before the company's visit date.
+`CompanyRecord.companyId` is the stable editor/React identity. Names remain read-only.
+`updateCompany(companyId: unknown, input: unknown, expected: unknown)` locks that company
+FOR UPDATE and compares the JSON client snapshot's ID, name and all company fields.
+The derived visitDate is excluded from that contact comparison because saves neither
+read nor overwrite events. Renames or contact changes reject stale saves. Returned
+records have visitDate null; a route refresh loads the selected cycle projection.
+
+ADMIN/SUPERADMIN writes require a chosen department; contacts are global and the UI
+states this. All departments is read-only. New PVR defaults to Unknown (NULL); Yes/No/
+Unknown round-trip. Duplicate-name creation never overwrites contacts.
+
+Any visitDate key is rejected on create/update. Company saves touch only companies;
+there is no PPT/offer ordering restriction. `visitDatesByCompany` retains its cross-lane
+signature and earliest non-null PPT-per-company meaning. No migrations or seeds run.

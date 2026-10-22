@@ -1,16 +1,27 @@
-/** A company with a scheduled campus visit (a dated PPT drive event this cycle). */
-export interface CompanyVisit {
-  company: string;
-  sector: string | null;
-  hrName: string | null;
-  email: string | null;
-  phoneNumber: string | null;
-  /** YYYY-MM-DD */
-  visitDate: string;
-}
+import type { ProcessType } from "./labels";
+import type { DriveRoleOption } from "@/lib/drives/types";
 
-export interface CalendarData {
-  visits: CompanyVisit[];
-  /** Existing company names, so the form can reuse a company instead of duplicating it. */
-  companyNames: string[];
+export interface CalendarWindow { startsOn: string; endsOn: string }
+export interface CalendarEvent {
+  eventId: string;
+  driveId: string;
+  companyId: string;
+  companyName: string;
+  cycleId: string;
+  cycleCode: string;
+  driveReference: string | null;
+  processType: ProcessType;
+  scheduledDate: string | null;
+  scope: "WHOLE_DRIVE" | "SELECTED_ROLES";
+  label: string | null;
+  roles: DriveRoleOption[];
 }
+export interface EventInput {
+  driveId: string;
+  processType: ProcessType;
+  scheduledDate: string | null;
+  scope: "WHOLE_DRIVE" | "SELECTED_ROLES";
+  label: string | null;
+  roleIds: string[];
+}
+export interface EventResult { ok?: true; error?: string }

@@ -1,0 +1,22 @@
+# Historical drives and roles
+
+Institute-wide records, with no department column or inferred ownership. The page
+`/companies/drives` requires SUPERADMIN and is reached from Companies. All departments
+is read-only. Every mutation rechecks the current database user and resolved department.
+
+Pure option types live in types.ts. readDriveOptions(connection, filter) has no auth:
+callers authorize first. It works with Database or Transaction and uses two queries
+(drives, then roles), ordered cycle code descending/company name/reference nulls last/
+drive ID. Roles are ordered title nulls last/role ID. getDriveOptions authorizes ADMIN
+(including SUPERADMIN); invalid UUID filters return []. Empty results stay empty.
+
+Create uses explicit existing company/cycle IDs. Company and cycle are fixed; update
+changes reference only. Roles may repeat titles or have NULL titles; updates change
+jobTitle only. References/titles are trimmed, nullable and at most 120 characters.
+All updates/deletes check JSON snapshots under locks. Drive snapshots are DriveOption;
+role snapshots are DriveRoleOption. All role/event mutations lock the parent drive
+before children. Delete checks references explicitly, with FK RESTRICT as final guard;
+23503 maps to the same reference message. No cycle creation or live recruitment state.
+
+Public contracts and validation limits are in docs/handoffs/MIG-007.md. Pure rules
+are tested; PostgreSQL concurrency and browser behavior still require isolated testing.

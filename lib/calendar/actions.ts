@@ -1,143 +1,70 @@
 "use server";
 
-import { and, eq, isNotNull, lt } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { companies, placementOffers } from "@/db/schema";
-import { setVisitDate } from "@/lib/companies/visit";
-import { findCycleId } from "@/lib/placements/cycles";
-import { batchYearForDate } from "@/lib/placements/year-to-date";
-import { todayInInstituteZone } from "./dates";
-import { getCurrentUser, isAdminRole } from "@/lib/auth/dal";
-import { validateCompanyUpdate } from "@/lib/companies/validation";
+import { driveEvents, driveRoles, eventRoles } from "@/db/schema";
+import { assertSnapshot, isUuid } from "@/lib/drives/rules";
+import { authorizeHistoricalWrite, lockDrive, writeError } from "@/lib/drives/write";
+import type { Transaction } from "@/lib/placements/cycles";
+import { readCalendarEvents } from "./read";
+import { assertRoleMembership, validateEvent } from "./rules";
+import type { EventInput, EventResult } from "./types";
 
-export interface VisitFormState {
-  ok?: boolean;
-  /** Submitted values, echoed back because React resets form fields after an action. */
-  values?: Partial<
-    Record<
-      "company" | "visitDate" | "sector" | "hrName" | "phoneNumber" | "email",
-      string
-    >
-  >;
-  error?: string;
-  fieldErrors?: Partial<
-    Record<
-      "company" | "visitDate" | "email" | "phoneNumber" | "hrName" | "sector",
-      string
-    >
-  >;
+async function validateLinks(tx: Transaction, data: EventInput) {
+  const roles = data.roleIds.length ? await tx.select({ roleId: driveRoles.roleId, driveId: driveRoles.driveId }).from(driveRoles).where(inArray(driveRoles.roleId, data.roleIds)) : [];
+  assertRoleMembership(data.roleIds, roles, data.driveId);
 }
 
-const clean = (value: FormDataEntryValue | null, max: number) =>
-  String(value ?? "")
-    .trim()
-    .replace(/\s+/g, " ")
-    .slice(0, max);
-
-/** Every change is authorised here on the server; hiding the buttons is not access control. */
-async function requireAdmin(): Promise<string | null> {
-  const user = await getCurrentUser();
-  if (!user) return "Your session has expired. Sign in again.";
-  if (!isAdminRole(user.role))
-    return "Only administrators can change the calendar.";
-  return null;
+async function insertLinks(tx: Transaction, eventId: string, data: EventInput) {
+  if (data.roleIds.length) await tx.insert(eventRoles).values(data.roleIds.map(roleId => ({ eventId, roleId, driveId: data.driveId })));
 }
 
-/**
- * Schedules (or reschedules / edits) a company's campus visit. An unknown company is
- * created; for a known one the contact fields are updated with what the form holds.
- */
-export async function saveVisit(
-  _previous: VisitFormState,
-  formData: FormData,
-): Promise<VisitFormState> {
-  const denied = await requireAdmin();
-  if (denied) return { error: denied };
-
-  const company = clean(formData.get("company"), 120);
-  const visitDate = clean(formData.get("visitDate"), 10);
-  const sector = clean(formData.get("sector"), 80);
-  const hrName = clean(formData.get("hrName"), 100);
-  const phoneNumber = clean(formData.get("phoneNumber"), 30);
-  const email = clean(formData.get("email"), 254).toLowerCase();
-
-  const values = { company, visitDate, sector, hrName, phoneNumber, email };
-  const fieldErrors: VisitFormState["fieldErrors"] = {};
-  if (company.length < 2) fieldErrors.company = "Enter the company name.";
-  const parsed = validateCompanyUpdate(
-    { domain: sector, hrName, phoneNumber, email, visitDate },
-    company,
-  );
-  Object.assign(fieldErrors, parsed.fieldErrors);
-  if (Object.keys(fieldErrors).length > 0) return { values, fieldErrors };
-
-  const batchYear = batchYearForDate(todayInInstituteZone());
-  const cycleId = await findCycleId(db, batchYear);
-  const conflictingOffer = cycleId
-    ? await db
-        .select({ offerId: placementOffers.offerId })
-        .from(placementOffers)
-        .innerJoin(companies, eq(companies.companyId, placementOffers.companyId))
-        .where(and(
-          eq(companies.name, company),
-          eq(placementOffers.cycleId, cycleId),
-          isNotNull(placementOffers.offerDate),
-          lt(placementOffers.offerDate, visitDate),
-        ))
-        .limit(1)
-    : [];
-  if (conflictingOffer.length) {
-    return {
-      values,
-      fieldErrors: {
-        visitDate: "Visit date cannot be after an existing offer date for this company.",
-      },
-    };
-  }
-
-  const record = {
-    domain: parsed.data.domain,
-    hrName: parsed.data.hrName,
-    phoneNumber: parsed.data.phoneNumber,
-    email: parsed.data.email,
-  };
-
-  await db.transaction(async (tx) => {
-    const [row] = await tx
-      .insert(companies)
-      .values({ name: company, ...record })
-      .onConflictDoUpdate({ target: companies.name, set: record })
-      .returning({ companyId: companies.companyId });
-    await setVisitDate(tx, row.companyId, batchYear, parsed.data.visitDate);
-  });
-
-  revalidatePath("/");
-  return { ok: true };
+export async function createEvent(input: unknown): Promise<EventResult> {
+  const error = await authorizeHistoricalWrite();
+  if (error) return { error };
+  try {
+    const data = validateEvent(input);
+    await db.transaction(async tx => {
+      await lockDrive(tx, data.driveId);
+      await validateLinks(tx, data);
+      const fields = { driveId: data.driveId, processType: data.processType, scheduledDate: data.scheduledDate, scope: data.scope, label: data.label };
+      const [event] = await tx.insert(driveEvents).values(fields).returning({ eventId: driveEvents.eventId });
+      await insertLinks(tx, event.eventId, data);
+    });
+    revalidatePath("/", "layout"); return { ok: true };
+  } catch (error) { return { error: writeError(error, "The drive or one of its roles no longer exists. Reload and try again.") }; }
 }
 
-/**
- * Removes a visit from the calendar. Only the date is cleared (the company's PPT events become
- * unscheduled): the company, its contacts and any placement offers stay, because historical
- * offers depend on the company.
- */
-export async function deleteVisit(company: string): Promise<VisitFormState> {
-  const denied = await requireAdmin();
-  if (denied) return { error: denied };
-  if (
-    typeof company !== "string" ||
-    company.length === 0 ||
-    company.length > 120
-  )
-    return { error: "Unknown company." };
-
-  await db.transaction(async (tx) => {
-    const [row] = await tx
-      .select({ companyId: companies.companyId })
-      .from(companies)
-      .where(eq(companies.name, company));
-    if (row) await setVisitDate(tx, row.companyId, batchYearForDate(todayInInstituteZone()), null);
-  });
-  revalidatePath("/");
-  return { ok: true };
+async function changeEvent(eventId: unknown, input: unknown, expected: unknown, deleting: boolean): Promise<EventResult> {
+  const error = await authorizeHistoricalWrite();
+  if (error) return { error };
+  if (!isUuid(eventId)) return { error: "Unknown event." };
+  try {
+    const data = deleting ? null : validateEvent(input);
+    await db.transaction(async tx => {
+      const [parent] = await tx.select({ driveId: driveEvents.driveId }).from(driveEvents).where(eq(driveEvents.eventId, eventId));
+      if (!parent) throw new Error("This event no longer exists.");
+      await lockDrive(tx, parent.driveId);
+      const [locked] = await tx.select().from(driveEvents).where(eq(driveEvents.eventId, eventId)).for("update");
+      if (!locked || locked.driveId !== parent.driveId) throw new Error("This event changed. Reopen it to load the latest values.");
+      const [current] = await readCalendarEvents(tx, { eventId });
+      assertSnapshot(current, expected, "event");
+      if (deleting) {
+        await tx.delete(eventRoles).where(eq(eventRoles.eventId, eventId));
+        await tx.delete(driveEvents).where(eq(driveEvents.eventId, eventId));
+      } else if (data) {
+        if (data.driveId !== parent.driveId) throw new Error("An event cannot move to another drive. Delete and recreate it.");
+        await validateLinks(tx, data);
+        const fields = { processType: data.processType, scheduledDate: data.scheduledDate, scope: data.scope, label: data.label };
+        await tx.update(driveEvents).set(fields).where(eq(driveEvents.eventId, eventId));
+        await tx.delete(eventRoles).where(eq(eventRoles.eventId, eventId));
+        await insertLinks(tx, eventId, data);
+      }
+    });
+    revalidatePath("/", "layout"); return { ok: true };
+  } catch (error) { return { error: writeError(error, "The drive or one of its roles no longer exists. Reload and try again.") }; }
 }
+
+export async function updateEvent(eventId: unknown, input: unknown, expected: unknown): Promise<EventResult> { return changeEvent(eventId, input, expected, false); }
+export async function deleteEvent(eventId: unknown, expected: unknown): Promise<EventResult> { return changeEvent(eventId, null, expected, true); }

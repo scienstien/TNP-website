@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { validateCompanyCreate, validateCompanyUpdate } from "./validation";
 
-test("company creation normalizes name, leaves optional details empty and defaults PVR to No", () => {
+test("company creation normalizes name, leaves optional details empty and defaults PVR to Unknown", () => {
   const result = validateCompanyCreate({ name: "  Example   Metals  " });
   assert.deepEqual(result.fieldErrors, {});
   assert.deepEqual(result.data, {
     name: "Example Metals", domain: null, hrName: null, email: null,
-    phoneNumber: null, remarks: null, pvrStatus: false, visitDate: null,
+    phoneNumber: null, remarks: null, pvrStatus: null,
   });
 });
 
@@ -20,17 +20,39 @@ test("company creation rejects missing names, malformed payloads and unrelated f
   }
 });
 
-test("company creation uses existing contact, PVR and date validation", () => {
-  const result = validateCompanyCreate({ name: "Example Metals", email: "bad", phoneNumber: "bad", visitDate: "2026-02-30", pvrStatus: "maybe", remarks: "x".repeat(1001) });
-  for (const key of ["email", "phoneNumber", "visitDate", "pvrStatus", "remarks"]) assert.ok(result.fieldErrors[key]);
-  const valid = validateCompanyCreate({ name: "Example Metals", email: " HR@EXAMPLE.COM ", pvrStatus: "unknown", visitDate: "2024-02-29" });
+test("company creation uses existing contact and PVR validation", () => {
+  const result = validateCompanyCreate({ name: "Example Metals", email: "bad", phoneNumber: "bad", pvrStatus: "maybe", remarks: "x".repeat(1001) });
+  for (const key of ["email", "phoneNumber", "pvrStatus", "remarks"]) assert.ok(result.fieldErrors[key]);
+  const valid = validateCompanyCreate({ name: "Example Metals", email: " HR@EXAMPLE.COM ", pvrStatus: "unknown" });
   assert.deepEqual(valid.fieldErrors, {});
   assert.equal(valid.data.email, "hr@example.com");
   assert.equal(valid.data.pvrStatus, null);
-  assert.equal(valid.data.visitDate, "2024-02-29");
 });
 
 test("existing company update still rejects renaming and preserves unknown PVR", () => {
   assert.ok(validateCompanyUpdate({ name: "New name" }, "Example Metals").fieldErrors.form);
   assert.equal(validateCompanyUpdate({ pvrStatus: "unknown" }, "Example Metals").data.pvrStatus, null);
+});
+
+test("visitDate keys on create and update are rejected, including clear attempts", () => {
+  for (const visitDate of [undefined, null, "", "2026-10-22"]) {
+    assert.match(validateCompanyCreate({ name: "Example Metals", visitDate }).fieldErrors.form!, /PPT events/);
+    assert.match(validateCompanyUpdate({ visitDate }, "Example Metals").fieldErrors.form!, /PPT events/);
+  }
+});
+
+test("contact-only normalization emits only company fields and preserves unknown PVR", () => {
+  const result = validateCompanyUpdate({ hrName: "  Fictional   Contact ", email: " HR@EXAMPLE.COM ", pvrStatus: "unknown" }, "Example Metals");
+  assert.deepEqual(result.fieldErrors, {});
+  assert.equal(result.data.hrName, "Fictional Contact");
+  assert.equal(result.data.email, "hr@example.com");
+  assert.equal(result.data.pvrStatus, null);
+  assert.deepEqual(Object.keys(result.data).sort(), ["domain", "email", "hrName", "phoneNumber", "pvrStatus", "remarks"]);
+});
+
+test("Yes, No and Unknown PVR round-trip unchanged", () => {
+  for (const [pvrStatus, expected] of [["yes", true], ["no", false], ["unknown", null]] as const) {
+    assert.equal(validateCompanyCreate({ name: "Example Metals", pvrStatus }).data.pvrStatus, expected);
+    assert.equal(validateCompanyUpdate({ pvrStatus }, "Example Metals").data.pvrStatus, expected);
+  }
 });
