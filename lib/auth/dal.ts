@@ -14,6 +14,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { auth } from "@/auth";
 import { departments, users } from "@/db/schema";
+import { isLocalAuthBypassEnabled } from "@/lib/auth/dev-bypass";
 import { getDb } from "@/lib/db";
 
 export type Role = "ADMIN" | "PROFESSOR" | "SUPERADMIN";
@@ -82,6 +83,22 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
  * only sees a validly signed cookie, would send the visitor straight back here in a loop.
  */
 export async function requireUser(): Promise<CurrentUser> {
+  if (isLocalAuthBypassEnabled()) {
+    const db = await getDb();
+    const [department] = await db.select().from(departments).orderBy(departments.code).limit(1);
+    if (!department) throw new Error("AUTH_BYPASS requires at least one department.");
+    return {
+      id: "00000000-0000-4000-8000-000000000000",
+      name: "Local preview",
+      email: "local-preview@nitt.edu",
+      role: "PROFESSOR",
+      department: {
+        departmentId: department.departmentId,
+        code: department.code,
+        name: department.name,
+      },
+    };
+  }
   const user = await getCurrentUser();
   if (user) return user;
   const session = await getSession();
