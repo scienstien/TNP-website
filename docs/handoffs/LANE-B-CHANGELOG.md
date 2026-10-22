@@ -20,3 +20,10 @@
 - What / why: exact two-query option contract; SUPERADMIN/chosen-department transactional writes, fixed identities and reference-safe deletes; Companies entry point and duplicate-friendly UI.
 - Verify: lint/type-check/build/diff check passed; 15 passed / 0 failed (drive 4, company 11). DB/browser checks not run.
 - Revert: `git revert <MIG-007 SHA>`; dependencies: MIG-008.
+
+## 2026-10-22 · MIG-008 · MIG-008: persist drive-stage events and atomic role links
+- SHA: pending backfill
+- Files: lib/calendar/{types,queries,actions,read,rules,rules.test,labels,local-entries}.ts and README.md; components/calendar/{DriveCalendar,CalendarView,EventForm,NullableDateInput,BrowserEntries}.tsx and calendar.css; app/(portal)/calendar/page.tsx; docs/handoffs/MIG-008.md, LANE-B-CHANGELOG.md.
+- What / why: database-backed dated/undated stage identity, parent-drive locks and transactional role links, stale protection, SUPERADMIN/chosen-department writes; preserve/export browser-only entries read-only.
+- Verify: lint/type-check/build/diff check passed; focused 22/22; full suites 65 passed / 0 failed after registering both tsx CJS/ESM loaders (initial CJS-only: 63/65 due to dynamic-import resolution). DB/two-browser tests not run.
+- Revert: `git revert <MIG-008 SHA>`; dependencies: none in this round.
