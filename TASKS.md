@@ -959,6 +959,13 @@ offer insert or update unless the matching `student_cycles` row is REGISTERED, a
 must reject changing/removing that participation while its offer exists. The Lane A
 application checks remain defense in depth, not the final enforcement boundary.
 
+Decision confirmed by the project owner after Lane B merged: PostgreSQL must also
+enforce drive-event role cardinality against direct SQL and future import paths.
+WHOLE_DRIVE events must have zero `event_roles`; SELECTED_ROLES events must have at
+least one; and every linked role must belong to the event's drive. Cover inserts,
+updates and deletes transactionally in a new reviewed migration. The Lane B server
+action checks remain defense in depth, not the final enforcement boundary.
+
 Required decision: which UG degrees are supported and whether PG has separate views;
 do not enable PG by simply removing the UG predicate. Record a matrix mapping each
 invariant to all write paths and transactional enforcement/trigger choice. Existing
@@ -988,6 +995,13 @@ registered denominator and offer filters, stale edits and transactional rollback
 Run concurrency cases for offer/registration and event-role changes. Never use or
 reset a shared database; record how the test database is isolated and disposed.
 
+Lane B follow-up confirmed by the project owner: exercise calendar operations
+against that real disposable PostgreSQL database and through two authenticated
+browser sessions. Verify cross-browser visibility, professor read-only behavior,
+SUPERADMIN write authorization, stale concurrent edits, rollback on partial event/
+role failure, and correct handling of repeated and undated events. Unit tests and a
+successful build do not satisfy this integration acceptance by themselves.
+
 ### [MIG-014] Reject participation payloads with any validation error
 
 - Priority: P2; Status: READY; Owner: Unassigned.
@@ -1003,6 +1017,20 @@ Acceptance: `setParticipation` rejects whenever participation validation returns
 field error, performs no write, and returns the error to the caller. Add a regression
 test using a valid cycle/status plus an unexpected field. Preserve the existing valid
 registration behavior and authorization checks.
+
+### [MIG-015] Replace calendar question-mark separators with commas
+
+- Priority: P2; Status: READY; Owner: Unassigned.
+- Dependencies: Lane B merge (`7b7b229`).
+- Files: `components/calendar/DriveCalendar.tsx` and the Lane B changelog heading.
+
+Evidence: Lane B contains literal ` ? ` text separators in calendar event metadata,
+role labels, day chips and the changelog heading. They render as question marks and
+look like missing or corrupted characters even though the underlying data is valid.
+
+Acceptance: replace those literal text separators with comma separators, keeping
+normal TypeScript conditional (`? :`) operators unchanged. Check the rendered event
+card, selected-role list and calendar chip text, and update the changelog heading.
 
 ### Audit validation and handoff
 
