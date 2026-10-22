@@ -4,7 +4,7 @@ Extracted from `origin/feature/logo` at `43dbfbe`. Only the two branding
 components and their supporting files were imported; no login form,
 mock authentication, background scene, or placement queries were copied.
 
-Preview both at `/logo-preview` using `npm run dev`.
+Both are composed by `app/login/LoginView.tsx` on the real login page.
 
 ```tsx
 import LoginLogo from "@/components/login/LoginLogo";

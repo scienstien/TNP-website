@@ -217,9 +217,13 @@ Users and historical data:
 5. Multi-agent collaboration protocol
 Different agents may work from different laptops. The shared Git
 repository is the coordination mechanism.
+`TASKS.md` is the shared implementation queue and execution-order source. Before
+starting implementation, check it for explicitly assigned work, priority,
+dependencies, ownership and status. Do not invent or add tasks to `TASKS.md`;
+new task entries require an explicit request from the project owner.
 Before starting a task
 - Pull or inspect the latest agreed branch state.
-- Read this AGENTS.md and any module-specific instructions.
+- Read this AGENTS.md, `TASKS.md` and any module-specific instructions.
 - Inspect the files relevant to the assigned task.
 - Check whether another agent owns or is editing the same files.
 - State the exact scope of the task before editing.
