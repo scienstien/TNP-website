@@ -1,6 +1,7 @@
 export type PvrStatus = "yes" | "no" | "unknown";
 
 export interface CompanyRecord {
+  companyId: string;
   name: string;
   domain: string | null;
   hrName: string | null;

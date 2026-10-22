@@ -1,14 +1,25 @@
 # Company directory
 
-Company contact creation and updates require an ADMIN (including SUPERADMIN) acting
-in a chosen department. Contacts are global company fields. Duplicate-name creation
-never overwrites a company. Names are not editable in the directory.
+`getCompanies(cycleId: string | null)` uses explicit existing placement cycles. With a
+cycle it includes companies with a drive in that cycle, OR same-cycle final offers
+to UG enrollments in the chosen department, OR no offers anywhere. All-scope reads
+apply the UG/cycle predicates across departments. Without a cycle it lists global
+contacts with no cycle-specific columns. No batch filter or date-derived cycle.
 
-Contact saves touch only `companies`. A `visitDate` key is rejected even when null;
-`setVisitDate` and the unused calendar `saveVisit`/`deleteVisit` actions were removed.
-The directory displays the earliest dated PPT as read-only text; the shared
-`visitDatesByCompany(connection, cycleId)` reader is unchanged. There is no company-wide
-PPT/offer ordering rule in company saves. No cycle, drive or event is created by them.
+`getCompanyCycles()` lists `{ cycleId, code }` by code descending. The route validates
+`?cycle=<uuid>` against these rows. Empty lists never cause cycle creation.
 
-The existing graduating-year directory read remains temporarily until MIG-006;
-new company PVR still defaults to No until that task changes it to Unknown.
+`CompanyRecord.companyId` is the stable editor/React identity. Names remain read-only.
+`updateCompany(companyId: unknown, input: unknown, expected: unknown)` locks that company
+FOR UPDATE and compares the JSON client snapshot's ID, name and all company fields.
+The derived visitDate is excluded from that contact comparison because saves neither
+read nor overwrite events. Renames or contact changes reject stale saves. Returned
+records have visitDate null; a route refresh loads the selected cycle projection.
+
+ADMIN/SUPERADMIN writes require a chosen department; contacts are global and the UI
+states this. All departments is read-only. New PVR defaults to Unknown (NULL); Yes/No/
+Unknown round-trip. Duplicate-name creation never overwrites contacts.
+
+Any visitDate key is rejected on create/update. Company saves touch only companies;
+there is no PPT/offer ordering restriction. `visitDatesByCompany` retains its cross-lane
+signature and earliest non-null PPT-per-company meaning. No migrations or seeds run.

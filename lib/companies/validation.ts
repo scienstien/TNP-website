@@ -9,7 +9,7 @@ export function validateCompanyCreate(input: unknown) {
     ? input as Record<string, unknown> : {};
   const { name, ...fields } = values;
   const identity = validateCompany({ name });
-  const details = validateCompanyUpdate({ ...fields, pvrStatus: fields.pvrStatus === undefined ? "no" : fields.pvrStatus }, identity.data.name);
+  const details = validateCompanyUpdate(fields, identity.data.name);
   const fieldErrors: Record<string, string> = { ...identity.fieldErrors, ...details.fieldErrors };
   return {
     data: { name: identity.data.name, ...details.data },

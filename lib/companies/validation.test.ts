@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { validateCompanyCreate, validateCompanyUpdate } from "./validation";
 
-test("company creation normalizes name, leaves optional details empty and defaults PVR to No", () => {
+test("company creation normalizes name, leaves optional details empty and defaults PVR to Unknown", () => {
   const result = validateCompanyCreate({ name: "  Example   Metals  " });
   assert.deepEqual(result.fieldErrors, {});
   assert.deepEqual(result.data, {
     name: "Example Metals", domain: null, hrName: null, email: null,
-    phoneNumber: null, remarks: null, pvrStatus: false,
+    phoneNumber: null, remarks: null, pvrStatus: null,
   });
 });
 
@@ -48,4 +48,11 @@ test("contact-only normalization emits only company fields and preserves unknown
   assert.equal(result.data.email, "hr@example.com");
   assert.equal(result.data.pvrStatus, null);
   assert.deepEqual(Object.keys(result.data).sort(), ["domain", "email", "hrName", "phoneNumber", "pvrStatus", "remarks"]);
+});
+
+test("Yes, No and Unknown PVR round-trip unchanged", () => {
+  for (const [pvrStatus, expected] of [["yes", true], ["no", false], ["unknown", null]] as const) {
+    assert.equal(validateCompanyCreate({ name: "Example Metals", pvrStatus }).data.pvrStatus, expected);
+    assert.equal(validateCompanyUpdate({ pvrStatus }, "Example Metals").data.pvrStatus, expected);
+  }
 });
