@@ -33,3 +33,26 @@ Entries are chronological, one per commit. SHAs are backfilled by the final
 - Verify: the student test files (13 passed); lint; `tsc --noEmit`; `next build`.
 - Revert: `git revert <SHA>`. MIG-004 builds on `rules.ts` and `writeOffer()`, so revert
   MIG-004 first.
+
+## 2026-10-22 · MIG-003 · MIG-003: gate the demo seed on an explicitly disposable database
+- SHA: _backfilled_
+- Files:
+  - `db/seed-safety.ts` (new)
+  - `db/seed-safety.test.ts` (new)
+  - `db/seed-departments-demo.ts`
+  - `docs/handoffs/MIG-003.md` (new)
+  - `docs/handoffs/LANE-A-CHANGELOG.md`
+- What and why:
+  - The seed runs only when `DEMO_SEED_RESET_DATABASE` equals `current_database()`, never
+    in production, and never next to preserved legacy rows. It decides before its first
+    write.
+  - It no longer deletes, moves or creates users, never renames departments, and never
+    deletes outreach records.
+  - It no longer uses roll ranges or name prefixes as provenance.
+- Verify: `db/seed-safety.test.ts` (8 passed); `tsc --noEmit`; eslint on the Lane A paths.
+- Revert: `git revert <SHA>`. No later Lane A commit depends on it.
+- Environment note: `next build` creates an untracked `TNP-website/TNP-website/.next/`
+  folder, because Next.js picks `C:\Users\hp\Desktop\tnp dashboard\package-lock.json` as
+  the workspace root. Whole-repo `npm run lint` then fails on those generated chunks. The
+  agent was not permitted to delete the folder. Delete it manually, or lint the source
+  paths. It is untracked and never committed.
