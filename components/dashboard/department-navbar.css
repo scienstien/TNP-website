@@ -14,26 +14,23 @@
   backdrop-filter: blur(6px);
   color: #f1f5ff;
 }
+.dept-navbar-select-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
 .dept-navbar-label {
   color: #8f9bb0;
   font: 500 10px "DM Mono", monospace;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.dept-navbar-list {
-  display: flex;
-  gap: 6px;
-  min-width: 0;
-  overflow-x: auto;
-  padding: 2px;
-}
-.dept-chip {
-  flex: none;
-  height: 32px;
+.dept-navbar-select {
+  height: 34px;
   padding: 0 14px;
   border: 1px solid #354d76;
-  border-radius: 999px;
-  background: transparent;
+  border-radius: 5px;
+  background: #101b31;
   color: #b9c6dc;
   font: inherit;
   font-size: 12px;
@@ -41,25 +38,18 @@
   letter-spacing: 0.04em;
   cursor: pointer;
 }
-.dept-chip:hover:not(:disabled) {
+.dept-navbar-select:hover:not(:disabled),
+.dept-navbar-select:focus-visible {
   border-color: #4c7fe4;
   color: #f1f5ff;
 }
-.dept-chip:focus-visible {
+.dept-navbar-select:focus-visible {
   outline: 2px solid #70a0ff;
   outline-offset: 2px;
 }
-.dept-chip:disabled {
+.dept-navbar-select:disabled {
   cursor: progress;
   opacity: 0.6;
-}
-.dept-chip.is-active {
-  border-color: #4c7fe4;
-  background: rgba(36, 84, 197, 0.28);
-  color: #f1f5ff;
-}
-.dept-chip.is-static {
-  cursor: default;
 }
 .dept-navbar-current {
   margin-left: auto;
