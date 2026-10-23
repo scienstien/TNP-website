@@ -349,4 +349,5 @@ Impact review for this lane (no code change):
   touch it.
 - Align "Unscheduled" (calendar) with "Not scheduled" (process table) if one
   wording is preferred.
-- Fix the literal `?` separators in `components/calendar/DriveCalendar.tsx` line 39.
+- Resolved by MIG-015 (same branch): the literal `?` separators in
+  `components/calendar/DriveCalendar.tsx` are now commas.
