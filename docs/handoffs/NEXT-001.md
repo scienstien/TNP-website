@@ -56,8 +56,12 @@ keep data fresh behind Suspense when a caching decision is unclear.
 - Checked only as the local AUTH_BYPASS SUPERADMIN with a department. Not checked:
   an ADMIN session, a SUPERADMIN on "All departments", or a PROFESSOR. For a
   PROFESSOR, `requireRole` → `notFound()` now runs inside the streamed boundary, so
-  the not-found UI is still shown but the HTTP status may be 200 instead of 404
-  after the shell is sent. No student data is read or sent before the role check.
+  the not-found UI is still shown but the HTTP status is 200 instead of 404
+  after the shell is sent (Next.js adds `noindex`; see its streaming "Status codes"
+  docs). No student data is read or sent before the role check. Owner decision
+  (2026-10-23): keep this behaviour. The alternatives were a proxy check on the
+  sign-in role (real 404, but a promoted user must sign in again) or a page-top
+  role check (real 404, but the blocking-route warning returns).
 - Client-navigation validation was observed through the dev server's error state,
   not the Navigation Inspector UI.
 
