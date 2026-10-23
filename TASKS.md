@@ -1032,6 +1032,29 @@ Acceptance: replace those literal text separators with comma separators, keeping
 normal TypeScript conditional (`? :`) operators unchanged. Check the rendered event
 card, selected-role list and calendar chip text, and update the changelog heading.
 
+### [MIG-016] Show accessible warnings for blocked student deletions
+
+- Priority: P2; Status: READY; Owner: Unassigned.
+- Requested by: Project owner on 2026-10-23.
+- Dependencies: Lane A student mutation safeguards.
+- Files: `components/students/StudentRecords.tsx`, student styles and focused UI tests.
+
+Evidence: the server refuses to delete an enrollment while it has an offer, and the
+table disables that Delete button. However, the explanation exists only in the
+disabled button's `title` tooltip; it is not a persistent visible warning and may be
+unavailable to keyboard and screen-reader users. Main-table mutation failures are
+also rendered with `role="status"`, while the registration editor correctly provides
+a visible rule explanation and renders rejected operations with `role="alert"`.
+
+Acceptance: clearly show that the offer must be removed before deletion without
+depending on hover, and associate the explanation with the disabled action for
+assistive technology. The confirmation for an allowed deletion must explain that it
+removes the selected enrollment and its cycle registrations, while the person record
+is retained if another enrollment exists. Display the server's exact rejection as an
+accessible alert and keep the record unchanged. Add focused UI coverage for blocked
+deletion, confirmed allowed deletion and a server-side rejection. Frontend checks are
+guidance only; preserve all server authorization, transaction and foreign-key checks.
+
 ### Audit validation and handoff
 
 This is a source review, not runtime reproduction against deployed institute data.
