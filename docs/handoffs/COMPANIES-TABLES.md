@@ -6,12 +6,13 @@
 - Branch: `companies/tables`
 - Base commit: `aa3865f6a25e4084adfe21822f98fd3ae299aa87` (origin/main, includes
   the companies parallel plan; `origin/docs/companies-parallel-plan` is identical)
-- Status: Step 1 checkpoint recorded; Step 2 not started
+- Status: Step 2 (global contacts) committed for review; Step 3 not started
 - Commits:
 
 | SHA | Step | Subject |
 | --- | --- | --- |
-| (this commit) | 1 | docs: record companies tables Step 1 checkpoint |
+| `8139b10` | 1 | docs: record companies tables Step 1 checkpoint |
+| (this commit) | 2 | COMPANIES-009: add global company contacts table |
 
 ## Step 1: inspection checkpoint (2026-10-23)
 
@@ -148,9 +149,74 @@ authorizes, writes or stores data.
 - The process table needs all events for the selected drive regardless of month
   or optional cycle dates; `readCalendarEvents()` cannot provide that today.
 
-## Step 2: global company contacts
+## Step 2: global company contacts (2026-10-23)
 
-Not started. Awaiting "Continue Step 2".
+### Files
+
+- `components/companies/CompanyContactsTable.tsx` (added)
+- `components/companies/CompanyContactsTable.module.css` (added)
+- `components/companies/CompanyContactsTable.test.tsx` (added)
+- `docs/handoffs/COMPANIES-TABLES.md` (this record)
+
+### Exports
+
+`CompanyContactsTableProps` exactly as planned above, and the default
+`CompanyContactsTable` component. No other export, type or shared file changed.
+
+### Behavior
+
+- Card titled "Company contacts (global)", with copy stating the details are
+  company-level and not linked to a particular drive or placement cycle.
+- One contact row with three columns: HR name, Contact number, Email. No Drive
+  column, contactId or per-cycle snapshot. The props contain no cycle/drive
+  selection, so the same company always renders the same global contact.
+- NULL, empty or whitespace-only values show "Not recorded". When all three are
+  missing, a note says no global HR contact is recorded for the company.
+- Email renders as a `mailto:` link. The phone number is plain text (no `tel:` link
+  was requested).
+- Long values wrap (`overflow-wrap: anywhere`); the table keeps a 520px minimum
+  width inside a horizontally scrollable, keyboard-focusable region with an
+  accessible name. A visually hidden caption names the company.
+- State precedence: `loading` → `error !== null` → `company === null` → data.
+  Loading and error states never show the previous company's values. An error with
+  no company still shows the error (a failed query is not "no selection"); an
+  empty error string shows the generic failure text. Retry calls `onRetry`.
+- Read-only: no action, fetch, authorization or storage. Card chrome reuses the
+  global `.panel` class (read only); everything else is in the CSS module.
+
+### Validation
+
+- Focused tests, 7 passed / 0 failed:
+  `node -e "process.geteuid=()=>0; require('tsx/cjs/api').register(); require('./components/companies/CompanyContactsTable.test.tsx')"`
+  Covers columns/title, single display and mailto, NULL/blank/partial/all-missing,
+  long values, loading/error precedence without stale data, no selection, company
+  switching, and a compile-time guard that the props have no cycle/drive keys.
+- `npx eslint` on the two owned TS files: passed.
+- `npm run lint`: fails only on the untracked nested `TNP-website/.next/` build
+  cache (not tracked, not owned; eslint's `.next/**` ignore covers the root folder
+  only). `npx eslint . --ignore-pattern "TNP-website/**"` passed with no problems.
+- `npx tsc --noEmit`: passed.
+- `npm run build`: passed.
+
+### Limitations
+
+- Nothing imports the component yet, so the build type-checks it but does not
+  bundle it or compile its CSS module; that happens at integration.
+- Static rendering cannot click: the Retry → `onRetry` binding is not exercised.
+  Keyboard focus, scrolling, narrow-screen layout and visual contrast were not
+  checked in a browser (no preview route is allowed in this lane).
+- Refresh after global contact edits and access permissions depend on Model 1's
+  authorized data loading; this component only renders the props it receives.
+
+### Integration notes for Model 1
+
+- Pass the selected company's `CompanyRecord` fields from authorized server data.
+  While a newly selected company loads, pass `loading: true` (or `company: null`)
+  so the previous company is never shown as current.
+- Do not re-key or reload this card on cycle/drive changes; its values do not
+  depend on them.
+- After a COMPANIES-004 global contact edit, supply the refreshed record; on a
+  failed load pass `error` and a retry callback.
 
 ## Step 3: exact-drive process table
 
