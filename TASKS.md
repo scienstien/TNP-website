@@ -523,6 +523,510 @@ scoping, and offer-filter denominator stability.
   without requiring or mutating a live PostgreSQL database.
 - Follow-up required: none for this regression-test scope.
 
+### Companies panel delivery plan (project owner, 2026-10-23)
+
+This revision records the owner's four requested cards. It changes planning only;
+no application, schema, migration or calendar changes are authorized for this turn.
+The earlier shell is an interim scaffold, not an implemented company dashboard.
+That scaffold is currently a local uncommitted edit; publishing this plan does
+not publish it or other application edits. Inspect the actual main-branch page
+before integration and preserve its existing behavior while replacing components.
+Keep existing task IDs; COMPANIES-005 now specifies the process table that replaces
+the earlier broad activity proposal. Existing global-contact editing remains a
+separate backlog item. Owner's subsequent decision: ship the contact card using
+the existing global company HR fields first; defer drive-specific HR storage and
+history to a later phase while preserving that requirement below.
+
+#### Component map and shared behavior
+
+| Task | Component | Selection / responsibility |
+| --- | --- | --- |
+| COMPANIES-002 | `CompanyPageHeader`, `CompanyCycleSelector` | Shared explicit placement cycle and scope labels. |
+| COMPANIES-003 | `CompanyDirectory` | Search/select a company by companyId, relevant to the selected cycle. |
+| COMPANIES-006 | `CompanyOfferHistoryChart` | Selected company, all its recorded cycles; horizontally scrollable bar chart and enlarged overlay. |
+| COMPANIES-007 | `CompanyOfferDistribution` | Selected company + top-level cycle; donut with department/gender/reservation-category and job-role controls. |
+| COMPANIES-005 | `CompanyProcessTable` | Selected company + top-level cycle + exact drive; event type and scheduled date. |
+| COMPANIES-009 | `CompanyContactsTable` | Initial release: selected company's global HR name, contact number and email; explicitly company-level. Future phase: multiple contacts per exact drive. |
+| COMPANIES-010 | Data contracts, queries and integration | Publish component props first, own shared state/loading, then compose completed components. |
+| COMPANIES-011 | Drive cancellation marker | Retain an explicitly cancelled drive alongside the company's other drives and preserve history. |
+
+`Companies.tsx` ultimately imports and lays out these elements only. Place shared
+selection state in a dedicated controller/context and protected loading in the
+server query/route layer. Component workers do not edit `Companies.tsx`, the route,
+root styles, schema or shared types simultaneously. Use Recharts and existing UI
+patterns, with styles local to each component. Do not build a second calendar.
+
+Shared definitions for implementation:
+
+- Cycle means `placement_cycles.cycle_id`, labelled with its code, e.g. 26-27.
+  Drive means a distinct `drives.drive_id` within that cycle. Never infer either
+  from offer/event dates, graduation year, company name or array position.
+- Offers means the currently stored final reported offers. This schema has one
+  final offer per enrollment and no issued/rejected/revoked-offer ledger. Counts
+  cannot claim to represent every offer ever issued. Unknown offer dates still
+  count in their explicit cycle. Separate enrollments for one person count as
+  separate final-offer records; do not relabel this as unique people.
+- The requested company history is across recorded programmes (UG and PG), with
+  the academic population labelled. Existing UG-only dashboard/editor queries
+  cannot silently stand in for comprehensive company totals. This is a company
+  panel contract, not permission to alter other dashboard views or academic rules.
+- Every offer read authorizes on the server and scopes through enrollment ->
+  cohort -> programme -> department. Validate company/cycle/drive/role IDs and
+  their agreement. Use the same authorized, REGISTERED offer population for both
+  charts; inconsistent offers must be flagged, not counted as valid placements.
+- ADMIN reads only its department's offer aggregates. SUPERADMIN may read the
+  chosen department or all departments; all-scope is read-only. Do not send other
+  departments' raw data to the browser. A department breakdown can legitimately
+  be one slice for a department user; all-department composition is available only
+  in authorized all-scope reads. Never imply this is institute-wide when scoped.
+- The current company route is ADMIN/SUPERADMIN-only. This plan does not silently
+  widen page access. If professor access is later granted it must be read-only;
+  existing calendar read permissions are not a company-page access grant.
+- Drives/events have institute-wide identity and no department-target mapping.
+  Reuse that existing read policy for process data; do not fabricate ownership.
+- Counts aggregate distinct offer IDs before any one-to-many role/event joins.
+  NULL gender/category/role/drive is preserved, not invented or silently dropped.
+- Changing company or cycle resets invalid exact-drive/role selections and clears
+  stale panel content. History remains all-cycle for the selected company; the
+  donut and process cards follow the top-level cycle. Initially the HR card shows
+  global company contacts, which do not change by cycle/drive for the same company;
+  cycle selection only affects which companies can be selected. Future per-drive
+  HR history follows the cycle after its schema is implemented. The process drive
+  toggle does not secretly narrow the donut, which has its own role selector.
+- Each card needs loading, error/retry, no-selection and empty-data states. A
+  failed query is not zero offers. Enlarging a chart preserves its data/selection.
+
+#### Calendar deletion and cancellation: confirmed retention decision
+
+Current code, inspected on 2026-10-23: `lib/calendar/actions.ts` creates/updates/
+deletes PostgreSQL `drive_events` and its `event_roles`; deletion does not delete
+the parent drive, company, role records or final offers. The calendar reads a
+visible month plus undated events. It has explicit refresh, not realtime push.
+This supersedes stale local-storage descriptions for this plan only; MIG-008's
+database/concurrency/browser validation remains outstanding in its handoff.
+
+Owner confirmed on 2026-10-23: retain a cancelled drive with an explicit Cancelled
+marker alongside earlier drives. Deleting a calendar event removes only that event
+from both views; it does not cancel a whole drive or company. For example, company
+A / cycle 26-27 / drive 1 is retained when drive 2 is marked Cancelled. Preserve
+drive 2's identity, recorded events, HR contacts and final offers as history, too;
+cancellation must not silently revoke an offer. Offers remain attached to their
+original drive (or remain unlinked if historically NULL). Do not infer completion
+or cancellation from elapsed dates or absence of events.
+
+The current schema has no drive cancellation field or completion/actual-held
+dates. COMPANIES-011 owns a reviewed new migration and propagating the marker to
+drive selectors and calendar/process displays. The accepted retention policy is
+settled; detailed calendar filtering and scheduled-PPT metric treatment still need
+an explicit contract before integration. Do not invent a completed-drive workflow
+or interpret `scheduled_date` as proof that a stage happened. Existing event reads
+can proceed independently while the cancellation extension is implemented later.
+
+For the requested cycle-relevant company view, use companies with an explicit
+drive in that cycle OR authorized offers in that cycle, including offers without
+a drive. A retained cancelled drive retains its historical company link and is
+identified as Cancelled; it does not remove the company's other drives from view.
+A company with no cycle drives and no authorized cycle offers has no cycle link.
+Global contacts remain available in the existing unscoped directory. Current
+`directoryCondition()` also includes any company with no offers anywhere; that
+fallback must not be presented as evidence of relevance to the chosen cycle.
+
+#### HR history: confirmed multiple contacts per drive and schema gap
+
+Current delivery decision (owner, 2026-10-23): implement the contact component with
+global company HR information now. COMPANIES-009 is independent of future storage
+work. COMPANIES-008 is PAUSED by the owner until the per-drive schema phase is
+resumed. Label the initial card Company contacts (global); do not imply that these
+values identify the HR for a particular historical drive or cycle.
+
+`companies.hr_name/email/phone_number` currently hold one global set of contact
+fields. `drives` has no HR fields or contact relationship. An old drive's HR cannot
+be reconstructed by copying today's global contact into every historical drive.
+Existing company contacts must be preserved and labelled company-level only.
+
+Owner confirmed on 2026-10-23: a drive may have multiple HR contacts. Record zero
+or more drive-owned contact rows, each with its own stable contactId, driveId,
+nullable HR name, phone and email. The same contact details may legitimately appear
+on different drives; do not impose company/drive/contact-detail uniqueness or one
+contact per drive. Drive-specific values preserve history when another drive's
+HR changes. Updates correct the selected contact row with stale-write protection;
+an additional version/audit-history model has not been requested.
+
+This needs COMPANIES-008's reviewed data model/migration. Follow existing
+institute-wide drive-management write permissions (SUPERADMIN with one department
+chosen; ADMIN/PROFESSOR and all-scope read-only). ADMIN drive-management access
+remains deferred under MIG-007. No historical data is backfilled without a confirmed
+source/mapping. Preserve the existing global company contact fields separately.
+
+#### KPI review (suggestions only, not additional implementation tasks)
+
+- Show the selected-cycle recorded-final-offer count in the donut centre and
+  count plus percentage in its legend/tooltips; use the active role filter's total
+  as the denominator. Zero offers means an empty state, not an invented 0% slice.
+- Useful compact additions if approved: number of distinct drives in the cycle,
+  total recorded final offers across history, and number of cycles with recorded
+  offers. Label the scope and distinguish cycles with drives but zero offers.
+- Optional compensation KPI: median annual package (INR LPA), with known-package
+  sample size / total offers; NULL is excluded, never treated as zero. Monthly
+  stipend (INR/month) remains separate. This is not yet an approved card/task.
+- Display counts of unknown demographic/role data within the requested charts so
+  partial records do not look complete. Never infer source classifications.
+- Company conversion/selection rates and department/gender/category selection
+  rates are not derivable here: there are no company applicant/eligible-target
+  populations. Donut percentages describe offer composition, not selection rates.
+
+### [COMPANIES-001] Define company features and page composition shell
+
+- Priority: P1; Status: DONE (initial scaffold only); Owner: Codex.
+- Requested by: Project owner on 2026-10-23; refined by the component brief above.
+- Files already changed: `components/companies/Companies.tsx`, `TASKS.md`.
+- Historical handoff: the earlier turn introduced typed page inputs and empty
+  composition regions. Lint, TypeScript and diff checks passed for that scaffold.
+- Limitation: no feature cards, chart data or component wiring exist yet. DONE
+  applies only to the earlier scaffold, not the dashboard or the new contracts.
+- Follow-up: COMPANIES-010 owns the contract checkpoint and final wiring. Keep
+  `Companies.tsx` a composition skeleton as requested by the owner.
+
+### [COMPANIES-002] Implement the company page header and cycle selector
+
+- Priority: P1; Status: READY; Owner: Model 1 / Codex integrator.
+- Dependencies: COMPANIES-010 contract checkpoint (not final integration).
+- Files: `components/companies/CompanyPageHeader.tsx`,
+  `CompanyCycleSelector.tsx`, component-local styles and focused coverage.
+- Contract to publish at checkpoint: cycle options `{ cycleId, code }`, nullable
+  selected cycle ID, selection callback, server-derived read/write capabilities,
+  scope labels, and existing Add company / Manage drives callbacks or links.
+- Required outcome: top-level explicit cycle control shared by the donut, process
+  and drive-contact table; clear company, department and UG/PG population labels.
+- Acceptance: no implicit latest/date-derived cycle; no selection/empty options
+  handled; unknown URL IDs rejected; scoped reads and all-scope read-only rules
+  preserved; existing global contact actions remain distinct from drive HR actions.
+- Validation: keyboard/cycle-change states, lint, TypeScript.
+
+### [COMPANIES-003] Implement company selection and cycle-relevant directory
+
+- Priority: P1; Status: READY; Owner: Model 1 / Codex integrator.
+- Dependencies: COMPANIES-010 contract checkpoint; coordinate MIG-006 handoff.
+- Files: `components/companies/CompanyDirectory.tsx`, its styles/coverage.
+  Query changes belong to COMPANIES-010, not this worker.
+- Contract: supplied authorized company summaries keyed by companyId, selected
+  companyId and selection callback; global contacts nullable and clearly labelled.
+- Required outcome: search/select a company to populate all four cards. In cycle
+  mode include companies linked by drives OR authorized offers for that cycle,
+  including no-drive historical offers and drives that have no offers.
+- Acceptance: global no-offer contacts are not falsely described as cycle-linked;
+  changing company/cycle resets invalid detail selections; company renames do not
+  break history; no offer rows or fabricated department ownership in the browser.
+- Validation: no-offer drive, offer without drive, unrelated global contact,
+  repeated drives, company rename and stale selection; lint, TypeScript.
+
+### [COMPANIES-004] Implement the global company contact editor
+
+- Priority: P1; Status: READY (existing backlog); Owner: Unassigned.
+- Dependencies: COMPANIES-003 and frozen company action contracts.
+- Files: `components/companies/CompanyContactEditor.tsx`, local styles/coverage.
+- Scope retained: create/edit global company contacts through existing authorized
+  actions, stable company ID/name on edit, Unknown PVR, stale-write protection and
+  no-overwrite duplicate creation. This does not implement drive HR history.
+- Acceptance: global edits cannot rewrite historical per-drive contacts/events/
+  offers; ADMIN/SUPERADMIN capabilities rechecked server-side; all-scope read-only.
+- Validation: relevant existing action checks, form failure states, lint, TypeScript.
+
+### [COMPANIES-005] Implement the exact-drive process table
+
+- Priority: P1; Status: READY; Owner: Model 3 / tables lane.
+- Requested by: Project owner on 2026-10-23 (refines previous activity component).
+- Dependencies: COMPANIES-010 checkpoint and MIG-007/008 event contracts; no new
+  cancellation status required for reading existing events.
+- Files: `components/companies/CompanyProcessTable.tsx`, local styles/coverage.
+- Contract: companyId, cycleId, distinguishable drive options, selectedDriveId /
+  onDriveChange, and supplied `CalendarEvent[]` for that exact drive, with loading,
+  error and refresh state. Preserve eventId, scope, selected roles and label.
+- Required outcome: drive toggle within selected company/cycle, two columns:
+  Event type and Scheduled date. Show PPT, OT, GD, Resume shortlisting and PI using
+  existing canonical/display mappings. Scope/role/round labels can sit inside the
+  event cell while retaining two columns.
+- Acceptance: repeated stages remain separate eventId rows; NULL date displays
+  Not scheduled; absent rows mean No event recorded, not Did not happen. Repeated
+  drives and NULL/duplicate references remain distinguishable by stable ID. Do
+  not silently choose an arbitrary first drive when multiple drives exist.
+- Calendar consistency: read the same `drive_events`/`event_roles`, never copied
+  browser state. Fetch all events for the exact drive regardless of calendar
+  month or optional cycle date boundaries. Same-session invalidation/refresh and
+  a refresh control expose calendar changes; do not claim live cross-tab push.
+- Event deletion removes only its row on refresh. Never cascade to company,
+  sibling drives, roles or offers. Keep existing SUPERADMIN event-write policy;
+  this table is read-only and may link to the existing calendar.
+- Once COMPANIES-011 publishes its marker, show Cancelled against that exact drive
+  while keeping its recorded event rows and earlier drives available as history.
+- Validation: calendar create/edit/delete -> table refresh; drive 1 retained after
+  a drive 2 event deletion; repeated/undated/selected-role events; dates outside
+  cycle bounds; exact-drive validation and two-session stale data; lint, TypeScript.
+
+### [COMPANIES-006] Implement the offers-by-cycle bar chart and enlarged overlay
+
+- Priority: P1; Status: READY; Owner: Model 2 / charts lane.
+- Requested by: Project owner on 2026-10-23.
+- Dependencies: COMPANIES-010 contract checkpoint.
+- Files: `components/companies/CompanyOfferHistoryChart.tsx`, local styles/coverage.
+- Contract: selected company identity and scope label; rows
+  `{ cycleId, cycleCode, offerCount }[]` in a documented stable display order;
+  loading/error state. Counts are authorized final offers, not raw enrollment or
+  event rows. Cycle order must not establish/infer membership from dates/codes.
+- Required outcome: one bar per recorded company cycle across history, with all
+  its drives combined; e.g. two final offers in 26-27 gives height two. Display
+  counts on an integer axis and cycle codes on the horizontal axis.
+- Acceptance: history is not restricted to the page's selected cycle; company
+  identity and department/academic scope still apply. Include cycles with a
+  company drive and zero recorded final offers; do not fabricate unrecorded years
+  as zero. Offers with NULL drive/date still count in their explicit cycle.
+- The card has constrained width/min-width and its own horizontal scrolling;
+  twenty years must not expand the page or shrink bars into unreadable marks.
+- Expand opens a larger responsive overlay above neighbouring cards. It uses the
+  same data, has a visible Close button and Escape close, focus containment and
+  restoration, background scroll control, and retains the compact chart position
+  on close. Large histories may still scroll inside the overlay.
+- Validation: many cycles, zero/no-data, multiple drives, NULL date/drive, same
+  person with separate enrollments, event/role join multiplicity, keyboard/overlay
+  and narrow-screen behavior; Recharts resize; lint, TypeScript.
+
+### [COMPANIES-007] Implement the offer distribution donut and controls
+
+- Priority: P1; Status: READY; Owner: Model 2 / charts lane.
+- Requested by: Project owner on 2026-10-23.
+- Dependencies: COMPANIES-010 contract checkpoint.
+- Files: `components/companies/CompanyOfferDistribution.tsx`, local styles/coverage.
+- Contract: companyId/cycleId/scope labels; dimension
+  `department | gender | reservationCategory`; role filter `all | roleId`;
+  role options `{ roleId, driveId, driveReference, jobTitle }[]`; aggregate buckets
+  `{ key, label, count }[]`, totalOffers, missingRoleCount and loading/error state.
+  Resolve raw demographics on the server; do not send student-level records.
+- Required outcome: donut for the selected company's offers across every drive in
+  the page-selected cycle. Controls: distribution dimension and job role (All,
+  or a company's actual drive_role). Job role is not offer_type PPO/FTE/FTE+6month.
+- Acceptance: All includes historical offers without role/drive; a role filter
+  matches roleId, not a title substring. Duplicate/NULL titles are selectable and
+  distinguished by drive reference plus stable identity. Do not merge same-title
+  roles from different drives into one invented role. Roles without offers may
+  produce a legitimate empty result. Reset role selection on company/cycle change.
+- Department follows the offer enrollment's programme, gender the linked student,
+  reservation category the enrollment; use controlled reference labels. Missing
+  gender/category gets an explicit Not recorded bucket in the same denominator.
+- Centre total and bucket counts/percentages reconcile for that company, cycle,
+  scope and role filter. Percentage is share of recorded offers, not selection
+  rate. Do not hide unknowns or present NaN/full wheels for a zero denominator.
+- Provide a readable legend/count alternative, accessible control names and stable
+  bucket colours. Unknown fields and loading failures remain distinct.
+- Validation: every dimension, All/specific/NULL role, duplicate titles across
+  drives, NULL demographic values, department isolation/all-scope, UG/PG records,
+  zero denominator and rounding; lint, TypeScript.
+
+### [COMPANIES-008] Define and implement storage for HR contacts per drive
+
+- Priority: P1; Status: PAUSED by project owner on 2026-10-23; Owner: Unassigned.
+- Requested by: Project owner on 2026-10-23; no schema edit in this planning turn.
+- Delivery decision: defer this schema/migration work until explicitly resumed.
+  The initial contact component uses existing global company HR fields only.
+- Confirmed: multiple optional contacts per drive; stable identity per contact.
+  Apply existing SUPERADMIN/chosen-department drive-write permissions. No audit
+  version-history expansion. The previous cardinality blocker is resolved.
+- Dependencies when resumed: one database owner coordinates the new migration
+  with whichever schema changes have merged by then. This task does not block
+  COMPANIES-009's initial global-contact card or COMPANIES-011 cancellation work.
+- Files when ready: `db/schema.ts`, a NEW reviewed migration and metadata,
+  `db/README.md`, relevant company/drive docs and authorized contact read/write paths.
+  Preserve migrations 0000-0005 and all existing company contact values.
+- Required outcome: persistent nullable contact fields explicitly related to a
+  stable driveId, supporting multiple HR per drive and different HR per drive/cycle
+  without rewriting other drives. Every contact has a stable contactId; publish
+  this row/permissions contract before COMPANIES-009's future per-drive phase.
+- Acceptance: company/cycle consistency comes through the parent drive; no invented
+  historical backfill from global contacts; changing another drive's HR preserves
+  earlier drive values; no student/login/outreach synchronization. Define deletion
+  and stale-write behavior and restrict global historical edits server-side.
+- Validation when implemented: isolated PostgreSQL migration/data-preservation,
+  multiple contacts on one drive, the same details on separate drives, repeat
+  drives/different HR, single-contact update/delete isolation, NULLs, permissions
+  and concurrent edits; update shared docs at implementation, lint, TypeScript
+  and migration checks.
+
+### [COMPANIES-009] Implement company contacts now; preserve future drive HR scope
+
+- Priority: P1; Status: READY (initial global-contact phase); Owner: Model 3 / tables lane.
+- Requested/refined by: Project owner on 2026-10-23.
+- Dependencies: COMPANIES-010 contract checkpoint. No new schema dependency for
+  the initial release; future per-drive phase waits for resumed COMPANIES-008.
+- Files: `components/companies/CompanyContactsTable.tsx`, local styles/coverage.
+- Initial contract: selected company's existing companyId, nullable hrName,
+  phoneNumber and email from CompanyRecord, plus loading/error/empty state.
+- Initial required outcome: display HR name, Contact number and Email from the
+  existing global company record, labelled Company contacts (global). Show missing
+  values as Not recorded. Keep the component read-only; existing global contact
+  edits remain in COMPANIES-004 with existing authorization/stale-write checks.
+- Initial acceptance: no invented drive association or per-cycle snapshot. The
+  original Drive column is deferred with per-drive storage, rather than filling
+  it with the selected drive or copying a global contact into every drive. Changing
+  only the cycle/drive does not change that company's contact values. Preserve
+  responsive overflow, long text, email links and server-authorized loading.
+- Initial validation: company switching, NULL/partial contacts, unchanged global
+  values across cycle/drive selection, refresh after global edits and existing
+  access permissions; lint, TypeScript.
+- Future scope retained (deferred): after COMPANIES-008 is resumed/implemented,
+  extend the data contract with stable contactId, driveId, driveReference, cycleCode
+  and nullable contact fields. List multiple contacts per drive with the four
+  columns HR name, Contact number, Email and Drive; identify duplicate/missing
+  references by drive identity. Preserve different contacts on different drives,
+  cancelled-drive history and empty-drive contact states. Never backfill historical
+  drive contacts from the global record without a confirmed source association.
+
+### [COMPANIES-010] Publish panel contracts, build protected reads, integrate cards
+
+- Priority: P1; Status: READY; Owner: Model 1 / Codex integrator.
+- Requested by: Project owner on 2026-10-23 (shared work for the requested cards).
+- Dependencies: existing MIG-006/007/008 implementation contracts;
+  cancellation extension is owned by COMPANIES-011. HR schema work in
+  COMPANIES-008 is paused and does not gate initial-panel completion; integrate
+  COMPANIES-009 using the existing global-contact contract for this release.
+- Files (exclusive): `lib/companies/panel-types.ts`, `panel-queries.ts`, protected
+  company route/loading/controller, `Companies.tsx`, company README and this board.
+  Coordinate any change to existing company/calendar/drive exports with its owner.
+
+Checkpoint first: publish exact props and aggregate DTOs from the shapes above,
+capabilities/scope labels, null/empty/error rules, selector callbacks and ordering.
+Do not force component workers to import another worker's implementation. Each
+card accepts its data and callbacks; it does not define authorization/query policy.
+
+Protected reads: count final offers per company/cycle across repeat drives; group
+the same population for donut controls; load exact-drive events with role links
+separately to avoid multiplication. Extend/reuse the authorized calendar reader
+for company/cycle/drive filters: the month-window query cannot provide complete
+company history. Include NULL dates and dates outside the optional cycle bounds.
+Preserve existing calendar callers and shared lock/write contracts. Reuse existing
+company queries where valid, but remove the irrelevant-company fallback in cycle
+mode deliberately and document that behavioral change.
+
+Final integration: server-validated company/cycle selection, independent process
+drive and donut-role controls, scoped data and capability checks, refresh/cache
+keys including scope/company/cycle/role/dimension as needed, and four independently
+loadable cards. Wire completed components into the page skeleton. Global contact
+editing remains distinct from future drive-contact history. Ship the initial HR
+card as clearly labelled global company contacts; retain the future history task
+without claiming that history exists. Do not present placeholders as done.
+
+Acceptance/validation: documented checkpoint before parallel implementation; use
+fictional fixtures with two departments, UG and PG enrollments, a person with two
+enrollments, repeat drives/titles/events, no-drive offers, NULL classifications,
+and no-offer drives. Verify authorized scope, one-count-per-offer, chart-total
+reconciliation, stale selections, calendar/table refresh in two browser sessions,
+overlay keyboard behavior, lint, TypeScript and build. Do not claim integration
+success from pure fixture tests. Record each worker's commit/handoff before DONE.
+
+### [COMPANIES-011] Retain cancelled drives with an explicit marker
+
+- Priority: P1; Status: READY; Owner: Unassigned (database/integrator coordinates).
+- Requested/confirmed by: Project owner on 2026-10-23 in the cancellation reply.
+- Dependencies: existing MIG-007/008 contracts; coordinate schema/migration edits
+  with the database owner. Paused COMPANIES-008 is not a prerequisite.
+- Files when implemented: `db/schema.ts`, NEW reviewed migration/metadata,
+  drive read/write/types, calendar read/types/display, process/drive selectors,
+  related docs and focused validation. Coordinate component owners before edits.
+- Required outcome: an explicit drive-level cancellation marker, set through the
+  existing SUPERADMIN/chosen-department authorization. Preserve the driveId,
+  company/cycle association, sibling drives, event rows, role links, drive contacts
+  and final offers. Calendar event deletion continues to delete only that event.
+- Acceptance: cancelled drive 2 is visibly marked Cancelled alongside drive 1;
+  drive 1 and both drives' recorded history remain accessible. Company cycle
+  relevance and offer chart counts do not disappear just because of cancellation.
+  Absence of a marker means no cancellation recorded, not proof of attendance or
+  completion. No automatic cancellation from event deletion or elapsed dates.
+- Contract checkpoint: publish marker shape, server authorization, stale-write/
+  concurrency behavior and display propagation. Define calendar visibility/filter
+  behavior explicitly; do not silently erase retained cancelled events. Coordinate
+  the scheduled-PPT metric with MIG-010: its existing dated-event definition would
+  still count a retained dated PPT. Obtain an owner decision before excluding
+  cancelled drives from that separately defined metric. No expanded recruitment
+  lifecycle/completion states, cancellation audit ledger or offer revocation flow.
+- Validation when implemented: cancellation with existing offers/contacts/events,
+  drive 1 unaffected by drive 2 cancellation, deleted single event, department/role
+  boundaries, stale concurrent edits and calendar/company refresh consistency;
+  data-preserving migration checks, lint, TypeScript and build.
+
+#### Three-laptop assignments and initial prop checkpoint
+
+The project owner requested three independent models/laptops on 2026-10-23.
+The committed [parallel plan](docs/companies/PARALLEL-PLAN.md) is the initial
+COMPANIES-010 prop checkpoint once it is published on origin/main. It defines
+exact exports/props, controlled selection callbacks, file ownership and Git rules.
+Component Props/row types are exported from each worker's owned component files;
+workers do not need to create or wait for a competing shared types implementation.
+Model 1's backend DTOs must conform to this checkpoint. Contract changes require
+coordination before either worker implements the dependent change.
+
+| Laptop/model | Assigned tasks | Branch | Step order |
+| --- | --- | --- | --- |
+| Model 1 / this Codex | COMPANIES-010, 002, 003 | `companies/integration` | Protected reads/controls, review component PRs, compose and validate the page. |
+| Model 2 | COMPANIES-006, 007 | `companies/charts` | Inspect/report, then history chart, then donut; stop between steps. |
+| Model 3 | Initial COMPANIES-009, 005 | `companies/tables` | Inspect/report, then global contacts, then process table; stop between steps. |
+
+Detailed copyable prompts:
+[Model 2](docs/companies/MODEL-2-PROMPT.md),
+[Model 3](docs/companies/MODEL-3-PROMPT.md).
+Read them after fetching the documentation commit from origin/main. Both prompts
+require Step 1 inspection/report only until the owner says continue Step 2; a
+second explicit continue is required before Step 3. Push each branch and use a
+draft PR against main; component workers never merge or push directly to main.
+
+The owner explicitly assigns TASKS.md/shared-plan editing solely to Model 1 for
+this wave to avoid documentation merge conflicts. This overrides independent
+worker edits to the task board under the general collaboration protocol. Model 2
+records each start/checkpoint/commit in `docs/handoffs/COMPANIES-CHARTS.md`; Model 3
+uses `docs/handoffs/COMPANIES-TABLES.md`. Model 1 updates central task statuses when
+reviewing those handoffs. Assigned owners above are reservations, not claims that
+implementation or runtime validation has begun.
+
+COMPANIES-011 remains an approved subsequent integrator/schema task. Its edits to
+shared contracts/calendar/process components start after the component PRs merge,
+so the tables worker's allowlist remains exclusive during this wave. Paused HR
+schema work and backlog COMPANIES-004 remain outside this initial assignment.
+
+#### Distributed execution and planning handoff
+
+1. Publish this board and the three `docs/companies/` documents to origin/main.
+   All laptops record the same base commit before branching. The parallel-plan
+   prop checkpoint allows independent implementation after the inspection step.
+   Final integration happens after their cards are ready, avoiding a task cycle.
+2. Workers may then own COMPANIES-002, 003, 005, 006, 007 or initial 009 in their
+   listed files, using the same agreed props and fictional fixtures. Each owns its
+   own styles and coverage. No worker edits another component or shared shell.
+3. Multiple HR contacts and cancelled-drive retention remain confirmed. Ship global
+   contacts in COMPANIES-009 first; COMPANIES-008 and 009's per-drive extension are
+   deferred until the owner resumes schema work. COMPANIES-011 follows the merged
+   component wave, independently of the paused HR task. No schema
+   or calendar deletion policy is changed by this planning update itself.
+4. Integrator assembles, validates and documents the combined result. Existing
+   MIG tasks keep their IDs/status/ownership; their board statuses can be stale
+   relative to Lane B handoffs. Inspect commits and validation before depending
+   on them; this planning update does not mark those implementations verified.
+
+Planning handoff, 2026-10-23: this turn edits `TASKS.md` only. No code, schema,
+migration, seed, database, credential or other in-progress dashboard edits are
+changed. No new component is implemented by this plan. Source inspection covers
+company queries, schema, drive/calendar contracts and calendar actions; no runtime
+database behavior was exercised. Validation: documentation diff review completed;
+`git diff --check -- TASKS.md` passed. Application tests, type-check and build were
+not run for this documentation-only revision.
+
+Decision follow-up, 2026-10-23: the owner confirmed cancelled-drive retention with
+a Cancelled marker and multiple HR contacts per drive. Updated this plan and
+task dependencies only; COMPANIES-008 is READY, COMPANIES-009 still awaits its
+storage contract, and COMPANIES-011 records the approved cancellation work.
+
+Subsequent owner decision, 2026-10-23 (supersedes the HR delivery status above):
+implement COMPANIES-009 with global company HR data first. COMPANIES-008 is PAUSED;
+the multiple-contact-per-drive requirement and its later schema phase remain
+documented. Initial contact-card integration does not require that schema phase.
+This update changes `TASKS.md` only; no component or schema was implemented.
+
 ## P2 — Optimization
 
 ### [PLACEMENTS-003] Move placement-cycle filtering to the server
