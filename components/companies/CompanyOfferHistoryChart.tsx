@@ -29,7 +29,7 @@ import styles from "./CompanyOfferHistoryChart.module.css";
 export interface CompanyOfferCycleRow {
   cycleId: string;
   cycleCode: string;
-  offerCount: number;
+  offerCount: number | string;
 }
 
 export interface CompanyOfferHistoryChartProps {
@@ -45,6 +45,18 @@ const BAR_COLOR = "#3a72e6";
 const GRID_COLOR = "rgba(110, 160, 255, 0.12)";
 const AXIS_TEXT = "#8f9bb0";
 const LABEL_TEXT = "#dbe7fc";
+const COUNT_ERROR = "These figures don't add up; please refresh or report this.";
+
+/** Accept legacy string counts only when they are whole, nonnegative integers. */
+export function normalizeOfferCount(value: unknown): number | null {
+  const count = typeof value === "number" ? value : typeof value === "string" && value.trim() ? Number(value) : NaN;
+  return Number.isSafeInteger(count) && count >= 0 ? count : null;
+}
+
+export function normalizeHistoryRows(rows: CompanyOfferCycleRow[]) {
+  const normalized = rows.map((row) => ({ ...row, offerCount: normalizeOfferCount(row.offerCount) }));
+  return normalized.some((row) => row.offerCount === null) ? null : normalized as { cycleId: string; cycleCode: string; offerCount: number }[];
+}
 
 /**
  * CompanyOfferHistoryChart displays a horizontally scrollable bar chart of
@@ -66,13 +78,17 @@ export default function CompanyOfferHistoryChart({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const compactScrollRef = useRef<HTMLDivElement>(null);
+  const overlayScrollRef = useRef<HTMLDivElement>(null);
   const savedScrollLeftRef = useRef<number>(0);
 
   const titleId = useId();
   const overlayTitleId = useId();
 
-  const totalOffers = rows.reduce((sum, r) => sum + r.offerCount, 0);
-  const hasData = Boolean(company && !loading && !error && rows.length > 0);
+  const chartRows = normalizeHistoryRows(rows);
+  const dataError = error ?? (chartRows === null ? COUNT_ERROR : null);
+  const safeRows = chartRows ?? [];
+  const totalOffers = safeRows.reduce((sum, row) => sum + row.offerCount, 0);
+  const hasData = Boolean(company && !loading && !dataError && safeRows.length > 0);
 
   // Preserve scroll position when opening/closing
   const openOverlay = useCallback(() => {
@@ -84,19 +100,24 @@ export default function CompanyOfferHistoryChart({
 
   const closeOverlay = useCallback(() => {
     setIsExpanded(false);
+    requestAnimationFrame(() => {
+      if (compactScrollRef.current) compactScrollRef.current.scrollLeft = savedScrollLeftRef.current;
+      expandButtonRef.current?.focus();
+    });
   }, []);
 
-  // Handle focus trapping, Escape key, and body scroll lock for the overlay
+  // Start at the newest cycle without moving keyboard focus on page load.
   useEffect(() => {
-    if (!isExpanded) {
-      // Restore focus to trigger button
-      expandButtonRef.current?.focus();
-      // Restore compact scroll position
-      if (compactScrollRef.current) {
-        compactScrollRef.current.scrollLeft = savedScrollLeftRef.current;
-      }
-      return;
-    }
+    if (hasData && compactScrollRef.current) compactScrollRef.current.scrollLeft = compactScrollRef.current.scrollWidth;
+  }, [company?.companyId, hasData, safeRows.length]);
+
+  useEffect(() => {
+    if (isExpanded && overlayScrollRef.current) overlayScrollRef.current.scrollLeft = overlayScrollRef.current.scrollWidth;
+  }, [isExpanded, safeRows.length]);
+
+  // Focus trapping and body locking apply only while the overlay is open.
+  useEffect(() => {
+    if (!isExpanded) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -142,8 +163,8 @@ export default function CompanyOfferHistoryChart({
   }, [isExpanded, closeOverlay]);
 
   // Dynamic widths for horizontal scrollability without compressing bars
-  const compactChartWidth = Math.max(340, rows.length * 60);
-  const overlayChartWidth = Math.max(720, rows.length * 76);
+  const compactChartWidth = Math.max(340, safeRows.length * 60);
+  const overlayChartWidth = Math.max(720, safeRows.length * 76);
 
   // Render chart content
   const renderChart = (isOverlaySize: boolean) => {
@@ -155,7 +176,7 @@ export default function CompanyOfferHistoryChart({
       <div style={{ width: `${width}px`, minWidth: "100%", height: `${height}px` }}>
         <ResponsiveContainer width="100%" height={height}>
           <BarChart
-            data={rows}
+            data={safeRows}
             margin={{ top: 18, right: 28, bottom: 24, left: 0 }}
             barCategoryGap={isOverlaySize ? 14 : 10}
           >
@@ -250,8 +271,8 @@ export default function CompanyOfferHistoryChart({
                   <>
                     <span>•</span>
                     <span>
-                      {totalOffers} total {totalOffers === 1 ? "offer" : "offers"} across {rows.length}{" "}
-                      {rows.length === 1 ? "cycle" : "cycles"}
+                      {totalOffers} total {totalOffers === 1 ? "offer" : "offers"} across {safeRows.length}{" "}
+                      {safeRows.length === 1 ? "cycle" : "cycles"}
                     </span>
                   </>
                 )}
@@ -293,10 +314,10 @@ export default function CompanyOfferHistoryChart({
         </div>
       )}
 
-      {company && !loading && error && (
+      {company && !loading && dataError && (
         <div className={`${styles.stateBox} ${styles.errorBox}`} role="alert">
           <AlertCircle size={32} className={styles.errorIcon} aria-hidden="true" />
-          <p className={styles.errorMessage}>{error}</p>
+          <p className={styles.errorMessage}>{dataError}</p>
           <button
             type="button"
             className={styles.retryButton}
@@ -308,7 +329,7 @@ export default function CompanyOfferHistoryChart({
         </div>
       )}
 
-      {company && !loading && !error && rows.length === 0 && (
+      {company && !loading && !dataError && safeRows.length === 0 && (
         <div className={styles.stateBox} role="status">
           <BarChart3 size={32} className={styles.stateIcon} aria-hidden="true" />
           <p>No placement cycles or offers recorded for {company.name}.</p>
@@ -329,6 +350,7 @@ export default function CompanyOfferHistoryChart({
               {renderChart(false)}
             </div>
           </div>
+          <p className={styles.scrollHint}>Showing newest cycle first. Scroll left for older cycles.</p>
 
           {/* Accessible Table for Screen Readers */}
           <table className={styles.srOnly}>
@@ -342,7 +364,7 @@ export default function CompanyOfferHistoryChart({
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {safeRows.map((row) => (
                 <tr key={row.cycleId}>
                   <td>{row.cycleCode}</td>
                   <td>{row.offerCount}</td>
@@ -375,8 +397,8 @@ export default function CompanyOfferHistoryChart({
                 </h2>
                 <p className={styles.overlaySubtitle}>
                   Scope: {scopeLabel} • {totalOffers} total{" "}
-                  {totalOffers === 1 ? "offer" : "offers"} across {rows.length}{" "}
-                  {rows.length === 1 ? "recorded cycle" : "recorded cycles"}
+                  {totalOffers === 1 ? "offer" : "offers"} across {safeRows.length}{" "}
+                  {safeRows.length === 1 ? "recorded cycle" : "recorded cycles"}
                 </p>
               </div>
 
@@ -394,6 +416,7 @@ export default function CompanyOfferHistoryChart({
 
             <div className={styles.overlayBody}>
               <div
+                ref={overlayScrollRef}
                 className={styles.overlayScrollArea}
                 tabIndex={0}
                 role="region"
@@ -403,6 +426,7 @@ export default function CompanyOfferHistoryChart({
                   {renderChart(true)}
                 </div>
               </div>
+              <p className={styles.scrollHint}>Showing newest cycle first. Scroll left for older cycles.</p>
             </div>
           </div>
         </div>

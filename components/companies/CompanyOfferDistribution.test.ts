@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 // Register no-op loader for .css files in Node test runner
 if (typeof require !== "undefined" && require.extensions) {
@@ -167,5 +169,14 @@ test("evaluates UI state resolution for company offer distribution", () => {
   };
   assert.ok(stateActive.totalOffers > 0);
   assert.equal(stateActive.buckets.length, 1);
+});
+
+test("renders a numeric total from text counts and rejects mismatched slices", async () => {
+  const { default: CompanyOfferDistribution } = await import("./CompanyOfferDistribution");
+  const props = { company: { companyId: "c1", name: "Acme" }, cycle: { cycleId: "cy1", code: "2025-26" }, scopeLabel: "Civil", dimension: "department" as const, selectedRoleId: null, roleOptions: [], missingRoleCount: 0, loading: false, error: null, onDimensionChange: () => {}, onRoleChange: () => {}, onRetry: () => {} };
+  const valid = renderToStaticMarkup(createElement(CompanyOfferDistribution, { ...props, totalOffers: "19", buckets: [{ key: "civil", label: "Civil", count: "19" }] }));
+  assert.ok(valid.includes(">19<"));
+  const invalid = renderToStaticMarkup(createElement(CompanyOfferDistribution, { ...props, totalOffers: 19, buckets: [{ key: "civil", label: "Civil", count: 18 }] }));
+  assert.ok(invalid.includes("These figures don&#x27;t add up; please refresh or report this."));
 });
 

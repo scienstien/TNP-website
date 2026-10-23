@@ -130,6 +130,12 @@
   height: 250px;
 }
 
+.scrollHint {
+  margin: 8px 2px 0;
+  color: #8f9bb0;
+  font-size: 12px;
+}
+
 /* State banners */
 .stateBox {
   display: flex;

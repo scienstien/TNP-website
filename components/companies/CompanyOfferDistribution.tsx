@@ -17,7 +17,7 @@ export interface CompanyOfferRoleOption {
 export interface CompanyOfferBucket {
   key: string;
   label: string;
-  count: number;
+  count: number | string;
 }
 
 export interface CompanyOfferDistributionProps {
@@ -28,7 +28,7 @@ export interface CompanyOfferDistributionProps {
   selectedRoleId: string | null; // NULL means All roles
   roleOptions: CompanyOfferRoleOption[];
   buckets: CompanyOfferBucket[];
-  totalOffers: number;
+  totalOffers: number | string;
   missingRoleCount: number;
   loading: boolean;
   error: string | null;
@@ -51,6 +51,16 @@ const PALETTE = [
 ];
 
 const NOT_RECORDED_COLOR = "#50617a";
+const COUNT_ERROR = "These figures don't add up; please refresh or report this.";
+
+export function validateDistributionCounts(total: unknown, buckets: CompanyOfferBucket[]) {
+  const parsedTotal = typeof total === "number" ? total : typeof total === "string" && total.trim() ? Number(total) : NaN;
+  const parsedBuckets = buckets.map((bucket) => ({ ...bucket, count: typeof bucket.count === "number" ? bucket.count : typeof bucket.count === "string" && bucket.count.trim() ? Number(bucket.count) : NaN }));
+  if (!Number.isSafeInteger(parsedTotal) || parsedTotal < 0 || parsedBuckets.some((bucket) => !Number.isSafeInteger(bucket.count) || bucket.count < 0)) return null;
+  return parsedBuckets.reduce((sum, bucket) => sum + bucket.count, 0) === parsedTotal
+    ? { totalOffers: parsedTotal, buckets: parsedBuckets as { key: string; label: string; count: number }[] }
+    : null;
+}
 
 /**
  * Format a human-readable, distinct label for each role option.
@@ -139,16 +149,18 @@ export default function CompanyOfferDistribution({
     reservationCategory: "Reservation category",
   };
 
-  const hasData = Boolean(
-    company && cycle && !loading && !error && totalOffers > 0 && buckets.length > 0
-  );
+  const validated = validateDistributionCounts(totalOffers, buckets);
+  const dataError = error ?? (validated === null ? COUNT_ERROR : null);
+  const safeTotalOffers = validated?.totalOffers ?? 0;
+  const safeBuckets = validated?.buckets ?? [];
+  const hasData = Boolean(company && cycle && !loading && !dataError && safeTotalOffers > 0 && safeBuckets.length > 0);
 
   // Compute color assignments stably per bucket
   const bucketColors = useMemo(() => {
-    return buckets.map((bucket, index) =>
+    return safeBuckets.map((bucket, index) =>
       getBucketColor(bucket.key, bucket.label, index)
     );
-  }, [buckets]);
+  }, [safeBuckets]);
 
   return (
     <section className={styles.card} aria-labelledby={titleId}>
@@ -276,10 +288,10 @@ export default function CompanyOfferDistribution({
         </div>
       )}
 
-      {company && cycle && !loading && error && (
+      {company && cycle && !loading && dataError && (
         <div className={`${styles.stateBox} ${styles.errorBox}`} role="alert">
           <AlertCircle size={32} className={styles.errorIcon} aria-hidden="true" />
-          <p className={styles.errorMessage}>{error}</p>
+          <p className={styles.errorMessage}>{dataError}</p>
           <button
             type="button"
             className={styles.retryButton}
@@ -291,7 +303,7 @@ export default function CompanyOfferDistribution({
         </div>
       )}
 
-      {company && cycle && !loading && !error && (totalOffers === 0 || buckets.length === 0) && (
+      {company && cycle && !loading && !dataError && (safeTotalOffers === 0 || safeBuckets.length === 0) && (
         <div className={styles.stateBox} role="status">
           <PieChartIcon size={32} className={styles.stateIcon} aria-hidden="true" />
           <p>
@@ -310,7 +322,7 @@ export default function CompanyOfferDistribution({
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
-                    data={buckets}
+                    data={safeBuckets}
                     dataKey="count"
                     nameKey="label"
                     innerRadius="62%"
@@ -321,7 +333,7 @@ export default function CompanyOfferDistribution({
                     strokeWidth={2}
                     isAnimationActive={false}
                   >
-                    {buckets.map((bucket, index) => (
+                    {safeBuckets.map((bucket, index) => (
                       <Cell
                         key={bucket.key}
                         fill={bucketColors[index]}
@@ -333,8 +345,8 @@ export default function CompanyOfferDistribution({
                       if (!active || !payload?.length) return null;
                       const bucket = payload[0].payload as CompanyOfferBucket;
                       const share =
-                        totalOffers > 0
-                          ? ((bucket.count / totalOffers) * 100).toFixed(1)
+                        safeTotalOffers > 0
+                          ? ((bucket.count / safeTotalOffers) * 100).toFixed(1)
                           : "0.0";
                       return (
                         <div className={styles.tooltip}>
@@ -344,7 +356,7 @@ export default function CompanyOfferDistribution({
                             {bucket.count === 1 ? "offer" : "offers"}
                           </p>
                           <p className={styles.tooltipDetail}>
-                            {share}% of {totalOffers} total offers
+                            {share}% of {safeTotalOffers} total offers
                           </p>
                         </div>
                       );
@@ -354,9 +366,9 @@ export default function CompanyOfferDistribution({
               </ResponsiveContainer>
 
               <div className={styles.donutCenter}>
-                <span className={styles.donutCenterTotal}>{totalOffers}</span>
+                <span className={styles.donutCenterTotal}>{safeTotalOffers}</span>
                 <span className={styles.donutCenterLabel}>
-                  {totalOffers === 1 ? "Offer" : "Offers"}
+                  {safeTotalOffers === 1 ? "Offer" : "Offers"}
                 </span>
               </div>
             </div>
@@ -366,10 +378,10 @@ export default function CompanyOfferDistribution({
               className={styles.legendContainer}
               aria-label={`${dimensionLabels[dimension]} distribution breakdown`}
             >
-              {buckets.map((bucket, index) => {
+              {safeBuckets.map((bucket, index) => {
                 const share =
-                  totalOffers > 0
-                    ? ((bucket.count / totalOffers) * 100).toFixed(1)
+                  safeTotalOffers > 0
+                    ? ((bucket.count / safeTotalOffers) * 100).toFixed(1)
                     : "0.0";
                 return (
                   <li key={bucket.key} className={styles.legendItem}>
@@ -407,10 +419,10 @@ export default function CompanyOfferDistribution({
               </tr>
             </thead>
             <tbody>
-              {buckets.map((bucket) => {
+              {safeBuckets.map((bucket) => {
                 const share =
-                  totalOffers > 0
-                    ? ((bucket.count / totalOffers) * 100).toFixed(1)
+                  safeTotalOffers > 0
+                    ? ((bucket.count / safeTotalOffers) * 100).toFixed(1)
                     : "0.0";
                 return (
                   <tr key={bucket.key}>

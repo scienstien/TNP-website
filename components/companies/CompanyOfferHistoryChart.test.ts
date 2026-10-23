@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 // Register no-op loader for .css files in Node test runner
 if (typeof require !== "undefined" && require.extensions) {
@@ -110,4 +112,18 @@ test("state condition resolution for UI distinct states", () => {
   // 5. Data present
   const dataState = { company: mockCompany, loading: false, error: null, rows: mockRows };
   assert.equal(dataState.rows.length > 0, true);
+});
+
+test("renders the chart card and converts a valid text count to a numeric total", async () => {
+  const { default: CompanyOfferHistoryChart } = await import("./CompanyOfferHistoryChart");
+  const html = renderToStaticMarkup(createElement(CompanyOfferHistoryChart, { company: { companyId: "c1", name: "Acme" }, scopeLabel: "Civil", rows: [{ cycleId: "cy1", cycleCode: "2025-26", offerCount: "19" }], loading: false, error: null, onRetry: () => {} }));
+  assert.ok(html.includes("19 total offer"));
+  assert.ok(html.includes("Scroll left for older cycles"));
+});
+
+test("renders an error instead of a misleading chart for an invalid text count", async () => {
+  const { default: CompanyOfferHistoryChart } = await import("./CompanyOfferHistoryChart");
+  const html = renderToStaticMarkup(createElement(CompanyOfferHistoryChart, { company: { companyId: "c1", name: "Acme" }, scopeLabel: "Civil", rows: [{ cycleId: "cy1", cycleCode: "2025-26", offerCount: "0127x" }], loading: false, error: null, onRetry: () => {} }));
+  assert.ok(html.includes("These figures don&#x27;t add up; please refresh or report this."));
+  assert.ok(!html.includes("0127x total"));
 });
