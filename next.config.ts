@@ -2,9 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  experimental: {
-    agentFeedback: true,
-  },
+  // AGENTS.md is shared project context: `next dev` must not inject generated agent blocks into it.
+  agentRules: false,
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

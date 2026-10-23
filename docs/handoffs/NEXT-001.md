@@ -61,11 +61,20 @@ keep data fresh behind Suspense when a caching decision is unclear.
 - Client-navigation validation was observed through the dev server's error state,
   not the Navigation Inspector UI.
 
-## Note for the project owner / Model 1
+## Follow-up: generated AGENTS.md blocks disabled (owner decision, 2026-10-23)
 
-`next.config.ts` enables `experimental.agentFeedback`. Every `next dev` start
-appends a generated "nextjs-agent-rules" / "nextjs-agent-feedback" block to the
-shared `AGENTS.md` and asks agents to commit it and to send feedback to Next.js.
-This lane restored `AGENTS.md` after its dev run and did not commit or follow that
-block. Decide whether to keep the experiment (and commit the block) or disable it,
-so other laptops do not keep getting an unexpected `AGENTS.md` diff.
+`next.config.ts` enabled `experimental.agentFeedback`, and `agentRules` defaults to
+true. When `next dev` detects an AI coding agent, these append generated
+"nextjs-agent-rules" and "nextjs-agent-feedback" blocks to the shared `AGENTS.md`
+(the latter asks agents to commit it and send feedback to Next.js). This lane
+restored `AGENTS.md` after its first dev run and did not commit or follow the blocks.
+
+The owner asked to turn this off: `experimental.agentFeedback` is removed and
+`agentRules: false` is set, so `next dev` neither writes nor needs those blocks
+(when disabled it only removes a managed block if one exists). Verified: a fresh
+`next dev` start served `/students` without "Generated AGENTS.md" log lines and left
+`AGENTS.md` unchanged; `tsc`, `npm run build` and `npm run lint` passed. Re-enable
+`agentRules` if the team prefers to commit Next's version-matched-docs hint instead.
+
+The stray untracked `TNP-website/.next/` cache was also deleted on this laptop at the
+owner's request, so plain `npm run lint` now passes here.
