@@ -230,3 +230,21 @@ generated CREATE statements) and its snapshot matches `schema.ts`
 rather than `drizzle-kit push`. Neither migrations nor seeds are executed
 automatically. No historical source files were inspected as part of defining this
 target; actual mappings and missing values remain import work.
+
+## Companies panel aggregate contract (2026-10-24)
+
+Company-cycle directory membership requires a retained drive; All cycles lists all
+company masters. Offer-only history remains valid without inventing a drive. No
+new schema or migration is required by the panel integration.
+
+Protected Companies reads aggregate final offers for matching REGISTERED
+student-cycle rows through enrollment/cohort/programme department scope, including
+UG and PG. Invalid offer/registration combinations produce a source-data error.
+Drive/role metadata stay institute-wide, preserving repeated IDs and zero-offer
+roles. Counts use Drizzle count() or explicit numeric decoding and are independently
+reconciled against donut buckets.
+
+Actual role compensation uses SQL aggregates: known amount count, median, minimum,
+maximum. NULL is excluded, actual zero retained; LPA and monthly INR are never
+combined. Only aggregates and role metadata leave the server. These read checks do
+not replace the pending database enforcement work.

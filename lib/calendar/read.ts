@@ -5,8 +5,10 @@ import type { Database, Transaction } from "@/lib/placements/cycles";
 import type { CalendarEvent, CalendarWindow } from "./types";
 
 /** Internal reader; every caller authorizes first. Role links use a separate query. */
-export async function readCalendarEvents(connection: Database | Transaction, filter: CalendarWindow | { eventId: string }): Promise<CalendarEvent[]> {
-  const condition = "eventId" in filter ? eq(driveEvents.eventId, filter.eventId) : or(isNull(driveEvents.scheduledDate), and(gte(driveEvents.scheduledDate, filter.startsOn), lte(driveEvents.scheduledDate, filter.endsOn)));
+export async function readCalendarEvents(connection: Database | Transaction, filter: CalendarWindow | { eventId: string } | { companyId: string; cycleId: string; driveId: string }): Promise<CalendarEvent[]> {
+  const condition = "eventId" in filter ? eq(driveEvents.eventId, filter.eventId) : "driveId" in filter
+    ? and(eq(drives.driveId, filter.driveId), eq(drives.companyId, filter.companyId), eq(drives.cycleId, filter.cycleId))
+    : or(isNull(driveEvents.scheduledDate), and(gte(driveEvents.scheduledDate, filter.startsOn), lte(driveEvents.scheduledDate, filter.endsOn)));
   const events = await connection.select({ eventId: driveEvents.eventId, driveId: drives.driveId, companyId: companies.companyId, companyName: companies.name, cycleId: drives.cycleId, cycleCode: placementCycles.code, driveReference: drives.reference, processType: driveEvents.processType, scheduledDate: driveEvents.scheduledDate, scope: driveEvents.scope, label: driveEvents.label })
     .from(driveEvents).innerJoin(drives, eq(drives.driveId, driveEvents.driveId)).innerJoin(companies, eq(companies.companyId, drives.companyId)).innerJoin(placementCycles, eq(placementCycles.cycleId, drives.cycleId))
     .where(condition).orderBy(sql`${driveEvents.scheduledDate} asc nulls last`, asc(companies.name), asc(driveEvents.eventId));

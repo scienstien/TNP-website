@@ -295,6 +295,20 @@ limitation is clearly reported. - Documentation is updated if a shared
 assumption, contract, or workflow changed. - The handoff states exactly
 what changed and what remains.
 9. Remaining decisions and integration work
+
+Companies integration checkpoint (2026-10-24; supersedes older company/calendar
+status descriptions below): the calendar UI already persists PostgreSQL events
+through the Lane B implementation. Companies now reuses its event reader for an
+exact company/cycle/drive without a date window. Companies.tsx is composition only;
+the controller loads cards independently. All cycles includes every company master;
+cycle mode includes companies with explicit drives, even zero offers. Contacts and
+drive metadata are institute-wide. Offer aggregates include REGISTERED UG and PG
+enrollments in the authenticated department (SUPERADMIN can read all), without
+student detail payloads. Separate role compensation and offer-type cards complement
+the three-dimension demographic donut. Live database/browser integration acceptance
+is still pending; see docs/handoffs/COMPANIES-MODEL1.md. Cancellation status and
+per-drive HR storage remain separate future schema work.
+
 Settled: twenty-year/all-department coverage, UG/PG programme hierarchy, generated
 UUID identities, explicit cycles, registration including ineligible opt-outs,
 trusted source rosters, one final offer per enrollment, actual offer compensation

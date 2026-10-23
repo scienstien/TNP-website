@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { selectDepartmentAction } from "@/lib/auth/department-actions";
 import "./department-navbar.css";
 
@@ -20,18 +21,10 @@ interface Props {
 /** Top bar for choosing the department the whole dashboard is showing. */
 export default function DepartmentNavbar({ current, departments, canSwitch }: Props) {
   const [pending, startSwitch] = useTransition();
+  const pathname = usePathname();
+  const router = useRouter();
   const choose = (code: string) => startSwitch(() => selectDepartmentAction(code));
-
-  if (!canSwitch) {
-    return (
-      <nav className="dept-navbar" aria-label="Department">
-        <span className="dept-navbar-label">Department</span>
-        <span className="dept-chip is-active is-static">
-          {current ? current.name : "All departments"}
-        </span>
-      </nav>
-    );
-  }
+  const programme = pathname?.includes("/dashboard/pg") ? "PG" : "UG";
 
   const options = [{ code: "all", name: "All departments", short: "All" }, ...departments.map((department) => ({
     ...department,
@@ -40,25 +33,30 @@ export default function DepartmentNavbar({ current, departments, canSwitch }: Pr
 
   return (
     <nav className="dept-navbar" aria-label="Department" aria-busy={pending}>
-      <span className="dept-navbar-label">Department</span>
-      <div className="dept-navbar-list">
-        {options.map((option) => {
-          const active = (current?.code ?? "all") === option.code;
-          return (
-            <button
-              key={option.code}
-              type="button"
-              className={`dept-chip${active ? " is-active" : ""}`}
-              aria-pressed={active}
-              title={option.name}
-              disabled={pending}
-              onClick={() => choose(option.code)}
-            >
-              {option.short}
-            </button>
-          );
-        })}
-      </div>
+      <label className="dept-navbar-select-label">
+        <span className="dept-navbar-label">Programme</span>
+        <select
+          className="dept-navbar-select"
+          value={programme}
+          onChange={(event) => router.push(`/dashboard/${event.target.value.toLowerCase()}`)}
+          aria-label="Programme level"
+        >
+          <option value="UG">UG</option>
+          <option value="PG">PG</option>
+        </select>
+      </label>
+      <label className="dept-navbar-select-label">
+        <span className="dept-navbar-label">Department</span>
+        <select
+          className="dept-navbar-select"
+          value={current?.code ?? "all"}
+          disabled={!canSwitch || pending}
+          onChange={(event) => choose(event.target.value)}
+          aria-label="Department"
+        >
+          {options.map((option) => <option key={option.code} value={option.code}>{option.short}</option>)}
+        </select>
+      </label>
       <span className="dept-navbar-current" aria-live="polite">
         {current ? current.name : "All departments"}
       </span>
