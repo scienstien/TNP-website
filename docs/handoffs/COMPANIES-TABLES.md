@@ -6,13 +6,14 @@
 - Branch: `companies/tables`
 - Base commit: `aa3865f6a25e4084adfe21822f98fd3ae299aa87` (origin/main, includes
   the companies parallel plan; `origin/docs/companies-parallel-plan` is identical)
-- Status: Step 2 (global contacts) committed for review; Step 3 not started
+- Status: Steps 1-3 committed; draft PR to main awaits Model 1 review (not merged)
 - Commits:
 
 | SHA | Step | Subject |
 | --- | --- | --- |
 | `8139b10` | 1 | docs: record companies tables Step 1 checkpoint |
-| (this commit) | 2 | COMPANIES-009: add global company contacts table |
+| `5917366` | 2 | COMPANIES-009: add global company contacts table |
+| (this commit) | 3 | COMPANIES-005: add exact-drive process table |
 
 ## Step 1: inspection checkpoint (2026-10-23)
 
@@ -218,6 +219,109 @@ authorizes, writes or stores data.
 - After a COMPANIES-004 global contact edit, supply the refreshed record; on a
   failed load pass `error` and a retry callback.
 
-## Step 3: exact-drive process table
+## Step 3: exact-drive process table (2026-10-23)
 
-Not started. Awaiting "Continue Step 3" after Step 2 review.
+### Files
+
+- `components/companies/CompanyProcessTable.tsx` (added)
+- `components/companies/CompanyProcessTable.module.css` (added)
+- `components/companies/CompanyProcessTable.test.tsx` (added)
+- `docs/handoffs/COMPANIES-TABLES.md` (this record)
+
+### Exports
+
+`CompanyProcessTableProps` exactly as planned above, and the default
+`CompanyProcessTable` component. No other export, type or shared file changed.
+`DriveOption`/`CalendarEvent` are type-only imports; `PROCESS_LABELS` is the only
+runtime import from `lib/`.
+
+### Behavior
+
+- Card titled "Drive process"; copy says the stages are scheduled dates read from
+  the shared process calendar and that a scheduled date does not confirm a stage
+  took place. The selected company name and cycle code are shown.
+- Drive selector (native `<select>`, visible label "Drive") lists only drives whose
+  `companyId`/`cycleId` match the props. Each option is
+  `{reference ?? "No reference"} · {ID prefix}`; the prefix is 8 characters, extended
+  only when two listed drive IDs share it, so repeated/NULL references stay
+  distinguishable. A "Choose a drive" placeholder is always first.
+- Selection is controlled: the card never calls `onDriveChange` while rendering and
+  never selects a drive on its own, including when only one drive exists. Choosing
+  an option calls `onDriveChange(driveId)`; choosing the placeholder calls
+  `onDriveChange(null)`.
+- Two columns: Event type and Scheduled date. The event cell holds the stage name
+  from `PROCESS_LABELS`, the optional event label (round), the scope ("Whole drive" /
+  "Selected roles") and linked roles as `{jobTitle ?? "Unknown title"} · {roleId
+  prefix}`. A SELECTED_ROLES event with no links shows "No roles linked".
+- Rows are keyed by `eventId`, rendered in the supplied order, with repeated stages
+  kept. A NULL date shows "Not scheduled"; dated rows use `<time>` with the stored
+  ISO date. No month, cycle-date or current-year filtering happens in the component.
+- Only events whose `driveId` equals the selected drive are shown, so events from a
+  previous drive/company are never presented as current.
+- State precedence: `loading` → `error !== null` → no company/cycle → no matching
+  drives → no selected drive → selected drive not in the matching list → no events
+  ("No event recorded for this drive. This does not mean a stage did not happen.")
+  → table. The selector stays mounted during loading and errors so keyboard focus is
+  not lost while the caller fetches a newly chosen drive's events.
+- Refresh button (shown when a company and cycle are selected, or on error) calls
+  `onRefresh`. No automatic or realtime cross-browser update is implied.
+- Read-only: no event writer, localStorage, fetch or authorization. The component
+  uses no React hooks. No cancellation marker or status is shown or inferred
+  (COMPANIES-011 is a later integrator task).
+
+### Validation
+
+- Focused tests, 9 passed / 0 failed:
+  `node -e "process.geteuid=()=>0; require('tsx/cjs/api').register(); require('./components/companies/CompanyProcessTable.test.tsx')"`
+  Covers the two columns and all five stage labels; repeated, labelled and undated
+  events in supplied order with dates far outside any cycle; whole-drive and
+  selected-role events with repeated/NULL role titles; repeated/NULL drive
+  references and a shared 8-character ID prefix; no automatic selection; exact-drive
+  event filtering; changed company/cycle with stale drives/events; no selection, no
+  drives, unavailable drive and no events; loading/error states; and, by expanding
+  the hook-free element tree, that selecting a drive, clearing it and Refresh call
+  the caller's callbacks while rendering calls neither.
+- Contacts tests re-run: 7 passed / 0 failed.
+- `npx eslint` on all four owned TS files: passed.
+- `npx eslint . --ignore-pattern "TNP-website/**"`: passed. Plain `npm run lint`
+  still reports problems only in four files under the untracked nested
+  `TNP-website/.next/` cache, as in Step 2.
+- `npx tsc --noEmit`: passed.
+- `npm run build`: passed.
+
+### Limitations
+
+- Nothing imports the component yet; the build type-checks it but does not bundle
+  it or compile its CSS module.
+- Keyboard selection relies on the native `<select>`; it was not exercised in a
+  browser. Responsive overflow, focus outlines and contrast are also unverified in
+  a browser (no preview route is allowed in this lane).
+- Calendar-to-table consistency, create/edit/delete → refresh, two-session stale
+  data and permissions were not tested: they require Model 1's protected reader and
+  the integrated page. Synthetic render tests do not prove database or browser
+  integration.
+
+### Integration notes for Model 1
+
+- Supply all events for the selected exact drive, including NULL dates and dates
+  outside the calendar month or optional cycle bounds; `readCalendarEvents()` has no
+  drive filter today. Keep a stable order (the existing reader orders by date, NULLs
+  last, then eventId within one company).
+- Reset `selectedDriveId` when company or cycle changes; the card hides a mismatched
+  selection but does not clear it. Preselecting a single drive is your choice.
+- Set `loading` while a new drive's events load and guard against stale responses;
+  the card filters by `driveId` but cannot detect an out-of-date list for the same
+  drive.
+- Wire `onRefresh` to reload the drive's events (and drive options if they can
+  change), e.g. after calendar edits in the same session.
+- Once COMPANIES-011 publishes its marker, the drive option label and card can show
+  "Cancelled"; that needs a coordinated prop change.
+
+## Open items for Model 1 / the project owner
+
+- Remove or ignore the stray untracked `TNP-website/.next/` folder on this laptop
+  (or add a root-anchored ESLint ignore) so `npm run lint` passes; this lane did not
+  touch it.
+- Align "Unscheduled" (calendar) with "Not scheduled" (process table) if one
+  wording is preferred.
+- Fix the literal `?` separators in `components/calendar/DriveCalendar.tsx` line 39.

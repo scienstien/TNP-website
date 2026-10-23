@@ -1,0 +1,29 @@
+.card { display:grid; gap:14px; min-width:0; }
+.header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.header h2 { margin:0; }
+.header p { margin:6px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
+.button { flex:0 0 auto; padding:7px 12px; border:1px solid #687181; border-radius:6px; background:transparent; color:#e8eefc; font:inherit; font-size:13px; cursor:pointer; }
+.button:hover { border-color:#76a4ff; background:rgb(49 92 164 / .25); }
+.context { margin:0; color:var(--ink); font-size:14px; font-weight:600; overflow-wrap:anywhere; }
+.field { display:flex; flex-direction:column; gap:7px; max-width:100%; color:var(--muted); font-size:12px; }
+.field select { width:min(460px, 100%); min-height:38px; padding:8px; border:1px solid #687181; border-radius:6px; background:#121d30; color:#dbe7fc; font:inherit; font-size:13px; }
+.field select option { color:#111; background:#fff; }
+.button:focus-visible, .field select:focus-visible, .scroll:focus-visible { outline:2px solid #70a0ff; outline-offset:3px; }
+.state { margin:0; color:var(--muted); font-size:13px; }
+.error { margin:0; color:#ffb2aa; font-size:13px; overflow-wrap:anywhere; }
+.scroll { max-width:100%; overflow-x:auto; overscroll-behavior-x:contain; border:1px solid var(--line); border-radius:8px; }
+.table { min-width:440px; table-layout:fixed; border-collapse:collapse; text-align:left; font-size:13px; }
+.table th, .table td { padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top; overflow-wrap:anywhere; }
+.table tbody tr:last-child td { border-bottom:0; }
+.table th { color:#91a0b9; background:#182338; font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+.table th:nth-child(1) { width:68%; }
+.table td:nth-child(2) { white-space:nowrap; }
+.event { display:grid; gap:5px; justify-items:start; }
+.event strong { color:var(--ink); font-size:13px; }
+.label { color:var(--ink); font-size:12px; overflow-wrap:anywhere; }
+.scope { padding:2px 8px; border:1px solid rgb(112 160 255 / .28); border-radius:999px; color:#9db9ef; font-size:11px; }
+.roles { display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 0; padding:0; list-style:none; }
+.roles li { padding:2px 8px; border:1px solid var(--line); border-radius:6px; color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+.missing { color:var(--muted); font-style:italic; }
+.srOnly { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0, 0, 0, 0); white-space:nowrap; border:0; }
+@media (max-width:700px) { .card { padding:18px; } .header { flex-direction:column; } }
