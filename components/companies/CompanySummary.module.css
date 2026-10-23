@@ -1,0 +1,7 @@
+.card { min-width: 0; padding: 20px; border: 1px solid #354d76; border-radius: 10px; background: #131c2b; color: #edf3ff; }
+.card h2 { font-size: 17px; }
+.card p, .card small { color: #9aa7be; }
+.card small { display: block; }
+.scroll { overflow-x: auto; }
+.scroll table { width: 100%; border-collapse: collapse; }
+.scroll th, .scroll td { text-align: left; padding: 12px; border-bottom: 1px solid #354d76; min-width: 140px; }

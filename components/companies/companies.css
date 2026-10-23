@@ -54,3 +54,5 @@
 @media (max-width:700px) { .portal-shell .content-area:has(.companies-view) { height:calc(100dvh - 61px); padding-bottom:0; }.company-directory-header { flex-direction:column; padding:18px; }.company-table-stats { width:100%; justify-content:flex-start; }.company-stat { flex:1 1 92px; }.company-tools { align-items:flex-start; flex-direction:column; }.company-tools .company-search { width:100%; }.companies-view .section-heading { margin-top:25px; }.company-modal-backdrop { padding:12px; }.company-modal { max-height:calc(100dvh - 24px); }.company-editor { padding:18px; } }
 
 .company-manage-drives { display:inline-flex; align-items:center; min-height:38px; padding:8px 12px; border:1px solid #536786; border-radius:6px; color:#a9c4ff; }
+.company-panel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 20px; }
+@media (max-width: 1000px) { .company-panel-grid { grid-template-columns: minmax(0, 1fr); } }

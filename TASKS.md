@@ -689,7 +689,7 @@ source/mapping. Preserve the existing global company contact fields separately.
 
 ### [COMPANIES-002] Implement the company page header and cycle selector
 
-- Priority: P1; Status: READY; Owner: Model 1 / Codex integrator.
+- Priority: P1; Status: VALIDATION; Owner: Model 1 / Codex integrator.
 - Dependencies: COMPANIES-010 contract checkpoint (not final integration).
 - Files: `components/companies/CompanyPageHeader.tsx`,
   `CompanyCycleSelector.tsx`, component-local styles and focused coverage.
@@ -705,7 +705,7 @@ source/mapping. Preserve the existing global company contact fields separately.
 
 ### [COMPANIES-003] Implement company selection and cycle-relevant directory
 
-- Priority: P1; Status: READY; Owner: Model 1 / Codex integrator.
+- Priority: P1; Status: VALIDATION; Owner: Model 1 / Codex integrator.
 - Dependencies: COMPANIES-010 contract checkpoint; coordinate MIG-006 handoff.
 - Files: `components/companies/CompanyDirectory.tsx`, its styles/coverage.
   Query changes belong to COMPANIES-010, not this worker.
@@ -881,7 +881,7 @@ source/mapping. Preserve the existing global company contact fields separately.
 
 ### [COMPANIES-010] Publish panel contracts, build protected reads, integrate cards
 
-- Priority: P1; Status: READY; Owner: Model 1 / Codex integrator.
+- Priority: P1; Status: VALIDATION; Owner: Model 1 / Codex integrator.
 - Requested by: Project owner on 2026-10-23 (shared work for the requested cards).
 - Dependencies: existing MIG-006/007/008 implementation contracts;
   cancellation extension is owned by COMPANIES-011. HR schema work in
@@ -890,6 +890,22 @@ source/mapping. Preserve the existing global company contact fields separately.
 - Files (exclusive): `lib/companies/panel-types.ts`, `panel-queries.ts`, protected
   company route/loading/controller, `Companies.tsx`, company README and this board.
   Coordinate any change to existing company/calendar/drive exports with its owner.
+
+Implementation checkpoint, 2026-10-24: Companies.tsx now composes the header and
+dedicated controller. Protected offer history/distribution use department-scoped
+REGISTERED UG and PG offers; drive/role metadata reuse readDriveOptions without an
+offer join. Exact-drive calendar reads include undated and out-of-window events.
+All cycles lists all company masters; a selected cycle requires an explicit drive,
+including zero-offer companies. Older fallback wording elsewhere on this board is
+superseded by this owner-confirmed rule.
+
+The owner's reviewer-follow-up is implemented as separate CompanyRolePackages and
+CompanyOfferTypes components. The original donut retains its three demographic
+dimensions. Server compensation summaries exclude NULL amounts, preserve actual
+zero and expose aggregate known counts/median/range only. Offer types have an
+independent exact-role control. No schema change, per-drive HR or cancellation
+marker is included. See docs/handoffs/COMPANIES-MODEL1.md for validation and remaining
+live database/browser acceptance; these tasks are not marked DONE from mocked reads.
 
 Checkpoint first: publish exact props and aggregate DTOs from the shapes above,
 capabilities/scope labels, null/empty/error rules, selector callbacks and ordering.

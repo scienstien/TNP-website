@@ -3,7 +3,7 @@
 - **Lane**: Model 2 / Charts
 - **Branch**: `companies/charts`
 - **Base Commit**: `aa3865f6a25e4084adfe21822f98fd3ae299aa87` (`docs: coordinate three-laptop companies panel development`)
-- **Status**: COMPLETE (COMPANIES-006 & COMPANIES-007 Implemented and Validated)
+- **Status**: Integrated with Model 1 on 2026-10-24; live browser acceptance pending.
 
 ---
 
@@ -144,7 +144,15 @@ All checks completed cleanly with zero warnings or errors:
      - Empty denominator safety (prevents NaN / division by zero)
      - Single department slice 100% share
      - UI state branching (no company, no cycle, loading, error, empty, active)
-4. **Browser Testing Note**: CLI tests verified responsive CSS units, DOM structures, keyboard handlers, and modal focus traps; live browser session verification is left to the integrator.
+4. **Coverage correction (2026-10-24)**: The original CLI tests did not render the
+   charts or exercise keyboard handlers/focus traps. New tests render the actual
+   cards and check string counts and mismatched totals. They still do not exercise
+   browser effects, focus traps, scroll measurements or mobile layout. Those require
+   browser verification. Mobile overlay resizing was deferred by the project owner.
+
+5. **Integration update**: Model 1 adds protected reads, stale-response handling and
+   page composition. Packages per role and offer types are separate cards; the
+   demographic donut retains Department/Gender/Category. See COMPANIES-MODEL1.md.
 
 ---
 

@@ -22,21 +22,11 @@ test("PPT projection changes do not conflict with contact saves or turn unknown 
   assert.equal(companyRecord(row).pvrStatus, "unknown");
 });
 
-test("directory offers use explicit cycle and UG department, with drive and offerless alternatives", () => {
-  const query = new PgDialect().sqlToQuery(directoryCondition("cycle-A", "department-A")!);
-  assert.match(query.sql, /o\.cycle_id = \$/);
-  assert.match(query.sql, /g\.level = 'UG'/);
-  assert.match(query.sql, /p\.department_id = \$/);
-  assert.match(query.sql, /not exists/);
-  assert.match(query.sql, /d\.cycle_id = \$/);
-  assert.doesNotMatch(query.sql, /graduation_year|offer_date|scheduled_date/);
-  assert.deepEqual(query.params, ["cycle-A", "cycle-A", "department-A"]);
-});
-
-test("no cycle gives contacts only; all-scope cycle reads retain UG and cycle restrictions", () => {
-  assert.equal(directoryCondition(null, "department-A"), undefined);
-  const query = new PgDialect().sqlToQuery(directoryCondition("cycle-B", null)!);
-  assert.deepEqual(query.params, ["cycle-B", "cycle-B"]);
-  assert.match(query.sql, /g\.level = 'UG'/);
-  assert.doesNotMatch(query.sql, /p\.department_id/);
+test("cycle directory requires a retained explicit drive, independently of offers or department", () => {
+  const query = new PgDialect().sqlToQuery(directoryCondition("cycle-A")!);
+  assert.match(query.sql, /exists/);
+  assert.match(query.sql, /drives/);
+  assert.doesNotMatch(query.sql, /placement_offers|programmes|graduation_year|offer_date|scheduled_date/);
+  assert.deepEqual(query.params, ["cycle-A"]);
+  assert.equal(directoryCondition(null), undefined);
 });

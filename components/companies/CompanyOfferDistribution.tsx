@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId, useMemo } from "react";
+import React, { useId } from "react";
 import { AlertCircle, PieChart as PieChartIcon, RefreshCw } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import styles from "./CompanyOfferDistribution.module.css";
@@ -79,7 +79,10 @@ export function formatRoleOptionLabel(
     const detail = option.driveReference?.trim()
       ? option.driveReference.trim()
       : `Drive #${option.driveId.slice(0, 6)}`;
-    return `${title} (${detail})`;
+    const ambiguous = allOptions.some(other => other.roleId !== option.roleId &&
+      (other.jobTitle?.trim() || "Unspecified title").toLowerCase() === title.toLowerCase() &&
+      (other.driveReference?.trim() || `Drive #${other.driveId.slice(0, 6)}`) === detail);
+    return `${title} (${detail})${ambiguous ? ` · Role ${option.roleId}` : ""}`;
   }
 
   return option.driveReference?.trim()
@@ -156,11 +159,7 @@ export default function CompanyOfferDistribution({
   const hasData = Boolean(company && cycle && !loading && !dataError && safeTotalOffers > 0 && safeBuckets.length > 0);
 
   // Compute color assignments stably per bucket
-  const bucketColors = useMemo(() => {
-    return safeBuckets.map((bucket, index) =>
-      getBucketColor(bucket.key, bucket.label, index)
-    );
-  }, [safeBuckets]);
+  const bucketColors = safeBuckets.map((bucket, index) => getBucketColor(bucket.key, bucket.label, index));
 
   return (
     <section className={styles.card} aria-labelledby={titleId}>
@@ -343,7 +342,7 @@ export default function CompanyOfferDistribution({
                   <Tooltip
                     content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
-                      const bucket = payload[0].payload as CompanyOfferBucket;
+                      const bucket = payload[0].payload as { key: string; label: string; count: number };
                       const share =
                         safeTotalOffers > 0
                           ? ((bucket.count / safeTotalOffers) * 100).toFixed(1)
