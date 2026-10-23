@@ -24,6 +24,8 @@
 .student-icon-button:hover:not(:disabled) { border-color: #76a4ff; background: rgb(49 92 164 / .4); }
 .student-icon-button--warning { border-color: #856e42; background: rgb(109 82 25 / .19); color: #f1cc7b; }
 .student-icon-button--danger { border-color: #854d55; background: rgb(126 44 55 / .16); color: #ffb2ba; }
+.student-action-note { flex-basis: 100%; max-width: 150px; margin: 0; color: #f1cc7b; font-size: 11px; line-height: 1.35; }
+.student-records > p[role="alert"] { color: #ffb2aa; }
 .student-records button { cursor: pointer; }
 .student-records button:disabled { cursor: not-allowed; opacity: 0.5; }
 .student-offer-toggle { display: flex; align-items: center; gap: 8px; }
