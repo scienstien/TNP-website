@@ -37,6 +37,32 @@ const statusOf = (student: StudentRecord): Status =>
     : student.participations.some((item) => item.registrationStatus === "REGISTERED") ? "Unplaced" : "Not registered";
 const statusClass: Record<Status, string> = { Placed: "placed", Unplaced: "unplaced", "Not registered": "unregistered" };
 
+/** Outcome text for the records list; failures are announced as alerts. */
+type Feedback = { text: string; alert: boolean };
+
+/** Why Delete is unavailable, shown beside the action rather than only as a tooltip. The server enforces it too. */
+export const deleteBlockedReason = (student: StudentRecord) =>
+  student.offer ? "Remove the offer before deleting this student." : null;
+
+export function removalConfirmation(student: StudentRecord, offer: boolean) {
+  return offer
+    ? `Remove the offer for ${student.name}? The student will become unplaced.`
+    : `Delete ${student.name} (${student.rollNumber})? This removes this enrollment and its placement-cycle registrations. ` +
+      "The person record is kept if they have another enrollment. This cannot be undone.";
+}
+
+/** Sends one confirmed removal. A rejection keeps the record and shows the server's exact message as an alert. */
+export async function sendRemoval(student: StudentRecord, send: (roll: number, expected: string) => Promise<StudentResult>) {
+  try {
+    const result = await send(student.rollNumber, JSON.stringify(student));
+    const feedback: Feedback = result.ok ? { text: "Record updated.", alert: false }
+      : { text: result.error ?? Object.values(result.fieldErrors ?? {})[0] ?? "Unable to remove record.", alert: true };
+    return { feedback, refresh: !!result.ok };
+  } catch {
+    return { feedback: { text: "Unable to save. Check your connection and retry.", alert: true }, refresh: false };
+  }
+}
+
 export default function StudentRecords({ data }: { data: StudentData }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -44,7 +70,7 @@ export default function StudentRecords({ data }: { data: StudentData }) {
   const [companyFilter, setCompanyFilter] = useState("All");
   const [editing, setEditing] = useState<StudentRecord | "new" | null>(null);
   const [registrationsRoll, setRegistrationsRoll] = useState<number | null>(null);
-  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const { students, ...options } = data;
@@ -74,15 +100,11 @@ export default function StudentRecords({ data }: { data: StudentData }) {
     statusFilter !== "All" && { label: `Status: ${statusFilter}`, clear: () => setStatusFilter("All") },
   ].filter(Boolean) as { label: string; clear: () => void }[];
   function remove(student: StudentRecord, offer: boolean) {
-    if (!window.confirm(offer
-      ? `Remove the offer for ${student.name}? The student will become unplaced.`
-      : `Delete ${student.name} (${student.rollNumber})? This cannot be undone.`)) return;
+    if (!window.confirm(removalConfirmation(student, offer))) return;
     startTransition(async () => {
-      try {
-        const result = await (offer ? removeStudentOffer : deleteStudent)(student.rollNumber, JSON.stringify(student));
-        setMessage(result.ok ? "Record updated." : result.error ?? "Unable to remove record.");
-        if (result.ok) router.refresh();
-      } catch { setMessage("Unable to save. Check your connection and retry."); }
+      const { feedback, refresh } = await sendRemoval(student, offer ? removeStudentOffer : deleteStudent);
+      setFeedback(feedback);
+      if (refresh) router.refresh();
     });
   }
   return (
@@ -91,14 +113,15 @@ export default function StudentRecords({ data }: { data: StudentData }) {
         <div><p className="student-breadcrumb">Dashboard / Student records</p><h1>Student records</h1>
           <p>Saved students, placement-cycle registrations and offers from the database. Save each edit to update dashboard statistics.</p></div>
         <button className="dark-button" disabled={busy}
-          onClick={() => { setEditing("new"); setMessage(""); }}>Add student</button>
+          onClick={() => { setEditing("new"); setFeedback(null); }}>Add student</button>
       </div>
-      {message && <p role="status">{message}</p>}
+      {feedback?.alert && <p role="alert">{feedback.text}</p>}
+      {feedback && !feedback.alert && <p role="status">{feedback.text}</p>}
       {editing && <StudentEditorModal onClose={() => { setEditing(null); router.refresh(); }}>
         <StudentEditor key={editing === "new" ? "new" : editing.rollNumber}
           initial={editing === "new" ? null : editing} options={options}
           onCancel={() => { setEditing(null); router.refresh(); }}
-          onSaved={() => { setEditing(null); setMessage("Saved to the database."); }} />
+          onSaved={() => { setEditing(null); setFeedback({ text: "Saved to the database.", alert: false }); }} />
       </StudentEditorModal>}
       {registrationsRoll !== null && <StudentEditorModal labelledBy="student-registrations-title"
         onClose={() => { setRegistrationsRoll(null); router.refresh(); }}>
@@ -170,15 +193,13 @@ export default function StudentRecords({ data }: { data: StudentData }) {
               <td>{s.offer?.packageLpa ?? "—"}</td><td>{s.offer?.offerDate ?? "—"}</td>
               <td><div className="student-row-actions">
                 <button className="student-icon-button" type="button" title={`Edit ${s.name}`} aria-label={`Edit ${s.name}`}
-                  disabled={busy} onClick={() => { setEditing(s); setMessage(""); }}><Pencil size={15} /></button>
+                  disabled={busy} onClick={() => { setEditing(s); setFeedback(null); }}><Pencil size={15} /></button>
                 <button className="student-icon-button" type="button" title={`${s.name}'s placement-cycle registrations`}
                   aria-label={`Registrations for ${s.name}`} disabled={busy}
-                  onClick={() => { setRegistrationsRoll(s.rollNumber); setMessage(""); }}><ClipboardList size={15} /></button>
+                  onClick={() => { setRegistrationsRoll(s.rollNumber); setFeedback(null); }}><ClipboardList size={15} /></button>
                 {s.offer && <button className="student-icon-button student-icon-button--warning" type="button" title={`Remove ${s.name}'s offer`} aria-label={`Remove ${s.name}'s offer`}
                   disabled={busy} onClick={() => remove(s, true)}><BriefcaseBusiness size={15} /></button>}
-                <button className="student-icon-button student-icon-button--danger" type="button" title={s.offer ? "Remove the offer before deleting this student." : `Delete ${s.name}`}
-                  aria-label={`Delete ${s.name}`} disabled={busy || !!s.offer}
-                  onClick={() => remove(s, false)}><Trash2 size={15} /></button>
+                <DeleteAction student={s} disabled={busy} onDelete={() => remove(s, false)} />
               </div></td>
             </tr>)}</tbody>
           </table>
@@ -186,6 +207,18 @@ export default function StudentRecords({ data }: { data: StudentData }) {
       </section>
     </section>
   );
+}
+
+/** The reason for a blocked delete stays visible and is linked to the disabled button for assistive technology. */
+export function DeleteAction({ student, disabled, onDelete }: { student: StudentRecord; disabled: boolean; onDelete: () => void }) {
+  const blocked = deleteBlockedReason(student);
+  const noteId = `student-delete-blocked-${student.rollNumber}`;
+  return <>
+    <button className="student-icon-button student-icon-button--danger" type="button" title={blocked ?? `Delete ${student.name}`}
+      aria-label={`Delete ${student.name}`} aria-describedby={blocked ? noteId : undefined} disabled={disabled || !!blocked}
+      onClick={onDelete}><Trash2 size={15} /></button>
+    {blocked && <p className="student-action-note" id={noteId}>{blocked}</p>}
+  </>;
 }
 
 function Stat({

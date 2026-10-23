@@ -187,7 +187,10 @@ export async function mutateStudent(
     ? validateStudent(input, operation === "create") : { data: {}, fieldErrors: {} };
   if (Object.keys(parsed.fieldErrors).length) return { fieldErrors: parsed.fieldErrors };
   const participation = operation === "setParticipation" ? validateParticipation(input) : null;
-  if (participation && !participation.data) return { fieldErrors: participation.fieldErrors };
+  // Any field error rejects the request, even when the cycle and status themselves parsed.
+  if (participation && (!participation.data || Object.keys(participation.fieldErrors).length)) {
+    return { fieldErrors: participation.fieldErrors };
+  }
   const removedCycleId = operation === "removeParticipation"
     ? uuid((input as { cycleId?: unknown } | null)?.cycleId) : null;
   if (operation === "removeParticipation" && !removedCycleId) return { fieldErrors: { participation: "Choose a placement cycle." } };
