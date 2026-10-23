@@ -1055,6 +1055,56 @@ accessible alert and keep the record unchanged. Add focused UI coverage for bloc
 deletion, confirmed allowed deletion and a server-side rejection. Frontend checks are
 guidance only; preserve all server authorization, transaction and foreign-key checks.
 
+## P3 — Low priority
+
+### [NEXT-001] Fix Next.js blocking-route warning on /students (Cache Components)
+
+- Priority: P3; Status: READY; Owner: Unassigned.
+- Requested by: Project owner on 2026-10-23.
+- Dependencies: None.
+- Files: `app/(portal)/students/page.tsx`, student query/cache boundaries and
+  focused route validation only as required by the accepted implementation.
+
+Context:
+- `cacheComponents: true` is enabled in `next.config`.
+- `/students` returns 200 but logs a "blocking prerender / uncached data outside
+  Suspense" warning. This is a warning, not a functional error; the page works.
+- Cause: `StudentsPage` calls `requireRole("ADMIN")` (which reads cookies), and
+  `getStudentData()` runs an uncached database query, both outside a `<Suspense>`
+  boundary.
+- The `.limit(1)` line is only where Next.js detected the database access; it is
+  not a bug.
+- The branch containing `.limit(1)` runs locally because `AUTH_BYPASS` selects the
+  first department when no department cookie exists.
+
+Planned fix:
+1. Move the authentication check, cookie read and data loading into an async child
+   component (for example, `StudentData`) and wrap it in
+   `<Suspense fallback={<Loading />}>` inside `StudentsPage`.
+2. Remove the duplicate `requireRole("ADMIN")` call; it is currently called in both
+   `StudentsPage` and `getStudentData()`.
+3. Optionally cache the query only, never authentication or cookie reading:
+   - Create `getStudentsByDepartment(departmentId: string)` with `"use cache"`,
+     `cacheLife(...)` and ``cacheTag(`students-${departmentId}`)``.
+   - Read the department cookie outside the cached function and pass the department
+     ID as an argument.
+   - Call `revalidateTag` (or `updateTag` in Server Actions) with that tag after any
+     student create, update or delete.
+
+Constraints:
+- Do not put `"use cache"` around anything that calls `cookies()` or `headers()`.
+- Do not cache per-user or per-department data without the department ID as an
+  argument.
+- Authorization must always run before the cached call, never inside it.
+- Do not use `export const instant = false` unless Suspense is not feasible; it only
+  hides the warning.
+
+Acceptance:
+- The warning no longer appears for `/students`.
+- The administrator check still runs on every request.
+- Departments never see each other's data.
+- Student edits appear after revalidation.
+
 ### Audit validation and handoff
 
 This is a source review, not runtime reproduction against deployed institute data.
