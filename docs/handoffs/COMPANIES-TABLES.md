@@ -6,14 +6,16 @@
 - Branch: `companies/tables`
 - Base commit: `aa3865f6a25e4084adfe21822f98fd3ae299aa87` (origin/main, includes
   the companies parallel plan; `origin/docs/companies-parallel-plan` is identical)
-- Status: Steps 1-3 committed; draft PR to main awaits Model 1 review (not merged)
+- Status: Steps 1-3 committed and pushed to origin; the draft PR to main must be
+  opened manually (GitHub CLI unavailable on this laptop); not merged
 - Commits:
 
 | SHA | Step | Subject |
 | --- | --- | --- |
 | `8139b10` | 1 | docs: record companies tables Step 1 checkpoint |
 | `5917366` | 2 | COMPANIES-009: add global company contacts table |
-| (this commit) | 3 | COMPANIES-005: add exact-drive process table |
+| `c808a7e` | 3 | COMPANIES-005: add exact-drive process table |
+| (this commit) | - | docs: acknowledge directory rule update for companies tables |
 
 ## Step 1: inspection checkpoint (2026-10-23)
 
@@ -316,6 +318,29 @@ runtime import from `lib/`.
   change), e.g. after calendar edits in the same session.
 - Once COMPANIES-011 publishes its marker, the drive option label and card can show
   "Cancelled"; that needs a coordinated prop change.
+
+## Directory rule update acknowledged (2026-10-23)
+
+Owner update: for a selected cycle, the company selector lists every company with an
+explicit drive in that cycle, including zero-offer and later Cancelled drives. The
+list is institute-wide and identical for every department. Offer totals/charts stay
+scoped to the authorized department. Component props and implementations are
+unchanged by this update, as instructed.
+
+Impact review for this lane (no code change):
+
+- `CompanyContactsTable`: unaffected. It shows company-level global contacts, and
+  its copy already states they are shared by every department.
+- `CompanyProcessTable`: consistent. Drives and events are institute-wide and the
+  card applies no department filter; it only matches drives to the selected
+  `companyId`/`cycleId`. A company picked through the cycle directory therefore has
+  at least one drive; the "No drives are recorded" state remains as a defensive
+  case (e.g. a drive deleted between loads, or selection from outside the directory).
+  Zero-offer drives are listed like any other drive. Cancelled drives appear as
+  normal options until COMPANIES-011 publishes its marker and a coordinated prop
+  change adds it.
+- Neither card shows offer counts, so the department-scoped offer rule does not
+  apply to them.
 
 ## Open items for Model 1 / the project owner
 
