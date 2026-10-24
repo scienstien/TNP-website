@@ -30,7 +30,13 @@ const adminTrailingItems = [
   { href: "/students/ug", label: "Student records", icon: GraduationCap },
 ] as const;
 
-export default function PortalNavigation({ role }: { role: PortalRole }) {
+export default function PortalNavigation({
+  role,
+  collapsed = false,
+}: {
+  role: PortalRole;
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const items = [
@@ -45,9 +51,13 @@ export default function PortalNavigation({ role }: { role: PortalRole }) {
       {items.map((item) => (
         <NavButton
           key={item.href}
-          active={pathname === item.href || (item.href === "/students/ug" && pathname.startsWith("/students/"))}
+          active={
+            pathname === item.href ||
+            (item.href === "/students/ug" && pathname.startsWith("/students/"))
+          }
           onClick={() => router.push(item.href)}
           icon={item.icon}
+          title={collapsed ? item.label : undefined}
         >
           {item.label}
         </NavButton>
@@ -60,17 +70,26 @@ function NavButton({
   active,
   onClick,
   icon: Icon,
+  title,
   children,
 }: {
   active: boolean;
   onClick: () => void;
   icon: LucideIcon;
+  title?: string;
   children: React.ReactNode;
 }) {
   return (
-    <button className={active ? "active" : ""} onClick={onClick} aria-current={active ? "page" : undefined}>
-      <span aria-hidden="true"><Icon size={18} strokeWidth={1.8} /></span>
-      {children}
+    <button
+      className={active ? "active" : ""}
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      title={title}
+    >
+      <span aria-hidden="true">
+        <Icon size={18} strokeWidth={1.8} />
+      </span>
+      <span className="nav-label">{children}</span>
     </button>
   );
 }

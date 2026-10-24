@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import { DEPARTMENTS, FIRST_YEAR, LAST_YEAR, MTECH_FIRST_YEAR, tenThousandStudentCounts, type DemoCohort } from "./demo-data";
+import { createRng, DEPARTMENTS, FIRST_YEAR, generateStudents, LAST_YEAR, MTECH_FIRST_YEAR, tenThousandStudentCounts, type DemoCohort } from "./demo-data";
 
 test("10,000 student allocation spans every year and department with proportionate cohorts", () => {
   const cohorts: DemoCohort[] = [];
@@ -28,4 +28,9 @@ test("10,000 student allocation spans every year and department with proportiona
     assert.ok(total > 0);
   }
   assert.ok(cohorts.every((cohort) => counts.get(cohort.cohortId)! > 0));
+
+  const cycles = new Map(Array.from({ length: LAST_YEAR - FIRST_YEAR + 1 }, (_, index) => [FIRST_YEAR + index, randomUUID()]));
+  const overridden = generateStudents(cohorts, cycles, new Map(), createRng(2027), 4_000);
+  assert.equal(overridden.studentRows.length, 4_000);
+  assert.equal(new Set(overridden.enrollmentRows.map((row) => row.rollNumber)).size, 4_000);
 });

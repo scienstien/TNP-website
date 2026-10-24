@@ -235,8 +235,10 @@ async function seed() {
     await insertAll(tx, eventRoles, eventRoleRows);
 
     // Students, enrollments, per-cycle registration and final offers.
+    const targetStudents = process.env.TARGET_STUDENTS;
     const { studentRows, enrollmentRows, cycleRows, offerRows } = generateStudents(
-      cohortList, cycleIds, rolesByCycle, rng, tenThousandStudentCounts(cohortList),
+      cohortList, cycleIds, rolesByCycle, rng,
+      targetStudents === undefined ? tenThousandStudentCounts(cohortList) : Number(targetStudents),
     );
     await insertAll(tx, students, studentRows);
     await insertAll(tx, enrollments, enrollmentRows);

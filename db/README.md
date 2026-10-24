@@ -207,7 +207,9 @@ degree levels appear in every year. Year totals grow gradually from 430 to 570;
 department cohort sizes follow the demo department-size weights, and all final offers
 belong to registered participation. These are synthetic distributions, not institute
 statistics. The reset keeps user accounts and existing outreach contacts, and may add
-missing fictional outreach contacts.
+missing fictional outreach contacts. `TARGET_STUDENTS=<positive integer>` optionally
+overrides the full seed's student count for a smaller or larger disposable test dataset;
+without it, the documented 10,000-student year distribution applies.
 Shared demo definitions live in `db/demo-data.ts`. On a database the full seed refuses
 (for example one holding legacy rows), the add-only
 `DEMO_TOPUP_DATABASE=<name> npx tsx db/seed-departments-topup.ts` adds just the

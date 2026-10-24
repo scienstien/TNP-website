@@ -142,16 +142,52 @@ export function tenThousandStudentCounts(cohortList: DemoCohort[]): Map<string, 
 }
 
 /** Students, enrollments, per-cycle registration and final offers for the given cohorts. */
-export function generateStudents(cohortList: DemoCohort[], cycleIds: Map<number, string>, rolesByCycle: Map<number, DemoRole[]>, rng: Rng, cohortCounts?: Map<string, number>) {
+export function generateStudents(
+  cohortList: DemoCohort[],
+  cycleIds: Map<number, string>,
+  rolesByCycle: Map<number, DemoRole[]>,
+  rng: Rng,
+  requestedCounts?: Map<string, number> | number,
+) {
   const { random, pick, between } = rng;
   const byCode = new Map<string, (typeof DEPARTMENTS)[number]>(DEPARTMENTS.map((dept) => [dept.code, dept]));
   const studentRows: (typeof students.$inferInsert)[] = [];
   const enrollmentRows: (typeof enrollments.$inferInsert)[] = [];
   const cycleRows: (typeof studentCycles.$inferInsert)[] = [];
   const offerRows: (typeof placementOffers.$inferInsert)[] = [];
-  for (const cohort of cohortList) {
+
+  const rawCounts = cohortList.map((cohort) => {
     const dept = byCode.get(cohort.dept)!;
-    const count = cohortCounts?.get(cohort.cohortId) ?? (cohort.level === "ug" ? dept.size - 6 + (cohort.year % 7) : between(7, 12));
+    return cohort.level === "ug" ? dept.size - 6 + (cohort.year % 7) : between(7, 12);
+  });
+
+  let counts = rawCounts;
+  if (typeof requestedCounts === "number") {
+    if (!Number.isSafeInteger(requestedCounts) || requestedCounts < cohortList.length)
+      throw new Error("TARGET_STUDENTS must be an integer at least as large as the cohort count.");
+    const remaining = requestedCounts - cohortList.length;
+    const weightTotal = rawCounts.reduce((sum, count) => sum + count, 0);
+    const shares = rawCounts.map((weight, index) => {
+      const exact = remaining * weight / weightTotal;
+      return { index, count: 1 + Math.floor(exact), remainder: exact % 1 };
+    });
+    const left = requestedCounts - shares.reduce((sum, share) => sum + share.count, 0);
+    shares.sort((a, b) => b.remainder - a.remainder || a.index - b.index);
+    for (let index = 0; index < left; index++) shares[index].count++;
+    counts = shares.sort((a, b) => a.index - b.index).map((share) => share.count);
+  } else if (requestedCounts) {
+    counts = cohortList.map((cohort) => {
+      const count = requestedCounts.get(cohort.cohortId);
+      if (!Number.isSafeInteger(count) || count! < 1)
+        throw new Error(`Missing or invalid count for demo cohort ${cohort.cohortId}.`);
+      return count!;
+    });
+  }
+
+  for (let cohortIndex = 0; cohortIndex < cohortList.length; cohortIndex++) {
+    const cohort = cohortList[cohortIndex];
+    const dept = byCode.get(cohort.dept)!;
+    const count = counts[cohortIndex];
     const cycleId = cycleIds.get(cohort.year)!;
     const roles = (rolesByCycle.get(cohort.year) ?? []).filter((role) => role.hires.includes(cohort.dept));
     const placedChance = Math.min(0.92, dept.placed * (0.82 + ((cohort.year - FIRST_YEAR) % 5) * 0.05)) * (cohort.level === "pg" ? 0.8 : 1);
