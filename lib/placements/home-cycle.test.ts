@@ -4,15 +4,12 @@ import { homeCycleSummaries } from "./home-cycle";
 import type { PlacementRecord } from "./types";
 
 const record = (
-  rollNumber: number,
   cycleId: string,
   cycleCode: string,
   registrationStatus: PlacementRecord["registrationStatus"],
   company: string | null,
 ): PlacementRecord => ({
   department: "mme",
-  rollNumber,
-  batchYear: 2027,
   cycleId,
   cycleCode,
   cycleStartsOn: null,
@@ -20,7 +17,7 @@ const record = (
   registrationStatus,
   offer: company ? {
     company,
-    sector: null,
+    domain: null,
     packageLpa: null,
     offerType: null,
     offerDate: null,
@@ -29,10 +26,10 @@ const record = (
 
 test("builds registered full-cycle totals and distinct offer companies", () => {
   const summaries = homeCycleSummaries([
-    record(900000001, "cycle-a", "2026-27", "REGISTERED", "Company A"),
-    record(900000002, "cycle-a", "2026-27", "REGISTERED", "Company A"),
-    record(900000003, "cycle-a", "2026-27", "REGISTERED", null),
-    record(900000004, "cycle-a", "2026-27", "UNREGISTERED", null),
+    record("cycle-a", "2026-27", "REGISTERED", "Company A"),
+    record("cycle-a", "2026-27", "REGISTERED", "Company A"),
+    record("cycle-a", "2026-27", "REGISTERED", null),
+    record("cycle-a", "2026-27", "UNREGISTERED", null),
   ]);
 
   assert.deepEqual(summaries, [{
@@ -46,7 +43,7 @@ test("builds registered full-cycle totals and distinct offer companies", () => {
 
 test("keeps explicit cycles that have no registered participation", () => {
   const summaries = homeCycleSummaries([
-    record(900000005, "cycle-b", "special", "UNREGISTERED", null),
+    record("cycle-b", "special", "UNREGISTERED", null),
   ]);
 
   assert.equal(summaries[0].cycleCode, "special");

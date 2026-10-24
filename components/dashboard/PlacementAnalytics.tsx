@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import {
-  batchYears,
   companyNames,
   comparisonCycleKpis,
   computeKpis,
@@ -12,18 +11,20 @@ import {
   offerTypeSplit,
   placementCycles,
   scopeRecords,
-  sectorNames,
-  sectorPlacement,
+  domainNames,
+  domainPlacement,
   topCompanies,
 } from "@/lib/placements/analytics";
 import type { PlacementRecord } from "@/lib/placements/types";
 import CTCDistributionChart from "./charts/CTCDistributionChart";
 import OfferTypeDistributionChart from "./charts/OfferTypeDistributionChart";
-import SectorPlacementChart from "./charts/SectorPlacementChart";
+import DomainPlacementChart from "./charts/DomainPlacementChart";
 import TopCompaniesOfferChart from "./charts/TopCompaniesOfferChart";
 import DashboardFilters from "./DashboardFilters";
 import DashboardHeader, { type HeaderRole } from "./DashboardHeader";
 import KPICards from "./KPICards";
+import PlacementBreakdown from "./PlacementBreakdown";
+import { offerFilterParts } from "./offerFilterText";
 import { useDashboardFilters } from "./useDashboardFilters";
 import "./analytics.css";
 
@@ -35,14 +36,13 @@ interface Props {
 
 /** The main dashboard: header, shared filters, KPIs and the four independent charts. */
 export default function PlacementAnalytics({ records, role, department }: Props) {
-  const { filters, update, toggle, reset } = useDashboardFilters(records);
+  const { filters, update, toggle, reset } = useDashboardFilters();
 
   const options = useMemo(
     () => ({
       cycles: placementCycles(records),
-      batches: batchYears(records),
       companies: companyNames(records),
-      sectors: sectorNames(records),
+      domains: domainNames(records),
       ctc: ctcBounds(records),
     }),
     [records],
@@ -55,7 +55,7 @@ export default function PlacementAnalytics({ records, role, department }: Props)
       comparison: comparisonCycleKpis(records, filters),
       companies: topCompanies(scope),
       offerTypes: offerTypeSplit(scope),
-      sectors: sectorPlacement(scope),
+      domains: domainPlacement(scope),
       ctc: ctcHistogram(scope),
     };
   }, [records, filters]);
@@ -63,7 +63,7 @@ export default function PlacementAnalytics({ records, role, department }: Props)
   if (records.length === 0) {
     return (
       <div className="mme-analytics">
-        <DashboardHeader role={role} department={department} batches={0} students={0} />
+        <DashboardHeader role={role} department={department} cycles={0} students={0} />
         <section className="panel mme-empty mme-empty--page" role="status">
           No placement records yet. Once historical data is imported, the
           dashboard fills in automatically.
@@ -77,7 +77,7 @@ export default function PlacementAnalytics({ records, role, department }: Props)
       <DashboardHeader
         role={role}
         department={department}
-        batches={options.batches.length}
+        cycles={options.cycles.length}
         students={records.length}
       />
       <DashboardFilters
@@ -90,6 +90,17 @@ export default function PlacementAnalytics({ records, role, department }: Props)
         kpis={view.kpis}
         comparison={view.comparison}
         offerFiltersActive={hasOfferFilters(filters)}
+        placedFilterHeading={filters.company ? "Offers by this company" : "Placed (filtered)"}
+        placedFilterParts={offerFilterParts(filters)}
+      />
+
+      <PlacementBreakdown
+        cycleId={filters.cycleId}
+        cycleLabel={
+          options.cycles.find((cycle) => cycle.id === filters.cycleId)?.code ??
+          "all placement cycles"
+        }
+        scopeKey={department?.code ?? "all"}
       />
 
       <div className="mme-row mme-row--wide">
@@ -105,10 +116,10 @@ export default function PlacementAnalytics({ records, role, department }: Props)
       </div>
 
       <div className="mme-row">
-        <SectorPlacementChart
-          data={view.sectors}
+        <DomainPlacementChart
+          data={view.domains}
           unplaced={view.kpis.unplaced}
-          onSectorSelect={(sector) => toggle("sector", sector)}
+          onDomainSelect={(domain) => toggle("domain", domain)}
         />
         <CTCDistributionChart
           data={view.ctc.buckets}

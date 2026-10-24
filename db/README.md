@@ -13,6 +13,9 @@ tracker). The process-calendar UI still uses browser local storage; the database
 event tables are not connected to it.
 
 - Migrations `0000` to `0004` are unchanged and describe the previous MME schema.
+- `0006_drive_hr_role_domain` is additive: nullable `drives.hr_name`/`hr_email`/
+  `hr_phone_number` (backfilled once from each company's legacy contact) and nullable
+  `drive_roles.domain` with a trimmed non-blank check. Nothing is dropped.
 - `0005` is data-preserving: it renames the legacy tables `students`, `companies`
   and `placement_offers` (and their indexes) to `legacy_students`,
   `legacy_companies` and `legacy_placement_offers`, keeping every row, and then
@@ -102,9 +105,9 @@ integration and final metric presentation remain a separate task.
 
 | Table | Key and attributes | Relationships / constraints |
 | --- | --- | --- |
-| `companies` | UUID `company_id`; unique required `name`; nullable `domain`, `hr_name`, `email`, `phone_number`, `pvr_status`, `remarks` | Stable identity across years and renames; company names no longer serve as offer FKs. Contacts remain global company fields. |
-| `drives` | UUID `drive_id`; required `company_id`, `cycle_id`; nullable `reference` | Each drive belongs to one company and one cycle; repeated company/cycle combinations are allowed. |
-| `drive_roles` | UUID `role_id`; required `drive_id`; nullable `job_title` | One drive has zero or more roles. Repeated titles are allowed. |
+| `companies` | UUID `company_id`; unique required `name`; nullable `domain`, `hr_name`, `email`, `phone_number`, `pvr_status`, `remarks` | Stable identity across years and renames; company names no longer serve as offer FKs. `domain` is only a company description (never used for filtering or analytics). `hr_name`/`email`/`phone_number` are legacy global contacts, kept but no longer edited; drives carry their own HR contact. |
+| `drives` | UUID `drive_id`; required `company_id`, `cycle_id`; nullable `reference`, `hr_name`, `hr_email`, `hr_phone_number` | Each drive belongs to one company and one cycle; repeated company/cycle combinations are allowed. The HR contact is required by the application on create/edit (0006 copied each company's legacy contact into its existing drives); the columns stay nullable for older rows. |
+| `drive_roles` | UUID `role_id`; required `drive_id`; nullable `job_title`, `domain` | Repeated titles are allowed. The application requires at least one titled role when a drive is created and refuses to delete a drive's last role. `domain` is the role's field (Software, Production, …) and is what analytics use for distribution across fields. |
 | `placement_offers` | UUID `offer_id`; required unique `enrollment_id`, required `cycle_id`, `company_id`; nullable `drive_id`, `role_id`, `package_lpa`, `monthly_stipend_inr`, `offer_type`, `offer_date` | Exactly one student-cycle and company per offer. Zero or one final reported offer per enrollment across all cycles. Optional drive/role references must match their company, cycle and parent drive. A role requires a drive. |
 
 The same company may return many times in one cycle, with the same or different

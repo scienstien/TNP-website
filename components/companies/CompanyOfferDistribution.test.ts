@@ -68,10 +68,10 @@ test("formatRoleOptionLabel handles distinct, duplicate, and NULL titles accurat
     "Graduate Trainee (Special Drive)"
   );
 
-  // 3. NULL title falls back to "Unspecified title" + driveId snippet
+  // 3. NULL title without a reference: no internal ID is shown
   assert.equal(
     formatRoleOptionLabel(options[3], options),
-    "Unspecified title (Drive #d40000)"
+    "Unspecified title"
   );
 
   // 4. NULL title with driveReference
@@ -79,6 +79,10 @@ test("formatRoleOptionLabel handles distinct, duplicate, and NULL titles accurat
     formatRoleOptionLabel(options[4], options),
     "Unspecified title (Winter Round)"
   );
+
+  // 5. Identical title and reference get plain numbers, never IDs
+  const twins = [{ ...options[0], roleId: "t1" }, { ...options[0], roleId: "t2" }];
+  assert.deepEqual(twins.map(option => formatRoleOptionLabel(option, twins)), ["Software Engineer (Autumn Drive) (1)", "Software Engineer (Autumn Drive) (2)"]);
 });
 
 test("supports all three distribution dimensions", async () => {

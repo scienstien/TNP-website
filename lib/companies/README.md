@@ -20,7 +20,13 @@ read nor overwrite events. Renames or contact changes reject stale saves. Return
 records have visitDate null; a route refresh loads the selected cycle projection.
 
 ADMIN/SUPERADMIN writes require a chosen department; contacts are global and the UI
-states this. All departments is read-only. New PVR defaults to Unknown (NULL); Yes/No/
+states this. `createCompany` also accepts `drives: { cycleId, reference, hrName, hrEmail,
+hrPhoneNumber, roles: { jobTitle, domain }[], stages }[]` and inserts them in the
+company's transaction; a duplicate name creates nothing. Adding a company with no drive
+asks for confirmation. Each drive's HR contact (required) is stored on `drives`; the
+legacy `companies` HR columns are no longer edited (new companies get NULL, and the
+company edit form sends stored values back unchanged). `companies.domain` is shown as
+the company's Description only and is not searched, filtered or charted. All departments is read-only. New PVR defaults to Unknown (NULL); Yes/No/
 Unknown round-trip. Duplicate-name creation never overwrites contacts.
 
 Any visitDate key is rejected on create/update. Company saves touch only companies;
@@ -38,13 +44,14 @@ signature and earliest non-null PPT-per-company meaning. No migrations or seeds 
 - panel-queries authorizes then reuses readDriveOptions for exact company/cycle.
   Repeated/NULL titles and zero-offer roles retain stable IDs. Process validates the
   selected drive and reads all its shared calendar events with no date window.
-- offer-summaries returns only aggregates: role offer count, known package/stipend
-  counts, SQL median/min/max, and typed/unknown offer counts. LPA and INR/month stay
-  separate. Offer types have their own role filter, independent of the donut.
+- offer-summaries returns only aggregates: role offer count, known annual package
+  count, SQL median/min/max (LPA), and typed/unknown offer counts. Monthly stipend is
+  not summarized or shown. Offer types have their own role filter, independent of the donut.
 - panel-actions exposes reads as protected Server Actions; each delegated query
   rechecks authorization. Independent key/retry generations prevent late responses
   replacing the current scope/company/cycle/role/dimension.
-- Contacts are global and refreshed from the route after existing editor saves.
-  No per-drive HR or cancellation storage is introduced.
+
+  The HR contacts card lists each drive's HR contact (drives.hr_*, 0006) for the selected
+  cycle from the same drive read as the process card; the legacy global contact is not shown.
 
 See ../../docs/handoffs/COMPANIES-MODEL1.md for coverage and remaining live-session checks.

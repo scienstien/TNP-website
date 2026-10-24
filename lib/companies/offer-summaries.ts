@@ -11,8 +11,8 @@ export interface CompensationSummary {
   knownCount: number; median: number | null; minimum: number | null; maximum: number | null;
 }
 export interface CompanyRolePackageRow {
-  roleId: string | null; driveId: string | null; driveReference: string | null; jobTitle: string | null;
-  offerCount: number; package: CompensationSummary; stipend: CompensationSummary;
+  roleId: string | null; driveId: string | null; driveReference: string | null; jobTitle: string | null; domain: string | null;
+  offerCount: number; package: CompensationSummary;
 }
 
 /** Only aggregates leave the server. All monetary summaries exclude NULL, retaining actual zero. */
@@ -30,13 +30,13 @@ export async function getCompanyOfferSummaries(companyId: string, cycleId: strin
       departmentId === null ? undefined : eq(programmes.departmentId, departmentId));
     const participation = and(eq(studentCycles.enrollmentId, placementOffers.enrollmentId),
       eq(studentCycles.cycleId, placementOffers.cycleId), eq(studentCycles.cohortId, enrollments.cohortId));
-    const amount = (column: typeof placementOffers.packageLpa | typeof placementOffers.monthlyStipendInr) => ({
+    const amount = (column: typeof placementOffers.packageLpa) => ({
       knownCount: count(column),
       median: sql<string | null>`percentile_cont(0.5) within group (order by ${column}::double precision)`,
       minimum: sql<string | null>`min(${column})`,
       maximum: sql<string | null>`max(${column})`,
     });
-    const grouped = await tx.select({ roleId: placementOffers.roleId, offerCount: count(), package: amount(placementOffers.packageLpa), stipend: amount(placementOffers.monthlyStipendInr) })
+    const grouped = await tx.select({ roleId: placementOffers.roleId, offerCount: count(), package: amount(placementOffers.packageLpa) })
       .from(placementOffers).innerJoin(enrollments, eq(enrollments.enrollmentId, placementOffers.enrollmentId))
       .innerJoin(cohorts, eq(cohorts.cohortId, enrollments.cohortId))
       .innerJoin(programmes, eq(programmes.programmeId, cohorts.programmeId))
@@ -52,12 +52,12 @@ export async function getCompanyOfferSummaries(companyId: string, cycleId: strin
       minimum: summary.minimum === null ? null : Number(summary.minimum), maximum: summary.maximum === null ? null : Number(summary.maximum),
     });
     const metadata = options.flatMap(drive => drive.roles.map(role => ({
-      roleId: role.roleId as string | null, driveId: drive.driveId as string | null, driveReference: drive.reference, jobTitle: role.jobTitle,
+      roleId: role.roleId as string | null, driveId: drive.driveId as string | null, driveReference: drive.reference, jobTitle: role.jobTitle, domain: role.domain,
     })));
-    metadata.push({ roleId: null, driveId: null, driveReference: null, jobTitle: null });
+    metadata.push({ roleId: null, driveId: null, driveReference: null, jobTitle: null, domain: null });
     const rows: CompanyRolePackageRow[] = metadata.map(role => {
       const summary = grouped.find(row => row.roleId === role.roleId);
-      return { ...role, offerCount: summary?.offerCount ?? 0, package: summary ? numeric(summary.package) : empty, stipend: summary ? numeric(summary.stipend) : empty };
+      return { ...role, offerCount: summary?.offerCount ?? 0, package: summary ? numeric(summary.package) : empty };
     });
     const totalOffers = grouped.reduce((sum, row) => sum + row.offerCount, 0);
     const typeTotal = grouped.filter(row => selectedRoleId === null || row.roleId === selectedRoleId).reduce((sum, row) => sum + row.offerCount, 0);

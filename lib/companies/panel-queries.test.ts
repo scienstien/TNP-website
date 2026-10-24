@@ -90,14 +90,12 @@ test("runtime payload missing a required cycle cannot broaden the drive read", a
 });
 
 test("compensation rows keep role identity and missing amounts; offer types include NULL", async () => {
-  const missing = { knownCount: 0, median: null, minimum: null, maximum: null };
   setup([...selection(), [], [drive], [role, { ...role, roleId: roleId.replace(/1$/, "2") }],
-    [{ roleId, offerCount: 2, package: { knownCount: 1, median: "0", minimum: "0", maximum: "0" }, stipend: missing }],
+    [{ roleId, offerCount: 2, package: { knownCount: 1, median: "0", minimum: "0", maximum: "0" } }],
     [{ type: null, count: 2 }]]);
   const result = await getCompanyOfferSummaries(companyId, cycleId);
   assert.equal(result.rows.length, 3, "two recorded roles plus No role recorded");
   assert.equal(result.rows[0].package.median, 0, "actual zero is retained");
-  assert.equal(result.rows[0].stipend.median, null, "missing stipend stays null");
   assert.equal(result.rows[1].offerCount, 0, "zero-offer role is retained");
   assert.deepEqual(result.types, [{ key: "missing", label: "Not recorded", count: 2 }]);
   assert.equal(result.typeTotal, 2);

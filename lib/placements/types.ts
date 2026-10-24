@@ -8,8 +8,8 @@ export type RegistrationStatusValue = (typeof REGISTRATION_STATUSES)[number];
 
 export interface PlacementOffer {
   company: string;
-  /** companies.domain; null when the source did not record it. */
-  sector: string | null;
+  /** drive_roles.domain of the offer's role; null when the offer has no role or the role has no domain. companies.domain is only a company description and is not used here. */
+  domain: string | null;
   /** placement_offers.package_lpa in LPA; null when not recorded. */
   packageLpa: number | null;
   offerType: OfferTypeValue | null;
@@ -17,14 +17,13 @@ export interface PlacementOffer {
 }
 
 /**
- * One row per explicit undergraduate student-cycle participation. Names are not sent to the
- * dashboard. Placement status is derived from registrationStatus and offer; it is not stored.
+ * One row per explicit undergraduate student-cycle participation. Names, roll numbers and
+ * any other student identifier are not sent to the browser. Placement status is derived from
+ * registrationStatus and offer; it is not stored.
  */
 export interface PlacementRecord {
   /** Lower-case department code, e.g. "mme". */
   department: string;
-  rollNumber: number;
-  batchYear: number;
   cycleId: string;
   cycleCode: string;
   /** YYYY-MM-DD, or null when the historical cycle boundary was not recorded. */

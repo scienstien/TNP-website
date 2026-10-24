@@ -4,6 +4,7 @@ import type { ChangeEvent } from "react";
 import { PROCESS_LABELS } from "@/lib/calendar/labels";
 import type { CalendarEvent } from "@/lib/calendar/types";
 import type { DriveOption } from "@/lib/drives/types";
+import { driveLabels, numberDuplicates, roleName } from "@/lib/drives/labels";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import styles from "./CompanyProcessTable.module.css";
 
@@ -17,13 +18,13 @@ export interface CompanyProcessTableProps {
   error: string | null;
   onDriveChange: (driveId: string | null) => void;
   onRefresh: () => void;
+  /** Present only for administrators: opens the company's drive editor. */
+  onEditDrives?: () => void;
 }
 
-/** Reference plus the shortest stable ID prefix (at least 8 characters) unique among the drives. */
+/** Reference, numbered "(1)", "(2)" only when several drives read the same. */
 function driveLabel(drive: DriveOption, drives: DriveOption[]) {
-  let length = 8;
-  while (length < drive.driveId.length && drives.some(other => other.driveId !== drive.driveId && other.driveId.startsWith(drive.driveId.slice(0, length)))) length++;
-  return `${drive.reference ?? "No reference"} · ${drive.driveId.slice(0, length)}`;
+  return driveLabels(drives)[drives.indexOf(drive)];
 }
 
 /**
@@ -31,7 +32,7 @@ function driveLabel(drive: DriveOption, drives: DriveOption[]) {
  * never picks a drive itself, and it ignores drives/events that do not match the current
  * company, cycle and drive so a previous selection cannot appear as current.
  */
-export default function CompanyProcessTable({ company, cycle, drives, selectedDriveId, events, loading, error, onDriveChange, onRefresh }: CompanyProcessTableProps) {
+export default function CompanyProcessTable({ company, cycle, drives, selectedDriveId, events, loading, error, onDriveChange, onRefresh, onEditDrives }: CompanyProcessTableProps) {
   const options = company && cycle ? drives.filter(drive => drive.companyId === company.companyId && drive.cycleId === cycle.cycleId) : [];
   const selectedDrive = options.find(drive => drive.driveId === selectedDriveId) ?? null;
   const driveEvents = selectedDrive ? events.filter(event => event.driveId === selectedDrive.driveId) : [];
@@ -41,7 +42,10 @@ export default function CompanyProcessTable({ company, cycle, drives, selectedDr
         <h2>Drive process</h2>
         <p>Scheduled stages for one exact drive, read from the shared process calendar. A scheduled date does not confirm that a stage took place.</p>
       </div>
-      {((company && cycle) || error !== null) && <button type="button" className={styles.button} onClick={onRefresh}>Refresh</button>}
+      <div className={styles.actions}>
+        {company && onEditDrives && <button type="button" className={`${styles.button} ${styles.primary}`} onClick={onEditDrives}>Edit drives</button>}
+        {((company && cycle) || error !== null) && <button type="button" className={styles.button} onClick={onRefresh}>Refresh</button>}
+      </div>
     </header>
     {company && cycle && <p className={styles.context}>{company.name} · {cycle.code}</p>}
     {options.length > 0 && <label className={styles.field}>Drive
@@ -53,7 +57,7 @@ export default function CompanyProcessTable({ company, cycle, drives, selectedDr
     {loading ? <p role="status" className={styles.state}>Loading drive process…</p>
       : error !== null ? <p role="alert" className={styles.error}>Process events could not be loaded.{error && <> {error}</>} Use Refresh to try again.</p>
       : !company || !cycle ? <p className={styles.state}>Select a company and placement cycle to see its drives.</p>
-      : !options.length ? <p className={styles.state}>No drives are recorded for {company.name} in {cycle.code}.</p>
+      : !options.length ? <p className={styles.state}>No drives are recorded for {company.name} in {cycle.code}.{onEditDrives && " Use Edit drives to add one."}</p>
       : !selectedDriveId ? <p className={styles.state}>Choose a drive to see its process events.</p>
       : !selectedDrive ? <p className={styles.state}>The selected drive is not available for {company.name} in {cycle.code}. Choose a drive from the list.</p>
       : !driveEvents.length ? <p className={styles.state}>No event recorded for this drive. This does not mean a stage did not happen.</p>
@@ -80,7 +84,7 @@ function EventDetails({ event }: { event: CalendarEvent }) {
     {event.label && <span className={styles.label}>{event.label}</span>}
     <span className={styles.scope}>{event.scope === "WHOLE_DRIVE" ? "Whole drive" : "Selected roles"}</span>
     {event.roles.length > 0
-      ? <ul className={styles.roles} aria-label="Roles">{event.roles.map(role => <li key={role.roleId}>{role.jobTitle ?? "Unknown title"} · {role.roleId.slice(0, 8)}</li>)}</ul>
+      ? <ul className={styles.roles} aria-label="Roles">{numberDuplicates(event.roles.map(role => roleName({ ...role, jobTitle: role.jobTitle ?? "Unknown title" }))).map((label, index) => <li key={event.roles[index].roleId}>{label}</li>)}</ul>
       : event.scope === "SELECTED_ROLES" && <span className={styles.missing}>No roles linked</span>}
   </div>;
 }

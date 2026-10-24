@@ -3,6 +3,7 @@
 import React, { useId } from "react";
 import { AlertCircle, PieChart as PieChartIcon, RefreshCw } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { numberDuplicates } from "@/lib/drives/labels";
 import styles from "./CompanyOfferDistribution.module.css";
 
 export type CompanyOfferDimension = "department" | "gender" | "reservationCategory";
@@ -64,30 +65,18 @@ export function validateDistributionCounts(total: unknown, buckets: CompanyOffer
 
 /**
  * Format a human-readable, distinct label for each role option.
- * Distinguishes duplicate/same titles and NULL titles using drive reference or ID.
+ * Title plus drive reference; options that still read the same get "(1)", "(2)" in list
+ * order instead of an internal ID.
  */
 export function formatRoleOptionLabel(
   option: CompanyOfferRoleOption,
   allOptions: CompanyOfferRoleOption[]
 ): string {
-  const title = option.jobTitle?.trim() || "Unspecified title";
-  const duplicateCount = allOptions.filter(
-    (o) => (o.jobTitle?.trim() || "Unspecified title").toLowerCase() === title.toLowerCase()
-  ).length;
-
-  if (duplicateCount > 1 || !option.jobTitle) {
-    const detail = option.driveReference?.trim()
-      ? option.driveReference.trim()
-      : `Drive #${option.driveId.slice(0, 6)}`;
-    const ambiguous = allOptions.some(other => other.roleId !== option.roleId &&
-      (other.jobTitle?.trim() || "Unspecified title").toLowerCase() === title.toLowerCase() &&
-      (other.driveReference?.trim() || `Drive #${other.driveId.slice(0, 6)}`) === detail);
-    return `${title} (${detail})${ambiguous ? ` · Role ${option.roleId}` : ""}`;
-  }
-
-  return option.driveReference?.trim()
-    ? `${title} (${option.driveReference.trim()})`
-    : title;
+  const base = (o: CompanyOfferRoleOption) => {
+    const title = o.jobTitle?.trim() || "Unspecified title";
+    return o.driveReference?.trim() ? `${title} (${o.driveReference.trim()})` : title;
+  };
+  return numberDuplicates(allOptions.map(base))[allOptions.indexOf(option)] ?? base(option);
 }
 
 /**

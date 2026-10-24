@@ -35,10 +35,9 @@ export default function TopCompaniesOfferChart({
       isEmpty={data.length === 0}
       table={{
         caption: "Top companies by number of students offered placements",
-        columns: ["Company", "Sector", "Students", "Average CTC"],
+        columns: ["Company", "Students", "Average CTC"],
         rows: data.map((row) => [
           row.company,
-          row.sector,
           row.offers,
           formatLpa(row.average),
         ]),
@@ -85,7 +84,6 @@ export default function TopCompaniesOfferChart({
                   title={row.company}
                   value={plural(row.offers, "student")}
                   lines={[
-                    row.sector,
                     row.average === null
                       ? "No CTC recorded"
                       : `Avg ${formatLpa(row.average)} · Min ${row.min} · Max ${row.max}`,

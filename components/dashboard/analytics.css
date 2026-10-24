@@ -204,7 +204,7 @@
 /* KPI cards */
 .mme-kpis {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--kpi-cols, 6), minmax(0, 1fr));
   gap: 10px;
 }
 .mme-kpi {
@@ -241,6 +241,78 @@
 .mme-kpi-pct small {
   color: var(--muted);
   font-weight: 400;
+}
+.mme-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  border: 1px solid #354d76;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mme-toggle button {
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 0;
+  color: #cfe0ff;
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+}
+.mme-toggle button[aria-pressed="true"] {
+  color: #fff;
+  background: #3a72e6;
+}
+.mme-breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.mme-breakdown-table th,
+.mme-breakdown-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid #243350;
+  text-align: left;
+}
+.mme-breakdown-table td {
+  white-space: nowrap;
+}
+.mme-breakdown-table td small {
+  color: var(--muted);
+  font-size: inherit;
+}
+.mme-breakdown-table thead th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.mme-breakdown-table tbody th,
+.mme-breakdown-table tfoot th {
+  font-weight: 500;
+}
+.mme-breakdown-table tfoot th,
+.mme-breakdown-table tfoot td {
+  border-bottom: 0;
+  font-weight: 700;
+}
+.mme-bar {
+  display: inline-block;
+  width: 120px;
+  height: 8px;
+  margin-right: 10px;
+  border-radius: 4px;
+  background: #243350;
+  vertical-align: middle;
+  overflow: hidden;
+}
+.mme-bar > span {
+  display: block;
+  height: 100%;
+  background: #22a08c;
+}
+.mme-kpi-filters {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 .mme-delta {
   color: var(--muted);

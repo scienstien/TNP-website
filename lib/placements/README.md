@@ -4,26 +4,27 @@ The "Dashboard" view (`components/dashboard/`) is computed from placement data i
 
 ## Data flow
 
-1. `app/(portal)/page.tsx` and `app/(portal)/dashboard/page.tsx` call `getPlacementRecords()` from `lib/placements/queries.ts`. That query requires a signed-in user and returns one row per explicit undergraduate student-cycle participation, including the cycle identity, optional cycle dates, registration status, integer roll number, the offer for that same cycle (if any), and the company's sector. Student names are excluded from analytics; they are provided separately only to the ADMIN student editor.
-2. `components/dashboard/PlacementAnalytics.tsx` keeps one shared filter state (`useDashboardFilters`). Its primary and comparison cycle selectors use explicit cycle IDs returned by the server; no previous cycle is inferred. Cycle and batch remain independent filters. It derives every KPI and chart dataset through `lib/placements/analytics.ts`.
+1. `app/(portal)/page.tsx` and `app/(portal)/dashboard/page.tsx` call `getPlacementRecords()` from `lib/placements/queries.ts`. That query requires a signed-in user and returns one row per explicit undergraduate student-cycle participation, including the cycle identity, optional cycle dates, registration status, the offer for that same cycle (if any), and the company's sector. Student names, roll numbers and any other student identifier are not sent to the browser; names are provided separately only to the ADMIN student editor.
+2. `components/dashboard/PlacementAnalytics.tsx` keeps one shared filter state (`useDashboardFilters`). Its primary and comparison cycle selectors use explicit cycle IDs returned by the server; no previous cycle is inferred. The placement cycle is the only population filter; there is no graduating-batch filter. It derives every KPI and chart dataset through `lib/placements/analytics.ts`.
+2a. `components/dashboard/PlacementBreakdown.tsx` shows placed ÷ registered per department, gender or reservation category. Gender and category are never sent with the records: `breakdown-queries.ts` aggregates on the server (scoped by `resolveDepartment()`), and `breakdown-actions.ts` is the Server Action the card calls. It follows the selected cycle only, not the offer filters. The Department view's "Share of institute placed" divides by the institute-wide placed count, which the server returns as one number to every role (no other department's rows); Gender and Category divide by the placed count of the current selection. Groups are not suppressed when small (open owner decision).
 3. Each chart (`components/dashboard/charts/*`) is an independent component. It receives prepared data and a selection callback, and contains no filtering logic.
 
 ## Definitions (`lib/placements/analytics.ts`)
 
 | Term | Meaning |
 | --- | --- |
-| Population | `REGISTERED` participation records in the selected explicit placement cycle and graduating batch (or all values when cleared). `UNREGISTERED` participation is excluded. |
+| Population | `REGISTERED` participation records in the selected explicit placement cycle (every cycle when cleared). `UNREGISTERED` participation is excluded. |
 | Placed | A registered participation has an offer. Registered without an offer is unplaced. |
-| Offer filters | Company, sector, offer type and CTC range. They narrow the *matching offers*; the population and the unplaced count never change. |
-| Placement % | Placed ÷ registered participation in the same filtered cycle and batch. An empty registered denominator is undefined, not 0%. |
+| Offer filters | Company, role domain, offer type and CTC range. They narrow the *matching offers*; the population and the unplaced count never change. |
+| Placement % | Placed ÷ registered participation in the same filtered cycle. An empty registered denominator is undefined, not 0%. |
 | CTC stats | Matching offers with a recorded `package_lpa` only. Missing packages are excluded and the count is shown. |
 | Mode CTC | The most frequent exact package (2 decimals). On a tie, the lowest tied value is shown and flagged. If no package repeats, there is no mode. |
-| CTC buckets | 0–5, 5–10, 10–15, 15–20, 20–30, 30–40 and 40+ LPA (`DEFAULT_CTC_BUCKETS`). They are the same for every batch so batches can be compared. |
-| vs comparison cycle | Shown only after the user selects two different cycles. Both cycle populations use the same optional batch and offer filters. |
+| CTC buckets | 0–5, 5–10, 10–15, 15–20, 20–30, 30–40 and 40+ LPA (`DEFAULT_CTC_BUCKETS`). They are the same for every cycle so cycles can be compared. |
+| vs comparison cycle | Shown only after the user selects two different cycles. Both cycle populations use the same offer filters. |
 
-## Sector instead of stream
+## Role domain instead of stream
 
-The schema has no academic stream, so the stream chart uses the offering company's sector (`companies.domain`). Unplaced students have no company, so they belong to no sector. They are reported in that chart's footnote instead of being stacked into a sector.
+The domain-wise chart and the domain filter use the domain of the offer's role (`drive_roles.domain`, e.g. Software or Production). Offers without a role, or whose role has no domain, appear as "Not recorded". `companies.domain` is only a company description and is not used in analytics. Unplaced students have no offer, so they belong to no domain; they are reported in the chart's footnote.
 
 ## Home comparison
 

@@ -6,16 +6,13 @@ import {
   mergeDashboardFilters,
   type DashboardFilterState,
 } from "@/lib/placements/analytics";
-import type { PlacementRecord } from "@/lib/placements/types";
 
 /**
  * The one filter state every KPI and chart reads. Chart clicks and the filter bar both
  * write here, so nothing filters on its own.
  */
-export function useDashboardFilters(records: PlacementRecord[]) {
-  const [filters, setFilters] = useState<DashboardFilterState>(() =>
-    defaultFilters(records),
-  );
+export function useDashboardFilters() {
+  const [filters, setFilters] = useState<DashboardFilterState>(defaultFilters);
 
   const update = useCallback(
     (patch: Partial<DashboardFilterState>) =>
@@ -25,7 +22,7 @@ export function useDashboardFilters(records: PlacementRecord[]) {
 
   /** Select a value, or clear it when it is already selected (chart clicks). */
   const toggle = useCallback(
-    <K extends "company" | "sector" | "offerType">(
+    <K extends "company" | "domain" | "offerType">(
       key: K,
       value: DashboardFilterState[K],
     ) =>
@@ -36,10 +33,7 @@ export function useDashboardFilters(records: PlacementRecord[]) {
     [],
   );
 
-  const reset = useCallback(
-    () => setFilters(defaultFilters(records)),
-    [records],
-  );
+  const reset = useCallback(() => setFilters(defaultFilters()), []);
 
   return { filters, update, toggle, reset };
 }

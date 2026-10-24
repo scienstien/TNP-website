@@ -18,7 +18,7 @@ const company = { companyId: "10000000-0000-4000-8000-000000000001", name: "Fict
 const otherCompany = { companyId: "10000000-0000-4000-8000-000000000002", name: "Fictional Polymers" };
 const cycle = { cycleId: "20000000-0000-4000-8000-000000000001", code: "26-27" };
 const drive = (driveId: string, reference: string | null, overrides: Partial<DriveOption> = {}): DriveOption =>
-  ({ driveId, companyId: company.companyId, companyName: company.name, cycleId: cycle.cycleId, cycleCode: cycle.code, reference, roles: [], ...overrides });
+  ({ driveId, companyId: company.companyId, companyName: company.name, cycleId: cycle.cycleId, cycleCode: cycle.code, reference, hrName: null, hrEmail: null, hrPhoneNumber: null, roles: [], ...overrides });
 const driveA = drive("3000000a-0000-4000-8000-000000000001", "Main campus");
 const driveB = drive("3000000b-0000-4000-8000-000000000002", "Main campus");
 const driveC = drive("3000000c-0000-4000-8000-000000000003", null);
@@ -64,23 +64,23 @@ test("repeated and undated events stay separate rows in the supplied order, with
 });
 
 test("scope and selected roles sit inside the event cell, including NULL and repeated titles", () => {
-  const roles = [{ roleId: "50000001-0000-4000-8000-000000000001", jobTitle: "Engineer" }, { roleId: "50000002-0000-4000-8000-000000000002", jobTitle: "Engineer" }, { roleId: "50000003-0000-4000-8000-000000000003", jobTitle: null }];
+  const roles = [{ roleId: "50000001-0000-4000-8000-000000000001", jobTitle: "Engineer", domain: "Production" }, { roleId: "50000002-0000-4000-8000-000000000002", jobTitle: "Engineer", domain: null }, { roleId: "50000003-0000-4000-8000-000000000003", jobTitle: null, domain: null }];
   const html = render({ events: [event("40000001-0000-4000-8000-000000000001", { scope: "SELECTED_ROLES", roles }), event("40000002-0000-4000-8000-000000000002")] });
   const [selectedCell, wholeCell] = contents(html, "td").filter((_, index) => index % 2 === 0);
   assert.ok(selectedCell.includes("Selected roles"));
-  assert.deepEqual(contents(selectedCell, "li"), ["Engineer · 50000001", "Engineer · 50000002", "Unknown title · 50000003"]);
+  assert.deepEqual(contents(selectedCell, "li"), ["Engineer · Production", "Engineer", "Unknown title"]);
   assert.ok(wholeCell.includes("Whole drive") && !wholeCell.includes("<li"));
   assert.ok(render({ events: [event("40000001-0000-4000-8000-000000000001", { scope: "SELECTED_ROLES" })] }).includes("No roles linked"));
 });
 
-test("drive options distinguish repeated and NULL references by stable ID, with no automatic choice", () => {
+test("drive options distinguish repeated and NULL references with plain numbers, never IDs, and no automatic choice", () => {
   const html = render({ selectedDriveId: null });
-  assert.deepEqual(contents(html, "option"), ["Choose a drive", "Main campus · 3000000a", "Main campus · 3000000b", "No reference · 3000000c"]);
+  assert.deepEqual(contents(html, "option"), ["Choose a drive", "Main campus (1)", "Main campus (2)", "No reference"]);
   assert.ok(html.includes(`<option value="" selected="">Choose a drive</option>`));
   assert.ok(html.includes("Choose a drive to see its process events.") && !html.includes("<table"));
 
   const twins = [drive("abcdef12-0000-4000-8000-000000000001", "Main"), drive("abcdef12-1000-4000-8000-000000000002", "Main")];
-  assert.deepEqual(contents(render({ drives: twins, selectedDriveId: null }), "option").slice(1), ["Main · abcdef12-0", "Main · abcdef12-1"]);
+  assert.deepEqual(contents(render({ drives: twins, selectedDriveId: null }), "option").slice(1), ["Main (1)", "Main (2)"]);
 });
 
 test("the selected exact drive is shown and only its events are listed", () => {
@@ -98,7 +98,7 @@ test("changed company or cycle hides stale drives and events instead of showing 
 
   const otherCycleDrive = drive("3000000d-0000-4000-8000-000000000004", "Main campus", { cycleId: "20000000-0000-4000-8000-000000000002", cycleCode: "25-26" });
   const unavailable = render({ drives: [otherCycleDrive, driveB], selectedDriveId: otherCycleDrive.driveId, events: staleEvents });
-  assert.deepEqual(contents(unavailable, "option"), ["Choose a drive", "Main campus · 3000000b"]);
+  assert.deepEqual(contents(unavailable, "option"), ["Choose a drive", "Main campus"]);
   assert.ok(unavailable.includes("The selected drive is not available for Fictional Alloys in 26-27."));
   assert.ok(!unavailable.includes("<table"));
 });

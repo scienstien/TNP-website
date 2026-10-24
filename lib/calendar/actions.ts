@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { driveEvents, driveRoles, eventRoles } from "@/db/schema";
 import { assertSnapshot, isUuid } from "@/lib/drives/rules";
-import { authorizeHistoricalWrite, lockDrive, writeError } from "@/lib/drives/write";
+import { authorizeDriveWrite, lockDrive, writeError } from "@/lib/drives/write";
 import type { Transaction } from "@/lib/placements/cycles";
 import { readCalendarEvents } from "./read";
 import { assertRoleMembership, validateEvent } from "./rules";
@@ -21,7 +21,7 @@ async function insertLinks(tx: Transaction, eventId: string, data: EventInput) {
 }
 
 export async function createEvent(input: unknown): Promise<EventResult> {
-  const error = await authorizeHistoricalWrite();
+  const error = await authorizeDriveWrite();
   if (error) return { error };
   try {
     const data = validateEvent(input);
@@ -37,7 +37,7 @@ export async function createEvent(input: unknown): Promise<EventResult> {
 }
 
 async function changeEvent(eventId: unknown, input: unknown, expected: unknown, deleting: boolean): Promise<EventResult> {
-  const error = await authorizeHistoricalWrite();
+  const error = await authorizeDriveWrite();
   if (error) return { error };
   if (!isUuid(eventId)) return { error: "Unknown event." };
   try {

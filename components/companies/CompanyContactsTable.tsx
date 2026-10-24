@@ -1,12 +1,15 @@
 "use client";
 
 import { useId } from "react";
-import type { CompanyRecord } from "@/lib/companies/types";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Mail, Phone, UserRound } from "lucide-react";
+import type { DriveOption } from "@/lib/drives/types";
 import styles from "./CompanyContactsTable.module.css";
 
 export interface CompanyContactsTableProps {
-  company: Pick<CompanyRecord, "companyId" | "name" | "hrName" | "phoneNumber" | "email"> | null;
+  company: { companyId: string; name: string } | null;
+  cycle: { cycleId: string; code: string } | null;
+  /** The company's drives in the selected cycle (the same list the Drive process card uses). */
+  drives: DriveOption[];
   loading: boolean;
   error: string | null;
   onRetry: () => void;
@@ -16,47 +19,45 @@ export interface CompanyContactsTableProps {
 const recorded = (value: string | null) => value?.trim() || null;
 
 /**
- * Read-only card for a company's single GLOBAL HR contact. These values belong to the
- * company, not to a drive or cycle, so the card deliberately takes no selection props.
+ * HR contacts of the company's drives in the selected cycle, one entry per drive. The legacy
+ * company-level contact (companies.hr_name/email/phone_number) is no longer shown here.
  */
-export default function CompanyContactsTable({ company, loading, error, onRetry }: CompanyContactsTableProps) {
+export default function CompanyContactsTable({ company, cycle, drives, loading, error, onRetry }: CompanyContactsTableProps) {
   const headingId = useId();
+  // Ignore a previous selection's drives so they never appear as the current company's.
+  const options = company && cycle ? drives.filter(drive => drive.companyId === company.companyId && drive.cycleId === cycle.cycleId) : [];
   return <section className={`panel ${styles.card}`} aria-labelledby={headingId} aria-busy={loading}>
     <header className={styles.header}>
-      <h2 id={headingId}>Company contacts (global)</h2>
-      <p>Company-level HR details shared by every department. They are not linked to a particular drive or placement cycle.</p>
+      <h2 id={headingId}>HR contacts</h2>
+      <p>The HR contact recorded for each drive{cycle ? ` in ${cycle.code}` : ""}.</p>
     </header>
-    {loading ? <p role="status" className={styles.state}>Loading company contacts…</p>
+    {loading ? <p role="status" className={styles.state}>Loading HR contacts…</p>
       : error !== null ? <div role="alert" className={styles.error}>
-        <p>Company contacts could not be loaded.{error && <> {error}</>}</p>
+        <p>HR contacts could not be loaded.{error && <> {error}</>}</p>
         <button type="button" onClick={onRetry}>Retry</button>
       </div>
-      : !company ? <p className={styles.state}>Select a company to see its global HR contact.</p>
-      : <ContactTable company={company} />}
+      : !company ? <p className={styles.state}>Select a company to see its drives&apos; HR contacts.</p>
+      : !cycle ? <p className={styles.state}>Choose a placement cycle to see the HR contacts of {company.name}&apos;s drives.</p>
+      : !options.length ? <p className={styles.state}>No drives are recorded for {company.name} in {cycle.code}.</p>
+      : <ul className={styles.list} aria-label={`HR contacts for ${company.name} drives in ${cycle.code}`}>
+        {options.map((drive, index) => <DriveContact key={drive.driveId} drive={drive} label={drive.reference ?? (options.length > 1 ? `Drive ${index + 1}` : "Drive")} />)}
+      </ul>}
   </section>;
 }
 
-function ContactTable({ company }: { company: NonNullable<CompanyContactsTableProps["company"]> }) {
-  const hrName = recorded(company.hrName);
-  const phoneNumber = recorded(company.phoneNumber);
-  const email = recorded(company.email);
-  return <>
-    <p className={styles.company}>{company.name}</p>
-    <div className={styles.scroll} role="region" aria-label={`Global HR contact for ${company.name}`} tabIndex={0}>
-      <Table className={styles.table}>
-        <caption className={styles.srOnly}>Global HR contact recorded for {company.name}</caption>
-        <TableHeader><TableRow>
-          <TableHead scope="col">HR name</TableHead><TableHead scope="col">Contact number</TableHead><TableHead scope="col">Email</TableHead>
-        </TableRow></TableHeader>
-        <TableBody><TableRow>
-          <TableCell>{hrName ?? <NotRecorded />}</TableCell>
-          <TableCell>{phoneNumber ?? <NotRecorded />}</TableCell>
-          <TableCell>{email ? <a href={`mailto:${email}`}>{email}</a> : <NotRecorded />}</TableCell>
-        </TableRow></TableBody>
-      </Table>
-    </div>
-    {!hrName && !phoneNumber && !email && <p className={styles.note}>No global HR contact is recorded for {company.name}.</p>}
-  </>;
+function DriveContact({ drive, label }: { drive: DriveOption; label: string }) {
+  const hrName = recorded(drive.hrName);
+  const phone = recorded(drive.hrPhoneNumber);
+  const email = recorded(drive.hrEmail);
+  return <li className={styles.item}>
+    <p className={styles.drive}>{label}</p>
+    <dl className={styles.fields}>
+      <div><dt><UserRound size={14} aria-hidden="true" /><span>HR name</span></dt><dd>{hrName ?? <NotRecorded />}</dd></div>
+      <div><dt><Phone size={14} aria-hidden="true" /><span>Phone</span></dt><dd>{phone ? <a href={`tel:${phone.replace(/[^\d+]/g, "")}`}>{phone}</a> : <NotRecorded />}</dd></div>
+      <div><dt><Mail size={14} aria-hidden="true" /><span>Email</span></dt><dd>{email ? <a href={`mailto:${email}`}>{email}</a> : <NotRecorded />}</dd></div>
+    </dl>
+    {!hrName && !phone && !email && <p className={styles.note}>No HR contact is recorded for this drive. Add it with Edit drives.</p>}
+  </li>;
 }
 
 function NotRecorded() {

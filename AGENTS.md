@@ -105,12 +105,18 @@ Cycles and participation:
 Companies, drives and final offers:
 - `companies`: UUID company_id PK; required unique name; nullable domain,
   hr_name, email, phone_number, pvr_status and remarks. Stable company IDs replace
-  name-based offer references. Contacts remain global company data.
+  name-based offer references. domain is only a company description: never filter
+  or chart by it. hr_name/email/phone_number are legacy global contacts (kept, not
+  edited) until they are retired.
 - `drives`: UUID drive_id PK, required company_id FK and cycle_id FK, optional
-  reference. One company may have many drives in the same cycle, with no
-  uniqueness on company/year/date.
-- `drive_roles`: UUID role_id PK, drive_id FK and nullable job_title. Repeated
-  titles and multiple roles per drive are allowed.
+  reference, and hr_name/hr_email/hr_phone_number (migration 0006). One company may
+  have many drives in the same cycle, with no uniqueness on company/year/date. The
+  application requires the drive HR contact on create and edit; the columns are
+  nullable only for older rows.
+- `drive_roles`: UUID role_id PK, drive_id FK, nullable job_title and nullable domain
+  (0006). Repeated titles and multiple roles per drive are allowed. domain is the
+  role's field (e.g. Production for a supply engineer, Software for an SDE at the
+  same company); every distribution-across-fields chart uses it.
 - `placement_offers`: UUID offer_id PK; required unique enrollment_id, required
   cycle_id and company_id; nullable drive_id, role_id, package_lpa,
   monthly_stipend_inr, offer_type and offer_date.
@@ -306,8 +312,22 @@ drive metadata are institute-wide. Offer aggregates include REGISTERED UG and PG
 enrollments in the authenticated department (SUPERADMIN can read all), without
 student detail payloads. Separate role compensation and offer-type cards complement
 the three-dimension demographic donut. Live database/browser integration acceptance
-is still pending; see docs/handoffs/COMPANIES-MODEL1.md. Cancellation status and
-per-drive HR storage remain separate future schema work.
+is still pending; see docs/handoffs/COMPANIES-MODEL1.md. Cancellation status remains
+separate future schema work; per-drive HR storage was added by migration 0006.
+Drive management (2026-10-24, owner request): the separate /companies/drives page is
+merged into the company directory. "Add company" drafts drives and roles (saved in the
+company's transaction; no drive asks for confirmation). The Drive process card of an
+expanded company has "Edit drives": add new drives, edit recorded drives, roles and
+process stages (drive_events), and each drive's HR contact. ADMIN and SUPERADMIN (with a chosen
+department) may write drives, roles and process stages, here and on the calendar page.
+A new drive needs at least one titled role (its last role cannot be deleted); stages
+drafted with it are WHOLE_DRIVE events shared by all its roles, and creating a drive
+with no stages asks for confirmation (dates can be added later in either place).
+Every drive needs its own HR name, email and phone (drives.hr_*), entered inside each
+drive; the legacy companies.hr_name/email/phone_number are kept but no longer edited.
+Roles take an optional domain (drive_roles.domain) used by domain-wise analytics;
+companies.domain is shown only as the company's Description and is not searched,
+filtered or charted.
 
 Settled: twenty-year/all-department coverage, UG/PG programme hierarchy, generated
 UUID identities, explicit cycles, registration including ineligible opt-outs,
@@ -358,9 +378,10 @@ Ported analytics and student/company integration:
 - lib/placements/queries.ts, lib/students/ and lib/companies/ read the target
   tables. PlacementRecord now represents one explicit undergraduate student-cycle
   participation and includes cycle identity, optional cycle dates, registration
-  status, department, roll, batch and the offer for that same cycle. The analytics
-  functions and charts can filter by explicit cycle and graduating batch and use
-  REGISTERED participation as their population. UNREGISTERED participation is
+  status, department and the offer for that same cycle. It carries no roll number,
+  name or graduating batch: student identifiers stay on the server. The analytics
+  functions and charts filter by explicit placement cycle only (there is no batch
+  filter) and use REGISTERED participation as their population. UNREGISTERED participation is
   excluded before placed/unplaced and offer analytics are derived. Server-side
   cycle filtering is tracked as a later optimization; authorization remains
   server-enforced.
@@ -376,8 +397,10 @@ Ported analytics and student/company integration:
   rechecks on every mutation, explicit offer removal, draft Save/Cancel and
   no-overwrite company creation. A student's job role is stored as a drive role;
   moving a student to another batch carries the offer but drops its drive and role.
-- Recharts remain the current chart library; the company-sector chart must not be
-  mistaken for the academic department/programme dimension.
+- Recharts remain the current chart library; the domain-wise chart (role domain,
+  drive_roles.domain) must not be mistaken for the academic department/programme
+  dimension. The dashboard's domain filter also uses the role domain, never
+  companies.domain.
 
 Process calendar (temporary client-only mode):
 - The dashboard calendar does not call lib/calendar/queries.ts or

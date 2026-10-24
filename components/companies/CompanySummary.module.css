@@ -14,7 +14,7 @@
 .roleCard > header p { margin-top:4px; overflow-wrap:anywhere; }
 .offerCount { display:grid; min-width:58px; justify-items:center; padding:7px 10px; border:1px solid rgb(112 160 255 / .28); border-radius:8px; color:#9db9ef; font-size:10px; text-transform:uppercase; }
 .offerCount strong { color:#fff; font-size:18px; line-height:1; }
-.metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.metrics { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
 .metric { display:grid; min-width:0; gap:4px; padding:13px; border-radius:8px; background:#17243a; color:#9aa7be; font-size:11px; }
 .metricLabel { color:#89aef7; font-size:9px; font-weight:650; letter-spacing:.08em; overflow-wrap:anywhere; text-transform:uppercase; }
 .metric strong { color:#edf3ff; font-size:20px; line-height:1.2; }

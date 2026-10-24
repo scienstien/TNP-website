@@ -10,9 +10,8 @@ import { OFFER_TYPE_LABELS } from "./chartTheme";
 
 export interface FilterOptions {
   cycles: PlacementCycleOption[];
-  batches: number[];
   companies: string[];
-  sectors: string[];
+  domains: string[];
   /** Whole-LPA bounds of recorded packages. */
   ctc: [number, number];
 }
@@ -56,20 +55,15 @@ export default function DashboardFilters({
       clear: () => onChange({ comparisonCycleId: null }),
     });
   }
-  if (filters.batchYear !== null)
-    chips.push({
-      label: `Batch ${filters.batchYear}`,
-      clear: () => onChange({ batchYear: null }),
-    });
   if (filters.company)
     chips.push({
       label: filters.company,
       clear: () => onChange({ company: null }),
     });
-  if (filters.sector)
+  if (filters.domain)
     chips.push({
-      label: `Sector: ${filters.sector}`,
-      clear: () => onChange({ sector: null }),
+      label: `Domain: ${filters.domain}`,
+      clear: () => onChange({ domain: null }),
     });
   if (filters.offerType)
     chips.push({
@@ -122,26 +116,6 @@ export default function DashboardFilters({
           </select>
         </label>
 
-        <label className="mme-field" htmlFor={`${id}-batch`}>
-          <span>Batch year</span>
-          <select
-            id={`${id}-batch`}
-            value={filters.batchYear ?? ""}
-            onChange={(e) =>
-              onChange({
-                batchYear: e.target.value ? Number(e.target.value) : null,
-              })
-            }
-          >
-            <option value="">All batches</option>
-            {options.batches.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-        </label>
-
         <label className="mme-field" htmlFor={`${id}-company`}>
           <span>Company</span>
           <select
@@ -158,17 +132,17 @@ export default function DashboardFilters({
           </select>
         </label>
 
-        <label className="mme-field" htmlFor={`${id}-sector`}>
-          <span>Sector</span>
+        <label className="mme-field" htmlFor={`${id}-domain`}>
+          <span>Domain</span>
           <select
-            id={`${id}-sector`}
-            value={filters.sector ?? ""}
-            onChange={(e) => onChange({ sector: e.target.value || null })}
+            id={`${id}-domain`}
+            value={filters.domain ?? ""}
+            onChange={(e) => onChange({ domain: e.target.value || null })}
           >
-            <option value="">All sectors</option>
-            {options.sectors.map((sector) => (
-              <option key={sector} value={sector}>
-                {sector}
+            <option value="">All domains</option>
+            {options.domains.map((domain) => (
+              <option key={domain} value={domain}>
+                {domain}
               </option>
             ))}
           </select>

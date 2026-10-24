@@ -12,6 +12,11 @@ export interface CompanyRecord {
   visitDate: string | null;
 }
 
+/** A directory row: the company plus its final offers in the selected cycle (all cycles when none). */
+export interface CompanyListRecord extends CompanyRecord {
+  offerCount: number;
+}
+
 export interface CompanyResult {
   ok?: boolean;
   company?: CompanyRecord;

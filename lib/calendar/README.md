@@ -7,9 +7,10 @@ No completed/passed/selected workflow status is recorded.
 
 Every read calls requireUser and resolveDepartment. Events/drives have no department
 targeting, so all signed-in roles may read these institute-wide stages. The page
-computes canEdit = SUPERADMIN with non-null resolved department. Actions independently
-recheck the database user and department on every call; ADMIN/PROFESSOR and all-scope
-cannot write. No company contacts are read for editing or written by event actions.
+computes canEdit = ADMIN or SUPERADMIN with non-null resolved department. Actions
+independently recheck the database user and department on every call (authorizeDriveWrite);
+PROFESSOR and all-scope cannot write. The same actions back the process-stage editor in
+Companies → Drive process → Edit drives. No company contacts are written by event actions.
 
 createEvent/updateEvent/deleteEvent use one transaction, parent drive FOR UPDATE first,
 then event FOR UPDATE for update/delete. Role writers use the same parent-drive lock.

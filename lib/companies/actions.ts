@@ -1,10 +1,12 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { companies } from "@/db/schema";
+import { companies, placementCycles } from "@/db/schema";
 import { getCurrentUser, isAdminRole, resolveDepartment } from "@/lib/auth/dal";
+import { validateNewCompanyDrives } from "@/lib/drives/rules";
+import { insertDriveWithRoles } from "@/lib/drives/write";
 import { validateCompanyCreate, validateCompanyUpdate } from "./validation";
 import { companyRecord, companySnapshotMatches, isUuid } from "./records";
 import type { CompanyResult } from "./types";
@@ -20,12 +22,19 @@ async function adminDepartment(action: string) {
 }
 
 
-/** Create only the company; an existing name must never overwrite contacts. */
+/**
+ * Create the company and any drafted drives (with their roles) in one transaction;
+ * an existing name must never overwrite contacts, and then no drive is created either.
+ */
 export async function createCompany(input: unknown): Promise<CompanyResult> {
   const scope = await adminDepartment("create companies");
   if ("error" in scope) return { error: scope.error };
-  const parsed = validateCompanyCreate(input);
+  const { drives: driveInput, ...companyInput } = input && typeof input === "object" && !Array.isArray(input) ? input as Record<string, unknown> : {};
+  const parsed = validateCompanyCreate(companyInput);
   if (Object.keys(parsed.fieldErrors).length) return { fieldErrors: parsed.fieldErrors };
+  let newDrives: ReturnType<typeof validateNewCompanyDrives>;
+  try { newDrives = validateNewCompanyDrives(driveInput); }
+  catch (error) { return { fieldErrors: { form: error instanceof Error ? error.message : "Invalid drive data." } }; }
   const fields = parsed.data;
   try {
     const company = await db.transaction(async (tx) => {
@@ -33,6 +42,12 @@ export async function createCompany(input: unknown): Promise<CompanyResult> {
         .onConflictDoNothing({ target: companies.name })
         .returning({ companyId: companies.companyId });
       if (!row) return null;
+      const cycleIds = [...new Set(newDrives.map(drive => drive.cycleId))];
+      if (cycleIds.length) {
+        const found = await tx.select({ cycleId: placementCycles.cycleId }).from(placementCycles).where(inArray(placementCycles.cycleId, cycleIds));
+        if (found.length !== cycleIds.length) throw new Error(missingCycle);
+      }
+      for (const drive of newDrives) await insertDriveWithRoles(tx, { companyId: row.companyId, ...drive });
       const [created] = await tx.select().from(companies).where(eq(companies.companyId, row.companyId));
       return companyRecord(created);
     });
@@ -41,10 +56,12 @@ export async function createCompany(input: unknown): Promise<CompanyResult> {
     }
     revalidatePath("/", "layout");
     return company ? { ok: true, company } : { error: "Unable to add the company. Please retry." };
-  } catch {
-    return { error: "Unable to add the company. Please retry." };
+  } catch (error) {
+    return { error: error instanceof Error && error.message === missingCycle ? missingCycle : "Unable to add the company. Please retry." };
   }
 }
+
+const missingCycle = "A chosen placement cycle no longer exists. Reload and try again.";
 
 export async function updateCompany(companyId: unknown, input: unknown, expected: unknown): Promise<CompanyResult> {
   const scope = await adminDepartment("edit companies");

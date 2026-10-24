@@ -228,6 +228,12 @@ export const drives = pgTable("drives", {
     onDelete: "restrict",
   }),
   reference: text("reference"),
+  // The HR contact for this drive. Required by the application when a drive is created or
+  // edited; nullable only for drives recorded before 0006 without a company contact to copy.
+  // companies.hr_name/email/phone_number remain as legacy global contacts for now.
+  hrName: text("hr_name"),
+  hrEmail: text("hr_email"),
+  hrPhoneNumber: text("hr_phone_number"),
 }, (table) => [
   unique("drives_id_company_cycle_unique").on(table.driveId, table.companyId, table.cycleId),
   // Intentionally non-unique: a company can conduct many drives in one cycle.
@@ -242,9 +248,13 @@ export const driveRoles = pgTable("drive_roles", {
     onDelete: "restrict",
   }),
   jobTitle: text("job_title"),
+  // The role's field (e.g. Software, Production); NULL when not recorded. Analytics that
+  // show distribution across fields use this column. companies.domain is only a description.
+  domain: text("domain"),
 }, (table) => [
   unique("drive_roles_id_drive_unique").on(table.roleId, table.driveId),
   check("drive_roles_title_nonblank", sql`char_length(${table.jobTitle}) > 0 and ${table.jobTitle} = btrim(${table.jobTitle})`),
+  check("drive_roles_domain_nonblank", sql`char_length(${table.domain}) > 0 and ${table.domain} = btrim(${table.domain})`),
   index("drive_roles_drive_idx").on(table.driveId),
 ]);
 

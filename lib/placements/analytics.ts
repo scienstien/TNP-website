@@ -2,11 +2,11 @@
  * Dashboard analytics: pure functions over PlacementRecord[] shared by every KPI and chart.
  *
  * Definitions (AGENTS.md, db/README.md):
- * - Population: REGISTERED participation records in the selected placement cycle and batch
- *   (all values when a filter is not chosen).
+ * - Population: REGISTERED participation records in the selected placement cycle
+ *   (every cycle when none is chosen).
  * - Placed: a registered participation has an offer; registered without an offer is unplaced.
  *   UNREGISTERED participation is outside the placement-rate population.
- * - Offer filters (company, sector, offer type, CTC range) narrow which offers count as
+ * - Offer filters (company, role domain, offer type, CTC range) narrow which offers count as
  *   "matching". The population and the unplaced count never change with offer filters.
  * - CTC statistics use matching offers whose package is recorded; missing packages are
  *   excluded and reported, never filled in.
@@ -25,9 +25,8 @@ export const NOT_RECORDED = "Not recorded";
 export interface DashboardFilterState {
   cycleId: string | null;
   comparisonCycleId: string | null;
-  batchYear: number | null;
   company: string | null;
-  sector: string | null;
+  domain: string | null;
   offerType: OfferTypeValue | null;
   ctcMin: number | null;
   ctcMax: number | null;
@@ -36,9 +35,8 @@ export interface DashboardFilterState {
 export const EMPTY_FILTERS: DashboardFilterState = {
   cycleId: null,
   comparisonCycleId: null,
-  batchYear: null,
   company: null,
-  sector: null,
+  domain: null,
   offerType: null,
   ctcMin: null,
   ctcMax: null,
@@ -52,12 +50,6 @@ export interface PlacementCycleOption {
 }
 
 /* ---------------------------------------------------------------- options */
-
-export function batchYears(records: PlacementRecord[]): number[] {
-  return [...new Set(records.map((record) => record.batchYear))].sort(
-    (a, b) => b - a,
-  );
-}
 
 export function placementCycles(records: PlacementRecord[]): PlacementCycleOption[] {
   const cycles = new Map<string, string>();
@@ -73,9 +65,9 @@ export function companyNames(records: PlacementRecord[]): string[] {
   );
 }
 
-export function sectorNames(records: PlacementRecord[]): string[] {
+export function domainNames(records: PlacementRecord[]): string[] {
   return uniqueSorted(
-    records.flatMap((r) => (r.offer ? [sectorOf(r.offer)] : [])),
+    records.flatMap((r) => (r.offer ? [domainOf(r.offer)] : [])),
   );
 }
 
@@ -86,10 +78,8 @@ export function ctcBounds(records: PlacementRecord[]): [number, number] {
   return [Math.floor(Math.min(...values)), Math.ceil(Math.max(...values))];
 }
 
-export function defaultFilters(
-  records: PlacementRecord[],
-): DashboardFilterState {
-  return { ...EMPTY_FILTERS, batchYear: batchYears(records)[0] ?? null };
+export function defaultFilters(): DashboardFilterState {
+  return { ...EMPTY_FILTERS };
 }
 
 export function mergeDashboardFilters(
@@ -106,14 +96,14 @@ export function mergeDashboardFilters(
 
 /* ---------------------------------------------------------------- scoping */
 
-export function sectorOf(offer: PlacementOffer): string {
-  return offer.sector?.trim() || NOT_RECORDED;
+export function domainOf(offer: PlacementOffer): string {
+  return offer.domain?.trim() || NOT_RECORDED;
 }
 
 export function hasOfferFilters(filters: DashboardFilterState): boolean {
   return Boolean(
     filters.company ||
-      filters.sector ||
+      filters.domain ||
       filters.offerType ||
       filters.ctcMin !== null ||
       filters.ctcMax !== null,
@@ -122,7 +112,7 @@ export function hasOfferFilters(filters: DashboardFilterState): boolean {
 
 function offerMatches(offer: PlacementOffer, f: DashboardFilterState): boolean {
   if (f.company && offer.company !== f.company) return false;
-  if (f.sector && sectorOf(offer) !== f.sector) return false;
+  if (f.domain && domainOf(offer) !== f.domain) return false;
   if (f.offerType && offer.offerType !== f.offerType) return false;
   if (f.ctcMin !== null || f.ctcMax !== null) {
     // An offer without a recorded package cannot be placed in a CTC range.
@@ -150,8 +140,7 @@ export function scopeRecords(
   const population = records.filter(
     (record) =>
       isRegisteredParticipation(record) &&
-      (filters.cycleId === null || record.cycleId === filters.cycleId) &&
-      (filters.batchYear === null || record.batchYear === filters.batchYear),
+      (filters.cycleId === null || record.cycleId === filters.cycleId),
   );
   const matching = population.filter(
     (r): r is PlacedRecord =>
@@ -169,9 +158,12 @@ export interface ModeResult {
 }
 
 export interface Kpis {
-  /** Registered participation records in the selected cycle and batch. */
+  /** Registered participation records in the selected cycle. */
   total: number;
+  /** Placed through an offer that passes the offer filters. */
   placed: number;
+  /** Placed through any offer; independent of offer filters. */
+  placedOverall: number;
   /** Students without any offer (independent of offer filters). */
   unplaced: number;
   /** Students placed through offers outside the current offer filters. */
@@ -193,6 +185,7 @@ export function computeKpis(scope: Scope): Kpis {
   return {
     total,
     placed,
+    placedOverall: withAnyOffer,
     unplaced: total - withAnyOffer,
     placedElsewhere: withAnyOffer - placed,
     placementPct: total > 0 ? (placed / total) * 100 : null,
@@ -241,7 +234,6 @@ export function comparisonCycleKpis(
 
 export interface CompanyOfferRow {
   company: string;
-  sector: string;
   offers: number;
   average: number | null;
   min: number | null;
@@ -260,7 +252,6 @@ export function topCompanies(scope: Scope, limit = 10): CompanyOfferRow[] {
       for (const r of rows) byType[r.offer.offerType ?? NOT_RECORDED] += 1;
       return {
         company,
-        sector: sectorOf(rows[0].offer),
         offers: rows.length,
         average: values.length ? sum(values) / values.length : null,
         min: values.length ? Math.min(...values) : null,
@@ -296,26 +287,26 @@ export function offerTypeSplit(scope: Scope): OfferTypeSlice[] {
     .filter((slice) => slice.offers > 0);
 }
 
-export interface SectorRow {
-  sector: string;
+export interface DomainRow {
+  domain: string;
   placed: number;
   /** Share of all placed students in scope. */
   share: number;
 }
 
-/** Placed students per company sector. Unplaced students have no sector and are reported separately. */
-export function sectorPlacement(scope: Scope): SectorRow[] {
+/** Placed students per role domain (drive_roles.domain). Offers without a role or domain are "Not recorded"; unplaced students have no domain and are reported separately. */
+export function domainPlacement(scope: Scope): DomainRow[] {
   const total = scope.matching.length;
-  return [...groupBy(scope.matching, (r) => sectorOf(r.offer))]
-    .map(([sector, rows]) => ({
-      sector,
+  return [...groupBy(scope.matching, (r) => domainOf(r.offer))]
+    .map(([domain, rows]) => ({
+      domain,
       placed: rows.length,
       share: total ? (rows.length / total) * 100 : 0,
     }))
-    .sort((a, b) => b.placed - a.placed || a.sector.localeCompare(b.sector));
+    .sort((a, b) => b.placed - a.placed || a.domain.localeCompare(b.domain));
 }
 
-/** Bucket lower bounds in LPA; the last bucket is open-ended. Same for every batch. */
+/** Bucket lower bounds in LPA; the last bucket is open-ended. Same for every cycle. */
 export const DEFAULT_CTC_BUCKETS = [0, 5, 10, 15, 20, 30, 40];
 
 export interface CtcBucket {

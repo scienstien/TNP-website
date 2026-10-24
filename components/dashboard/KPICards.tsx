@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Kpis } from "@/lib/placements/analytics";
 import { formatLpa, formatPct } from "./format";
 
@@ -5,6 +6,10 @@ interface Props {
   kpis: Kpis;
   comparison: { cycleCode: string; kpis: Kpis } | null;
   offerFiltersActive: boolean;
+  /** Heading of the filtered placed card. */
+  placedFilterHeading: string;
+  /** The active offer filters, listed under the filtered placed card's figure. */
+  placedFilterParts: string[];
 }
 
 type Direction = "higher-is-better" | "lower-is-better";
@@ -54,26 +59,52 @@ export default function KPICards({
   kpis,
   comparison,
   offerFiltersActive,
+  placedFilterHeading,
+  placedFilterParts,
 }: Props) {
   const compared = comparison?.kpis;
   const vs = comparison ? `vs ${comparison.cycleCode}` : "";
+  const overallPct = kpis.total ? (kpis.placedOverall / kpis.total) * 100 : null;
 
   return (
-    <section className="mme-kpis" aria-label="Key figures">
+    <section
+      className="mme-kpis"
+      aria-label="Key figures"
+      style={{ "--kpi-cols": offerFiltersActive ? 7 : 6 } as CSSProperties}
+    >
       <article className="mme-kpi">
         <p>Registered students</p>
         <strong>{kpis.total}</strong>
         <Delta current={kpis.total} previous={compared?.total} label={vs} />
       </article>
 
+      {/* Static: placed through any offer, whatever offer filters are active. */}
       <article className="mme-kpi">
-        <p>Placed students</p>
-        <strong>{kpis.placed}</strong>
+        <p>{offerFiltersActive ? "Total placed" : "Placed students"}</p>
+        <strong>{kpis.placedOverall}</strong>
         <span className="mme-kpi-pct">
-          {formatPct(kpis.placementPct)} <small>of registered students</small>
+          {formatPct(overallPct)} <small>of registered students</small>
         </span>
-        <Delta current={kpis.placed} previous={compared?.placed} label={vs} />
+        <Delta
+          current={kpis.placedOverall}
+          previous={compared?.placedOverall}
+          label={vs}
+        />
       </article>
+
+      {offerFiltersActive && (
+        <article className="mme-kpi">
+          <p>{placedFilterHeading}</p>
+          <strong>{kpis.placed}</strong>
+          <span className="mme-kpi-pct">
+            {formatPct(kpis.placementPct)} <small>of registered students</small>
+          </span>
+          <span className="mme-kpi-filters">
+            {placedFilterParts.join(" · ")}
+          </span>
+          <Delta current={kpis.placed} previous={compared?.placed} label={vs} />
+        </article>
+      )}
 
       <article className="mme-kpi">
         <p>Unplaced students</p>
@@ -123,8 +154,8 @@ export default function KPICards({
       </article>
 
       <p className="mme-kpi-note">
-        Placement % is placed ÷ registered students in the selected cycle and
-        batch. Unregistered students are excluded.
+        Placement % is placed ÷ registered students in the selected cycle.
+        Unregistered students are excluded.
         {kpis.packagesMissing > 0 &&
           ` CTC figures exclude ${kpis.packagesMissing} offer${kpis.packagesMissing === 1 ? "" : "s"} without a recorded package.`}
         {offerFiltersActive &&

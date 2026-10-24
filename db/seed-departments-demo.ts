@@ -102,6 +102,8 @@ const MTECH_SPECIALIZATION: Record<DeptCode, string> = {
 };
 
 const ROLE_TITLES = ["Graduate Engineer", "Software Engineer", "Design Engineer", "Analyst", "Process Engineer"];
+// Fictional role domains (drive_roles.domain) used by the domain-wise analytics.
+const ROLE_DOMAINS: Record<string, string> = { "Graduate Engineer": "Core Engineering", "Software Engineer": "Software", "Design Engineer": "Design", Analyst: "Analytics", "Process Engineer": "Production" };
 const FIRST = ["Asha", "Bala", "Charu", "Dev", "Esha", "Farid", "Gita", "Hari", "Indu", "Jai", "Kavya", "Lohit", "Mira", "Nikhil", "Ojas", "Priya", "Ravi", "Sana", "Tara", "Uday"];
 const LAST = ["Example", "Sample", "Demo", "Test", "Placeholder", "Fictional"];
 const GENDERS: [string, string][] = [["F", "Female"], ["M", "Male"], ["O", "Other"]];
@@ -249,7 +251,7 @@ async function seed() {
       cycleId: cycleIds.get(cohort.year)!, cohortId: cohort.cohortId,
     })));
 
-    // Companies (contact details are global company fields).
+    // Companies. domain is only a description; hr_name/email/phone_number are legacy global contacts.
     const companyIds = new Map<string, string>();
     await insertAll(tx, companies, COMPANIES.map(([name, sector], index) => {
       const companyId = randomUUID();
@@ -280,7 +282,11 @@ async function seed() {
         if (random() > 0.8) continue;
         const companyId = companyIds.get(name)!;
         const driveId = randomUUID();
-        driveRows.push({ driveId, companyId, cycleId, reference: `${name.replace("DEMO ", "").replace(/\W+/g, "-")}-${cycleCode(year)}` });
+        const slug = name.toLowerCase().replace(/[^a-z]+/g, "");
+        driveRows.push({
+          driveId, companyId, cycleId, reference: `${name.replace("DEMO ", "").replace(/\W+/g, "-")}-${cycleCode(year)}`,
+          hrName: `Recruiter ${name.replace("DEMO ", "")} ${cycleCode(year)}`, hrEmail: `campus${year}@${slug}.example.com`, hrPhoneNumber: `+91 97000 ${String(10000 + (year % 100) * 13)}`,
+        });
         const pptDate = addDays(`${year - 1}-08-01`, between(0, 140));
         eventRows.push(
           { eventId: randomUUID(), driveId, processType: "PPT", scheduledDate: pptDate, scope: "WHOLE_DRIVE" },
@@ -292,7 +298,8 @@ async function seed() {
           const offerType = typeRoll < 0.2 ? "PPO" : typeRoll < 0.45 ? "FTE+6month" : "FTE";
           const roleId = randomUUID();
           driveRoleIds.push(roleId);
-          roleRows.push({ roleId, driveId, jobTitle: pick(ROLE_TITLES) });
+          const jobTitle = pick(ROLE_TITLES);
+          roleRows.push({ roleId, driveId, jobTitle, domain: ROLE_DOMAINS[jobTitle] });
           roles.push({ roleId, driveId, cycleId, companyId, hires: [...hires], offerType, pptDate, range });
         }
         // The interview round is held for the first role only, to exercise role-scoped events.

@@ -4,6 +4,8 @@
 .header p { margin:6px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
 .button { flex:0 0 auto; padding:7px 12px; border:1px solid #687181; border-radius:6px; background:transparent; color:#e8eefc; font:inherit; font-size:13px; cursor:pointer; }
 .button:hover { border-color:#76a4ff; background:rgb(49 92 164 / .25); }
+.actions { display:flex; flex:0 0 auto; flex-wrap:wrap; gap:8px; }
+.primary { border-color:#48628f; background:rgb(29 52 92 / .48); color:#cfe0ff; font-weight:600; }
 .context { margin:0; color:var(--ink); font-size:14px; font-weight:600; overflow-wrap:anywhere; }
 .field { display:flex; flex-direction:column; gap:7px; max-width:100%; color:var(--muted); font-size:12px; }
 .field select { width:min(460px, 100%); min-height:38px; padding:8px; border:1px solid #687181; border-radius:6px; background:#121d30; color:#dbe7fc; font:inherit; font-size:13px; }

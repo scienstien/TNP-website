@@ -7,6 +7,7 @@ import { PROCESS_LABELS } from "@/lib/calendar/labels";
 import { createEvent, updateEvent, deleteEvent } from "@/lib/calendar/actions";
 import type { CalendarEvent, CalendarWindow, EventInput, EventResult } from "@/lib/calendar/types";
 import type { DriveOption } from "@/lib/drives/types";
+import { numberDuplicates, roleName } from "@/lib/drives/labels";
 import BrowserEntries from "./BrowserEntries";
 import EventForm from "./EventForm";
 import "./calendar.css";
@@ -36,9 +37,9 @@ export default function DriveCalendar({ today, canEdit, scope, window: visibleWi
   });
   const save = (input: EventInput) => run(() => editing && editing !== "new" ? updateEvent(editing.eventId, input, JSON.stringify(editing)) : createEvent(input), true);
   const renderEvent = (event: CalendarEvent) => <li className="cal-card" key={event.eventId}><div className="cal-card-top"><strong>{event.companyName}</strong><span className="cal-stage">{PROCESS_LABELS[event.processType]}</span></div>
-    <p className="cal-process-notes">{event.cycleCode}, {event.driveReference ?? "No drive reference"}, {event.driveId.slice(0, 8)}, Event {event.eventId.slice(0, 8)}</p>
+    <p className="cal-process-notes">{event.cycleCode}, {event.driveReference ?? "No drive reference"}</p>
     <p className="cal-process-notes">{event.scheduledDate ?? "Unscheduled"}, {event.scope === "WHOLE_DRIVE" ? "Whole drive" : "Selected roles"}</p>
-    {event.roles.length > 0 && <ul className="cal-selected-roles">{event.roles.map(role => <li key={role.roleId}>{role.jobTitle ?? "Unknown title"}, {role.roleId.slice(0, 8)}</li>)}</ul>}
+    {event.roles.length > 0 && <ul className="cal-selected-roles">{numberDuplicates(event.roles.map(roleName)).map((label, index) => <li key={event.roles[index].roleId}>{label}</li>)}</ul>}
     {event.label && <p className="cal-process-notes">{event.label}</p>}
     {canEdit && <div className="cal-actions"><button type="button" disabled={pending || editing !== null} onClick={() => setEditing(event)}>Edit</button><button type="button" disabled={pending || editing !== null} onClick={() => { if (window.confirm("Delete this drive-stage event and its role links?")) run(() => deleteEvent(event.eventId, JSON.stringify(event))); }}>Delete</button></div>}
   </li>;
@@ -55,7 +56,7 @@ export default function DriveCalendar({ today, canEdit, scope, window: visibleWi
         {editing && canEdit && <EventForm key={editing === "new" ? "new" : editing.eventId} event={editing === "new" ? null : editing} date={selected} drives={drives} pending={pending} onSave={save} onCancel={() => setEditing(null)} />}
         {!dated.length && <p className="cal-empty">No drive stages scheduled for this day.</p>}<ul className="cal-list">{dated.map(renderEvent)}</ul>
         <h3>Unscheduled</h3><p className="cal-hint">All undated events, across cycles.</p>{!undated.length && <p className="cal-empty">No unscheduled events.</p>}<ul className="cal-list">{undated.map(renderEvent)}</ul>
-        {!canEdit && <p className="cal-hint">Only SUPERADMIN with a department chosen can edit institute-wide drive stages.</p>}
+        {!canEdit && <p className="cal-hint">Only administrators with a department chosen can edit institute-wide drive stages.</p>}
       </aside>
     </section><BrowserEntries scope={scope} />
   </div>;

@@ -1,8 +1,19 @@
 # Historical drives and roles
 
-Institute-wide records, with no department column or inferred ownership. The page
-`/companies/drives` requires SUPERADMIN and is reached from Companies. All departments
-is read-only. Every mutation rechecks the current database user and resolved department.
+Institute-wide records, with no department column or inferred ownership. There is no
+separate drives page (the old `/companies/drives` was merged into the company directory):
+drives are drafted in "Add company" (saved with the company in one transaction by
+createCompany) and changed with "Edit drives" in the expanded company's Drive process
+card, which also edits each drive's process stages through lib/calendar/actions. ADMIN
+and SUPERADMIN with a chosen department may write drives, roles and stages
+(authorizeDriveWrite/canManageDrives). All departments is read-only. Every mutation
+rechecks the current database user and resolved department. Creating a drive (createDrive
+or createCompany's `drives`) requires `jobTitles` with at least one non-blank title and
+accepts optional `stages: { processType, scheduledDate, label }[]`, inserted as
+WHOLE_DRIVE drive_events (every role in a drive shares its process) in the same
+transaction. The UI warns before creating a drive without stages (dates can be added
+later on the Calendar page or in Edit drives). Deleting a drive's last role is rejected.
+loadCompanyDriveOptions(companyId) reads one company's drives and their events.
 
 Pure option types live in types.ts. readDriveOptions(connection, filter) has no auth:
 callers authorize first. It works with Database or Transaction and uses two queries

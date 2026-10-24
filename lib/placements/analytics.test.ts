@@ -4,6 +4,7 @@ import {
   EMPTY_FILTERS,
   comparisonCycleKpis,
   computeKpis,
+  defaultFilters,
   isRegisteredParticipation,
   mergeDashboardFilters,
   placementCycles,
@@ -12,15 +13,11 @@ import {
 import type { PlacementRecord } from "./types";
 
 const record = (
-  rollNumber: number,
-  batchYear: number,
   cycleId: string,
   cycleCode: string,
   department = "mme",
 ): PlacementRecord => ({
   department,
-  rollNumber,
-  batchYear,
   cycleId,
   cycleCode,
   cycleStartsOn: null,
@@ -36,7 +33,7 @@ const withOffer = (
   ...participation,
   offer: {
     company,
-    sector: "Technology",
+    domain: "Technology",
     packageLpa: 12,
     offerType: "FTE",
     offerDate: "2026-09-01",
@@ -44,11 +41,15 @@ const withOffer = (
 });
 
 const records = [
-  record(900000001, 2027, "cycle-a", "2026-27"),
-  record(900000002, 2026, "cycle-a", "2026-27"),
-  record(900000003, 2027, "cycle-b", "special-2027"),
-  record(900000004, 2025, "cycle-b", "special-2027"),
+  record("cycle-a", "2026-27"),
+  record("cycle-a", "2026-27"),
+  record("cycle-b", "special-2027"),
+  record("cycle-b", "special-2027"),
 ];
+
+/** Positions in `source` of the records in a scope (records carry no identifier). */
+const positions = (source: PlacementRecord[], scoped: PlacementRecord[]) =>
+  scoped.map((item) => source.indexOf(item));
 
 test("lists each explicit placement cycle once", () => {
   assert.deepEqual(placementCycles(records), [
@@ -57,30 +58,25 @@ test("lists each explicit placement cycle once", () => {
   ]);
 });
 
-test("scopes participation records by cycle and batch", () => {
-  const scope = scopeRecords(records, {
-    ...EMPTY_FILTERS,
-    cycleId: "cycle-a",
-    batchYear: 2027,
-  });
-  assert.deepEqual(scope.population.map((item) => item.rollNumber), [900000001]);
+test("scopes participation records by cycle", () => {
+  const scope = scopeRecords(records, { ...EMPTY_FILTERS, cycleId: "cycle-a" });
+  assert.deepEqual(positions(records, scope.population), [0, 1]);
 });
 
 test("clearing the cycle includes participation from every cycle", () => {
-  const scope = scopeRecords(records, { ...EMPTY_FILTERS, batchYear: 2027 });
-  assert.deepEqual(scope.population.map((item) => item.rollNumber), [900000001, 900000003]);
+  const scope = scopeRecords(records, defaultFilters());
+  assert.deepEqual(positions(records, scope.population), [0, 1, 2, 3]);
 });
 
-test("compares two explicitly selected cycles under the same batch filter", () => {
+test("compares two explicitly selected cycles", () => {
   const comparison = comparisonCycleKpis(records, {
     ...EMPTY_FILTERS,
     cycleId: "cycle-a",
     comparisonCycleId: "cycle-b",
-    batchYear: 2027,
   });
   assert.equal(comparison?.cycleId, "cycle-b");
   assert.equal(comparison?.cycleCode, "special-2027");
-  assert.equal(comparison?.kpis.total, 1);
+  assert.equal(comparison?.kpis.total, 2);
 });
 
 test("requires two different explicitly selected cycles", () => {
@@ -97,32 +93,31 @@ test("requires two different explicitly selected cycles", () => {
 
 test("applies the same offer filters to the comparison cycle", () => {
   const matching = {
-    ...record(900000013, 2027, "cycle-b", "special-2027"),
+    ...record("cycle-b", "special-2027"),
     offer: {
       company: "Matching Company",
-      sector: "Technology",
+      domain: "Technology",
       packageLpa: 15,
       offerType: "FTE" as const,
       offerDate: null,
     },
   };
   const elsewhere = {
-    ...record(900000014, 2027, "cycle-b", "special-2027"),
+    ...record("cycle-b", "special-2027"),
     offer: {
       company: "Other Company",
-      sector: "Finance",
+      domain: "Finance",
       packageLpa: 10,
       offerType: "PPO" as const,
       offerDate: null,
     },
   };
   const comparison = comparisonCycleKpis(
-    [record(900000015, 2027, "cycle-a", "2026-27"), matching, elsewhere],
+    [record("cycle-a", "2026-27"), matching, elsewhere],
     {
       ...EMPTY_FILTERS,
       cycleId: "cycle-a",
       comparisonCycleId: "cycle-b",
-      batchYear: 2027,
       company: "Matching Company",
     },
   );
@@ -149,7 +144,7 @@ test("clears invalid comparison selections when the primary cycle changes", () =
 });
 
 test("registered participation with an offer is placed", () => {
-  const placed = withOffer(record(900000005, 2027, "cycle-a", "2026-27"));
+  const placed = withOffer(record("cycle-a", "2026-27"));
   const kpis = computeKpis(scopeRecords([placed], EMPTY_FILTERS));
 
   assert.equal(kpis.total, 1);
@@ -159,7 +154,7 @@ test("registered participation with an offer is placed", () => {
 });
 
 test("registered participation without an offer is unplaced", () => {
-  const unplaced = record(900000006, 2027, "cycle-a", "2026-27");
+  const unplaced = record("cycle-a", "2026-27");
   const kpis = computeKpis(scopeRecords([unplaced], EMPTY_FILTERS));
 
   assert.equal(kpis.total, 1);
@@ -170,12 +165,12 @@ test("registered participation without an offer is unplaced", () => {
 
 test("unregistered participation is excluded from the denominator", () => {
   const unregistered = {
-    ...record(900000007, 2027, "cycle-a", "2026-27"),
+    ...record("cycle-a", "2026-27"),
     registrationStatus: "UNREGISTERED" as const,
   };
   const kpis = computeKpis(scopeRecords(
-    [withOffer(record(900000005, 2027, "cycle-a", "2026-27")), unregistered],
-    { ...EMPTY_FILTERS, cycleId: "cycle-a", batchYear: 2027 },
+    [withOffer(record("cycle-a", "2026-27")), unregistered],
+    { ...EMPTY_FILTERS, cycleId: "cycle-a" },
   ));
 
   assert.equal(kpis.total, 1);
@@ -186,7 +181,7 @@ test("unregistered participation is excluded from the denominator", () => {
 
 test("returns an undefined placement percentage without registered participation", () => {
   const unregistered = {
-    ...record(900000008, 2027, "cycle-a", "2026-27"),
+    ...record("cycle-a", "2026-27"),
     registrationStatus: "UNREGISTERED" as const,
   };
   const kpis = computeKpis(scopeRecords([unregistered], EMPTY_FILTERS));
@@ -199,20 +194,20 @@ test("returns an undefined placement percentage without registered participation
 
 test("offer filters do not change the registered denominator", () => {
   const matchingOffer = {
-    ...record(900000009, 2027, "cycle-a", "2026-27"),
+    ...record("cycle-a", "2026-27"),
     offer: {
       company: "Matching Company",
-      sector: "Technology",
+      domain: "Technology",
       packageLpa: 15,
       offerType: "FTE" as const,
       offerDate: null,
     },
   };
   const otherOffer = {
-    ...record(900000010, 2027, "cycle-a", "2026-27"),
+    ...record("cycle-a", "2026-27"),
     offer: {
       company: "Other Company",
-      sector: "Finance",
+      domain: "Finance",
       packageLpa: 10,
       offerType: "PPO" as const,
       offerDate: null,
@@ -226,13 +221,14 @@ test("offer filters do not change the registered denominator", () => {
   assert.equal(kpis.total, 2);
   assert.equal(kpis.placed, 1);
   assert.equal(kpis.placedElsewhere, 1);
+  assert.equal(kpis.placedOverall, 2);
   assert.equal(kpis.placementPct, 50);
 });
 
 test("one enrollment in two cycles remains two participation records", () => {
   const repeatedEnrollment = [
-    withOffer(record(900000016, 2027, "cycle-a", "2026-27")),
-    record(900000016, 2027, "cycle-b", "special-2027"),
+    withOffer(record("cycle-a", "2026-27")),
+    record("cycle-b", "special-2027"),
   ];
   const kpis = computeKpis(scopeRecords(repeatedEnrollment, EMPTY_FILTERS));
 
@@ -243,8 +239,8 @@ test("one enrollment in two cycles remains two participation records", () => {
 
 test("an enrollment offer appears only in its owning cycle", () => {
   const repeatedEnrollment = [
-    withOffer(record(900000017, 2027, "cycle-a", "2026-27")),
-    record(900000017, 2027, "cycle-b", "special-2027"),
+    withOffer(record("cycle-a", "2026-27")),
+    record("cycle-b", "special-2027"),
   ];
   const firstCycle = computeKpis(scopeRecords(repeatedEnrollment, {
     ...EMPTY_FILTERS,
@@ -261,24 +257,24 @@ test("an enrollment offer appears only in its owning cycle", () => {
   assert.equal(secondCycle.unplaced, 1);
 });
 
-test("batch filtering works within the department-scoped query population", () => {
+test("cycle filtering works within the department-scoped query population", () => {
   const authorizedDepartmentRecords = [
-    record(900000018, 2027, "cycle-a", "2026-27", "civil"),
-    record(900000019, 2026, "cycle-a", "2026-27", "civil"),
+    record("cycle-a", "2026-27", "civil"),
+    record("cycle-b", "special-2027", "civil"),
   ];
   const scope = scopeRecords(authorizedDepartmentRecords, {
     ...EMPTY_FILTERS,
-    batchYear: 2027,
+    cycleId: "cycle-a",
   });
 
-  assert.deepEqual(scope.population.map((item) => item.rollNumber), [900000018]);
+  assert.deepEqual(positions(authorizedDepartmentRecords, scope.population), [0]);
   assert.ok(scope.population.every((item) => item.department === "civil"));
 });
 
 test("shares the registered-participation rule with home calculations", () => {
-  const registered = record(900000011, 2027, "cycle-a", "2026-27");
+  const registered = record("cycle-a", "2026-27");
   const unregistered = {
-    ...record(900000012, 2027, "cycle-a", "2026-27"),
+    ...record("cycle-a", "2026-27"),
     registrationStatus: "UNREGISTERED" as const,
   };
 

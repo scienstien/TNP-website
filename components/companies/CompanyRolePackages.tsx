@@ -1,5 +1,6 @@
 "use client";
 import type { CompanyRolePackageRow, CompensationSummary } from "@/lib/companies/offer-summaries";
+import { numberDuplicates } from "@/lib/drives/labels";
 import styles from "./CompanySummary.module.css";
 
 function Summary({ value, total, unit, label }: { value: CompensationSummary; total: number; unit: string; label: string }) {
@@ -17,13 +18,16 @@ export default function CompanyRolePackages({ rows, active, loading, error, onRe
   rows: CompanyRolePackageRow[]; active: boolean; loading: boolean; error: string | null; onRetry: () => void;
 }) {
   const offeredRows = rows.filter(row => row.offerCount > 0);
+  // Domain and drive reference; repeated combinations of the same title get "(1)", "(2)".
+  const details = offeredRows.map(row => `${row.domain?.trim() || "Domain not recorded"} · ${row.driveReference?.trim() || "No drive reference"}`);
+  const identities = numberDuplicates(details, offeredRows.map((row, index) => `${row.jobTitle ?? ""} · ${details[index]}`));
   return <section className={styles.card}><header className={styles.cardHeader}><div><p className={styles.kicker}>COMPENSATION</p><h2>Actual offers by role</h2><p>Median and recorded range for final offers. Missing amounts are excluded.</p></div></header>
     {loading ? <p role="status" className={styles.state}>Loading compensation summaries…</p> : error ? <p role="alert" className={styles.error}>{error} <button onClick={onRetry}>Retry</button></p> : !active ? <p className={styles.state}>Select a company and placement cycle.</p> :
-      !offeredRows.length ? <p className={styles.state}>No final offers are recorded for this company and cycle.</p> : <div className={styles.roleCards} role="list" aria-label="Actual offer compensation by role">{offeredRows.map(row => {
-        const identity = row.roleId ? `${row.driveReference ?? "No drive reference"} · ${row.roleId.slice(0, 8)}` : "Offers without a recorded role";
+      !offeredRows.length ? <p className={styles.state}>No final offers are recorded for this company and cycle.</p> : <div className={styles.roleCards} role="list" aria-label="Actual offer compensation by role">{offeredRows.map((row, index) => {
+        const identity = row.roleId ? identities[index] : "Offers without a recorded role";
         return <article className={styles.roleCard} role="listitem" key={row.roleId ?? "missing"}>
           <header><div><h3>{row.roleId ? row.jobTitle ?? "Unspecified title" : "No role recorded"}</h3><p>{identity}</p></div><span className={styles.offerCount}><strong>{row.offerCount}</strong>{row.offerCount === 1 ? "offer" : "offers"}</span></header>
-          <div className={styles.metrics}><Summary label="Annual package median" value={row.package} total={row.offerCount} unit="LPA" /><Summary label="Monthly stipend median" value={row.stipend} total={row.offerCount} unit="₹/month" /></div>
+          <div className={styles.metrics}><Summary label="Annual package median" value={row.package} total={row.offerCount} unit="LPA" /></div>
         </article>;
       })}</div>}
   </section>;

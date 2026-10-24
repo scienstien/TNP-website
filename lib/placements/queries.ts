@@ -7,6 +7,7 @@ import {
   companies,
   degrees,
   departments,
+  driveRoles,
   enrollments,
   placementOffers,
   placementCycles,
@@ -19,7 +20,8 @@ import type { PlacementRecord } from "./types";
 
 /**
  * Every explicit undergraduate (B.Tech) student-cycle participation with its final offer for
- * that same cycle, if any, and the offering company's sector. A department user gets their own
+ * that same cycle, if any, and the domain of the offer's role (drive_roles.domain; the company's
+ * own domain is only a description and is not used in analytics). A department user gets their own
  * department only; a super admin gets the department they chose, or all departments.
  */
 export async function getPlacementRecords(): Promise<PlacementRecord[]> {
@@ -29,15 +31,13 @@ export async function getPlacementRecords(): Promise<PlacementRecord[]> {
   const rows = await db
     .select({
       department: departments.code,
-      rollNumber: enrollments.rollNumber,
-      batchYear: cohorts.graduationYear,
       cycleId: placementCycles.cycleId,
       cycleCode: placementCycles.code,
       cycleStartsOn: placementCycles.startsOn,
       cycleEndsOn: placementCycles.endsOn,
       registrationStatus: studentCycles.registrationStatus,
       company: companies.name,
-      sector: companies.domain,
+      domain: driveRoles.domain,
       packageLpa: placementOffers.packageLpa,
       offerType: placementOffers.offerType,
       offerDate: placementOffers.offerDate,
@@ -54,20 +54,15 @@ export async function getPlacementRecords(): Promise<PlacementRecord[]> {
       offerForParticipation(),
     )
     .leftJoin(companies, eq(companies.companyId, placementOffers.companyId))
+    // At most one role per offer, so this join cannot multiply participation rows.
+    .leftJoin(driveRoles, eq(driveRoles.roleId, placementOffers.roleId))
     .where(placementRecordsScope(department?.departmentId ?? null))
-    .orderBy(
-      departments.code,
-      placementCycles.code,
-      cohorts.graduationYear,
-      enrollments.rollNumber,
-    );
+    .orderBy(departments.code, placementCycles.code);
 
   return rows.map((row) => {
     const packageLpa = row.packageLpa === null ? null : Number(row.packageLpa);
     return {
       department: row.department,
-      rollNumber: row.rollNumber,
-      batchYear: row.batchYear,
       cycleId: row.cycleId,
       cycleCode: row.cycleCode,
       cycleStartsOn: row.cycleStartsOn,
@@ -76,7 +71,7 @@ export async function getPlacementRecords(): Promise<PlacementRecord[]> {
       offer: row.company
         ? {
             company: row.company,
-            sector: row.sector,
+            domain: row.domain,
             packageLpa:
               packageLpa !== null && Number.isFinite(packageLpa)
                 ? packageLpa

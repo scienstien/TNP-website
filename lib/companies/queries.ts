@@ -7,8 +7,9 @@ import { requireRole } from "@/lib/auth/dal";
 import { requireCompanyPanelScope } from "./panel-scope";
 import { directoryCondition } from "./directory-condition";
 import { companyRecord, isUuid } from "./records";
+import { offerCountsByCompany } from "./offer-counts";
 import { visitDatesByCompany } from "./visit";
-import type { CompanyRecord } from "./types";
+import type { CompanyListRecord } from "./types";
 
 export async function getCompanyCycles(): Promise<{ cycleId: string; code: string }[]> {
   await requireRole("ADMIN");
@@ -19,11 +20,12 @@ export async function getCompanyCycles(): Promise<{ cycleId: string; code: strin
  * Cycle mode requires an explicit retained drive, including companies with zero offers.
  * All cycles lists every master record, including prospective companies.
  */
-export async function getCompanies(cycleId: string | null): Promise<CompanyRecord[]> {
-  await requireCompanyPanelScope();
+export async function getCompanies(cycleId: string | null): Promise<CompanyListRecord[]> {
+  const { departmentId } = await requireCompanyPanelScope();
   if (cycleId !== null && !isUuid(cycleId)) return [];
   if (cycleId !== null && !(await getCompanyCycles()).some(cycle => cycle.cycleId === cycleId)) return [];
   const rows = await db.select().from(companies).where(directoryCondition(cycleId)).orderBy(asc(companies.name));
   const visits = await visitDatesByCompany(db, cycleId);
-  return rows.map(row => companyRecord(row, visits.get(row.companyId) ?? null));
+  const offers = await offerCountsByCompany(db, cycleId, departmentId);
+  return rows.map(row => ({ ...companyRecord(row, visits.get(row.companyId) ?? null), offerCount: offers.get(row.companyId) ?? 0 }));
 }
