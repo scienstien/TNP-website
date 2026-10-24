@@ -17,10 +17,11 @@ import {
 import { requireUser, resolveDepartment } from "@/lib/auth/dal";
 import type { BreakdownDimension, PlacementBreakdown } from "./breakdown-types";
 import { offerForParticipation, placementRecordsScope } from "./query-conditions";
+import type { DegreeLevel } from "./types";
 
 /**
  * Registered and placed counts per department, gender or reservation category for the
- * dashboard's undergraduate population, in one explicit cycle or in every cycle. Only
+ * dashboard's requested degree level, in one explicit cycle or in every cycle. Only
  * aggregates leave the server. A department user gets their own department; a super admin
  * gets the chosen department or all of them. Offer join cannot fan out: an offer is unique per
  * enrollment and must match the participation's cycle.
@@ -28,6 +29,9 @@ import { offerForParticipation, placementRecordsScope } from "./query-conditions
 export async function getPlacementBreakdown(
   dimension: BreakdownDimension,
   cycleId: string | null,
+  degreeLevel: DegreeLevel = "UG",
+  specialization: string | null = null,
+  branch: string | null = null,
 ): Promise<PlacementBreakdown> {
   const user = await requireUser();
   const department = await resolveDepartment(user);
@@ -68,7 +72,13 @@ export async function getPlacementBreakdown(
     .leftJoin(placementOffers, offerForParticipation())
     .where(
       and(
-        placementRecordsScope(department?.departmentId ?? null),
+        placementRecordsScope(department?.departmentId ?? null, degreeLevel),
+        branch === null ? undefined : eq(departments.code, branch),
+        specialization === "Not recorded"
+          ? sql`${programmes.specialization} is null`
+          : specialization === null
+            ? undefined
+            : eq(programmes.specialization, specialization),
         eq(studentCycles.registrationStatus, "REGISTERED"),
         cycleId === null ? undefined : eq(studentCycles.cycleId, cycleId),
       ),
@@ -87,7 +97,12 @@ export async function getPlacementBreakdown(
     .leftJoin(placementOffers, offerForParticipation())
     .where(
       and(
-        placementRecordsScope(null),
+        placementRecordsScope(null, degreeLevel),
+        specialization === "Not recorded"
+          ? sql`${programmes.specialization} is null`
+          : specialization === null
+            ? undefined
+            : eq(programmes.specialization, specialization),
         eq(studentCycles.registrationStatus, "REGISTERED"),
         cycleId === null ? undefined : eq(studentCycles.cycleId, cycleId),
       ),

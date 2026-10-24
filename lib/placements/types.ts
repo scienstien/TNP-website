@@ -5,6 +5,8 @@ export type OfferTypeValue = (typeof OFFER_TYPES)[number];
 
 export const REGISTRATION_STATUSES = ["REGISTERED", "UNREGISTERED"] as const;
 export type RegistrationStatusValue = (typeof REGISTRATION_STATUSES)[number];
+export const DEGREE_LEVELS = ["UG", "PG"] as const;
+export type DegreeLevel = (typeof DEGREE_LEVELS)[number];
 
 export interface PlacementOffer {
   company: string;
@@ -17,13 +19,16 @@ export interface PlacementOffer {
 }
 
 /**
- * One row per explicit undergraduate student-cycle participation. Names, roll numbers and
+ * One row per explicit student-cycle participation at the requested degree level. Names, roll numbers and
  * any other student identifier are not sent to the browser. Placement status is derived from
  * registrationStatus and offer; it is not stored.
  */
 export interface PlacementRecord {
   /** Lower-case department code, e.g. "mme". */
   department: string;
+  programmeId: string;
+  specialization: string | null;
+  graduationYear: number;
   cycleId: string;
   cycleCode: string;
   /** YYYY-MM-DD, or null when the historical cycle boundary was not recorded. */

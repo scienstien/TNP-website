@@ -5,6 +5,7 @@ import StudentsOverTime from "./StudentsOverTime";
 import type { PlacementRecord } from "@/lib/placements/types";
 
 const record: PlacementRecord = {
+  programmeId: "programme", specialization: null, graduationYear: 2026,
   department: "civil", cycleId: "c", cycleCode: "26-27", cycleStartsOn: null, cycleEndsOn: null, registrationStatus: "REGISTERED",
   offer: { company: "Acme", domain: null, packageLpa: 10, offerType: "FTE", offerDate: "2026-09-01" },
 };

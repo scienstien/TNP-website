@@ -4,8 +4,8 @@ The "Dashboard" view (`components/dashboard/`) is computed from placement data i
 
 ## Data flow
 
-1. `app/(portal)/page.tsx` and `app/(portal)/dashboard/page.tsx` call `getPlacementRecords()` from `lib/placements/queries.ts`. That query requires a signed-in user and returns one row per explicit undergraduate student-cycle participation, including the cycle identity, optional cycle dates, registration status, the offer for that same cycle (if any), and the company's sector. Student names, roll numbers and any other student identifier are not sent to the browser; names are provided separately only to the ADMIN student editor.
-2. `components/dashboard/PlacementAnalytics.tsx` keeps one shared filter state (`useDashboardFilters`). Its primary and comparison cycle selectors use explicit cycle IDs returned by the server; no previous cycle is inferred. The placement cycle is the only population filter; there is no graduating-batch filter. It derives every KPI and chart dataset through `lib/placements/analytics.ts`.
+1. `app/(portal)/page.tsx` and the UG/PG dashboard routes call `getPlacementRecords()` from `lib/placements/queries.ts`. That query requires a signed-in user and returns one row per explicit student-cycle participation at the requested degree level, including programme ID, nullable specialization, graduation year, cycle identity, optional cycle dates, registration status, and the offer for that same cycle (if any). Student names, roll numbers and any other student identifier are not sent to the browser; names are provided separately only to the ADMIN student editor.
+2. `components/dashboard/PlacementAnalytics.tsx` keeps one shared filter state (`useDashboardFilters`). Its primary and comparison cycle selectors use explicit cycle IDs returned by the server; no previous cycle is inferred. PG also filters the population by branch and specialization; there is no graduating-batch filter. It derives every KPI and chart dataset through `lib/placements/analytics.ts`.
 2a. `components/dashboard/PlacementBreakdown.tsx` shows placed ÷ registered per department, gender or reservation category. Gender and category are never sent with the records: `breakdown-queries.ts` aggregates on the server (scoped by `resolveDepartment()`), and `breakdown-actions.ts` is the Server Action the card calls. It follows the selected cycle only, not the offer filters. The Department view's "Share of institute placed" divides by the institute-wide placed count, which the server returns as one number to every role (no other department's rows); Gender and Category divide by the placed count of the current selection. Groups are not suppressed when small (open owner decision).
 3. Each chart (`components/dashboard/charts/*`) is an independent component. It receives prepared data and a selection callback, and contains no filtering logic.
 
@@ -42,9 +42,24 @@ Company figures are explicitly labelled "companies with offers" because they are
 derived from final offers, not drive events or campus visits. The old batch/date
 picker and last-20-batches view are no longer part of the home page.
 
+## Degree levels and PG specialization
+
+The home page and UG dashboard use the default `UG` query scope. The PG dashboard passes
+`PG` explicitly and supports all postgraduate degrees. Its branch and specialization
+selectors include the institute's published PG programmes from `pg-catalog.ts`, including
+Energy and Environment, Computer Applications, Physics, Architecture and Planning,
+Chemistry, Mathematics, Humanities and Social Sciences, and Management Studies. Recorded
+historical names are also retained. Options are limited to the authorized department when
+one is selected; a super admin viewing all departments sees the full catalogue. The
+specialization list follows the selected branch and includes `Not recorded` when recorded
+history contains a NULL value. The selected branch and specialization apply to every KPI,
+chart, cycle comparison, time series and server-side demographic breakdown. The catalogue
+is for display only: it does not create departments, programmes, cohorts or placement
+records, and a programme without records has undefined placement percentage.
+
 ## Departments
 
-Records come from the institute-wide schema (see `db/README.md`): one row per explicit undergraduate (B.Tech) student-cycle participation, with `batchYear` taken from the cohort's graduation year and `department` the lower-case department code. The record also exposes the placement cycle and `REGISTERED`/`UNREGISTERED` status. An offer is joined only when both its enrollment and cycle match the participation. A department user receives only their own department; a super admin receives the department chosen in the department navbar, or every department. M.Tech cohorts exist in the schema but are not included. Dashboard analytics exclude `UNREGISTERED` participation before deriving placed, unplaced, compensation, company, sector, and offer-type results.
+Records come from the institute-wide schema (see `db/README.md`): one row per explicit student-cycle participation, with programme ID, nullable specialization, graduation year and `department` the lower-case department code. The record also exposes the placement cycle and `REGISTERED`/`UNREGISTERED` status. An offer is joined only when both its enrollment and cycle match the participation. A department user receives only their own department; a super admin receives the department chosen in the department navbar, or every department. Dashboard analytics exclude `UNREGISTERED` participation before deriving placed, unplaced, compensation, company, sector, and offer-type results.
 
 ## Local data
 

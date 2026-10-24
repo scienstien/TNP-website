@@ -21,6 +21,7 @@ export default async function UndergraduateDashboardPage() {
       role={role}
       department={department ? { code: department.code, name: department.name } : null}
       today={todayInInstituteZone()}
+      degreeLevel="UG"
     />
   );
 }

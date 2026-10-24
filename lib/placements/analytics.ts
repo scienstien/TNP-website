@@ -19,12 +19,15 @@ import {
   type PlacementOffer,
   type PlacementRecord,
 } from "./types";
+import { PG_BRANCHES } from "./pg-catalog";
 
 export const NOT_RECORDED = "Not recorded";
 
 export interface DashboardFilterState {
   cycleId: string | null;
   comparisonCycleId: string | null;
+  branch: string | null;
+  specialization: string | null;
   company: string | null;
   domain: string | null;
   offerType: OfferTypeValue | null;
@@ -35,6 +38,8 @@ export interface DashboardFilterState {
 export const EMPTY_FILTERS: DashboardFilterState = {
   cycleId: null,
   comparisonCycleId: null,
+  branch: null,
+  specialization: null,
   company: null,
   domain: null,
   offerType: null,
@@ -69,6 +74,45 @@ export function domainNames(records: PlacementRecord[]): string[] {
   return uniqueSorted(
     records.flatMap((r) => (r.offer ? [domainOf(r.offer)] : [])),
   );
+}
+
+export function specializationNames(records: PlacementRecord[]): string[] {
+  return uniqueSorted(records.map(specializationOf));
+}
+
+export interface PgBranchOption { code: string; name: string }
+
+/** Include the published catalogue even when the selected scope has no imported records. */
+export function pgBranchOptions(
+  records: PlacementRecord[],
+  authorizedDepartment: PgBranchOption | null,
+): PgBranchOption[] {
+  if (authorizedDepartment) return [authorizedDepartment];
+  const options = new Map<string, string>(PG_BRANCHES.map(({ code, name }) => [code, name]));
+  for (const record of records) {
+    if (!options.has(record.department)) options.set(record.department, record.department.toUpperCase());
+  }
+  return [...options].map(([code, name]) => ({ code, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function pgSpecializationNames(
+  records: PlacementRecord[],
+  branch: string | null,
+  authorizedDepartment: string | null,
+): string[] {
+  const visibleBranch = authorizedDepartment ?? branch;
+  const catalogue = PG_BRANCHES
+    .filter((item) => visibleBranch === null || item.code === visibleBranch)
+    .flatMap((item) => [...item.specializations]);
+  const recorded = records
+    .filter((record) => visibleBranch === null || record.department === visibleBranch)
+    .map(specializationOf);
+  return uniqueSorted([...catalogue, ...recorded]);
+}
+
+export function specializationOf(record: PlacementRecord): string {
+  return record.specialization?.trim() || NOT_RECORDED;
 }
 
 /** Whole-LPA bounds of the recorded packages, for the CTC range control. */
@@ -140,7 +184,9 @@ export function scopeRecords(
   const population = records.filter(
     (record) =>
       isRegisteredParticipation(record) &&
-      (filters.cycleId === null || record.cycleId === filters.cycleId),
+      (filters.cycleId === null || record.cycleId === filters.cycleId) &&
+      (filters.branch === null || record.department === filters.branch) &&
+      (filters.specialization === null || specializationOf(record) === filters.specialization),
   );
   const matching = population.filter(
     (r): r is PlacedRecord =>

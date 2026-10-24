@@ -24,7 +24,7 @@ export function useDashboardFilters(defaultCycleId: string | null = null) {
 
   /** Select a value, or clear it when it is already selected (chart clicks). */
   const toggle = useCallback(
-    <K extends "company" | "domain" | "offerType">(
+    <K extends "company" | "domain" | "offerType" | "specialization">(
       key: K,
       value: DashboardFilterState[K],
     ) =>

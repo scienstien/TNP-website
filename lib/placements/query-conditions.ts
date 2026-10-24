@@ -5,15 +5,19 @@ import {
   placementOffers,
   studentCycles,
 } from "@/db/schema";
+import type { DegreeLevel } from "./types";
 
 /** Keep placement analytics on UG records and, when selected, one authorized department. */
-export function placementRecordsScope(departmentId: string | null): SQL {
+export function placementRecordsScope(
+  departmentId: string | null,
+  level: DegreeLevel = "UG",
+): SQL {
   return departmentId
     ? and(
-        eq(degrees.level, "UG"),
+        eq(degrees.level, level),
         eq(departments.departmentId, departmentId),
       )!
-    : eq(degrees.level, "UG");
+    : eq(degrees.level, level);
 }
 
 /** An offer belongs to a participation only when both enrollment and cycle agree. */

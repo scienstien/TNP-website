@@ -9,6 +9,9 @@ const record = (
   registrationStatus: PlacementRecord["registrationStatus"],
   company: string | null,
 ): PlacementRecord => ({
+  programmeId: "programme",
+  specialization: null,
+  graduationYear: 2026,
   department: "mme",
   cycleId,
   cycleCode,

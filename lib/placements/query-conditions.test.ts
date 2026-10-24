@@ -21,6 +21,12 @@ test("all-department superadmin queries remain limited to UG records", () => {
   assert.deepEqual(query.params, ["UG"]);
 });
 
+test("PG queries are explicitly limited to PG records", () => {
+  const query = dialect.sqlToQuery(placementRecordsScope(null, "PG"));
+  assert.match(query.sql, /"degrees"\."level" = \$1/);
+  assert.deepEqual(query.params, ["PG"]);
+});
+
 test("offers join to participation by enrollment and owning cycle", () => {
   const query = dialect.sqlToQuery(offerForParticipation());
 

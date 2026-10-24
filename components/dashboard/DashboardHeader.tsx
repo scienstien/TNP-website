@@ -1,4 +1,5 @@
 import { plural } from "./format";
+import type { DegreeLevel } from "@/lib/placements/types";
 
 export type HeaderRole = "Admin" | "Professor" | "Super admin";
 
@@ -8,10 +9,11 @@ interface Props {
   department: { code: string; name: string } | null;
   cycles: number;
   students: number;
+  degreeLevel?: DegreeLevel;
 }
 
 /** Title, institute branding, data coverage and the signed-in role. */
-export default function DashboardHeader({ role, department, cycles, students }: Props) {
+export default function DashboardHeader({ role, department, cycles, students, degreeLevel = "UG" }: Props) {
   return (
     <header className="mme-header">
       <div>
@@ -19,7 +21,7 @@ export default function DashboardHeader({ role, department, cycles, students }: 
           NIT TRICHY · {department ? department.name.toUpperCase() : "ALL DEPARTMENTS"}
         </p>
         <h1>
-          {department ? `${department.code.toUpperCase()} Placement Dashboard` : "Placement Dashboard"}
+          {department ? `${department.code.toUpperCase()} ${degreeLevel === "PG" ? "PG" : "UG"} Placement Dashboard` : `${degreeLevel === "PG" ? "PG" : "UG"} Placement Dashboard`}
         </h1>
         <p className="mme-header-sub">
           {plural(cycles, "placement cycle")} ·{" "}

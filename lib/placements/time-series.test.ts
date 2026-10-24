@@ -4,6 +4,7 @@ import { buildTimeSeries, DAY_WINDOW, isoWeek, offerDates, trailingAverage, week
 import type { PlacementRecord } from "./types";
 
 const record = (offerDate: string | null | undefined, registrationStatus: PlacementRecord["registrationStatus"] = "REGISTERED"): PlacementRecord => ({
+  programmeId: "programme", specialization: null, graduationYear: 2026,
   department: "civil", cycleId: "c", cycleCode: "26-27", cycleStartsOn: null, cycleEndsOn: null, registrationStatus,
   offer: offerDate === undefined ? null : { company: "Acme", domain: null, packageLpa: 10, offerType: "FTE", offerDate },
 });

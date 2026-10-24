@@ -384,12 +384,17 @@ Authentication (implemented; see lib/auth/README.md):
 
 Ported analytics and student/company integration:
 - lib/placements/queries.ts, lib/students/ and lib/companies/ read the target
-  tables. PlacementRecord now represents one explicit undergraduate student-cycle
-  participation and includes cycle identity, optional cycle dates, registration
-  status, department and the offer for that same cycle. It carries no roll number,
-  name or graduating batch: student identifiers stay on the server. The analytics
-  functions and charts filter by explicit placement cycle only (there is no batch
-  filter) and use REGISTERED participation as their population. UNREGISTERED participation is
+  tables. PlacementRecord now represents one explicit student-cycle participation
+  at an explicit UG or PG degree level and includes programme ID, nullable
+  specialization, graduation year, cycle identity, optional cycle dates,
+  registration status, department and the offer for that same cycle. It carries no
+  roll number or name: student identifiers stay on the server. The analytics
+  functions and charts filter by explicit placement cycle (there is no batch
+  filter); PG additionally filters by branch and specialization. The PG selectors
+  include the published programmes in lib/placements/pg-catalog.ts, including
+  departments without B.Tech programmes, as well as recorded historical names.
+  Catalogue options do not create academic or placement data. Analytics use
+  REGISTERED participation as their population. UNREGISTERED participation is
   excluded before placed/unplaced and offer analytics are derived. Server-side
   cycle filtering is tracked as a later optimization; authorization remains
   server-enforced.

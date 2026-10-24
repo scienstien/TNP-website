@@ -24,6 +24,7 @@ import {
   type TimeView,
 } from "@/lib/placements/time-series";
 import type { PlacementRecord } from "@/lib/placements/types";
+import type { DegreeLevel } from "@/lib/placements/types";
 import ChartTooltip from "./ChartTooltip";
 import { ACCENT, AXIS_TEXT, GRID, LABEL_TEXT, axisTick } from "./chartTheme";
 import { plural } from "./format";
@@ -56,13 +57,14 @@ interface Props {
   today: string;
   /** The chosen department's name, or null when every department is shown. */
   departmentName: string | null;
+  degreeLevel?: DegreeLevel;
 }
 
 /**
  * "Students placed over time": final offers by offer date, switchable between Year, Month and
  * Week. Everything is aggregated once per data change, so the toggle only picks a series.
  */
-export default function StudentsOverTime({ records, today, departmentName }: Props) {
+export default function StudentsOverTime({ records, today, departmentName, degreeLevel = "UG" }: Props) {
   const [view, setView] = useState<TimeView>("year");
   const [attempt, setAttempt] = useState(0);
   const hydrated = useHydrated();
@@ -93,8 +95,8 @@ export default function StudentsOverTime({ records, today, departmentName }: Pro
     <section className="panel mme-card mme-time" aria-labelledby={headingId}>
       <header className="mme-card-head">
         <div>
-          <h2 id={headingId}>Students placed over time</h2>
-          <p>Final offers by offer date · {scope}</p>
+          <h2 id={headingId}>{degreeLevel === "PG" ? "PG students placed over time" : "Students placed over time"}</h2>
+          <p>Final offers by offer date · {degreeLevel === "PG" ? "PG · " : ""}{scope}</p>
         </div>
         <div className="mme-seg" role="radiogroup" aria-label="Group students by">
           {VIEWS.map((item, index) => (

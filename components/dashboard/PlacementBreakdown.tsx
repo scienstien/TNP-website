@@ -11,6 +11,7 @@ import {
   type BreakdownDimension,
 } from "@/lib/placements/breakdown-types";
 import { formatPct } from "./format";
+import type { DegreeLevel } from "@/lib/placements/types";
 
 interface Props {
   /** Selected placement cycle; null covers every cycle. */
@@ -18,14 +19,17 @@ interface Props {
   cycleLabel: string;
   /** Changes when the server-side department scope changes, so older answers are dropped. */
   scopeKey: string;
+  degreeLevel?: DegreeLevel;
+  specialization: string | null;
+  branch: string | null;
 }
 
 /** Placed ÷ registered per department, gender or category, switched with a toggle. */
-export default function PlacementBreakdown({ cycleId, cycleLabel, scopeKey }: Props) {
+export default function PlacementBreakdown({ cycleId, cycleLabel, scopeKey, degreeLevel = "UG", specialization, branch }: Props) {
   const [dimension, setDimension] = useState<BreakdownDimension>("department");
   const { data, error, loading, retry } = useCompanyPanel(
-    `${scopeKey}:${dimension}:${cycleId ?? "all"}`,
-    () => loadPlacementBreakdown(dimension, cycleId),
+    `${scopeKey}:${degreeLevel}:${branch ?? "all"}:${specialization ?? "all"}:${dimension}:${cycleId ?? "all"}`,
+    () => loadPlacementBreakdown(dimension, cycleId, degreeLevel, specialization, branch),
   );
 
   const rows = data?.rows;
@@ -50,7 +54,7 @@ export default function PlacementBreakdown({ cycleId, cycleLabel, scopeKey }: Pr
         <div>
           <h2>Placement by {BREAKDOWN_LABELS[dimension].toLowerCase()}</h2>
           <p>
-            Placed ÷ registered students · {cycleLabel}
+            Placed ÷ registered {degreeLevel === "PG" ? "PG " : ""}students · {cycleLabel}
           </p>
         </div>
         <div className="mme-toggle" role="group" aria-label="Group placement by">

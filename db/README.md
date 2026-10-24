@@ -216,6 +216,13 @@ Shared demo definitions live in `db/demo-data.ts`. On a database the full seed r
 departments that are missing or have no programmes, joining existing cycles and DEMO
 company drives; it never deletes or updates rows and never touches `legacy_*` tables.
 
+The PG dashboard's published programme choices in `lib/placements/pg-catalog.ts`
+also name departments that have no B.Tech programme (such as Computer Applications,
+Energy and Environment, and Physics). These are display options, not seeded
+`departments` or `programmes` rows. The demo database still contains the nine
+departments above; real PG data requires the matching department, degree,
+programme, cohort and registration rows before placement figures can appear.
+
 ## Local database and future migration workflow
 
 The development scripts are `db:up`, `db:down`, `db:logs`, `db:migrate`, `db:check`,

@@ -11,11 +11,15 @@ import {
   offerTypeSplit,
   placementCycles,
   scopeRecords,
+  specializationOf,
   domainNames,
+  pgBranchOptions,
+  pgSpecializationNames,
   domainPlacement,
   topCompanies,
 } from "@/lib/placements/analytics";
 import type { PlacementRecord } from "@/lib/placements/types";
+import type { DegreeLevel } from "@/lib/placements/types";
 import CTCDistributionChart from "./charts/CTCDistributionChart";
 import OfferTypeDistributionChart from "./charts/OfferTypeDistributionChart";
 import DomainPlacementChart from "./charts/DomainPlacementChart";
@@ -35,22 +39,30 @@ interface Props {
   department: { code: string; name: string } | null;
   /** Today at the institute (YYYY-MM-DD); decides the "current" year, month and week. */
   today: string;
+  degreeLevel?: DegreeLevel;
 }
 
 /** The main dashboard: header, shared filters, KPIs and the four independent charts. */
-export default function PlacementAnalytics({ records, role, department, today }: Props) {
+export default function PlacementAnalytics({ records, role, department, today, degreeLevel = "UG" }: Props) {
   const options = useMemo(
     () => ({
       cycles: placementCycles(records),
       companies: companyNames(records),
       domains: domainNames(records),
+      branches: degreeLevel === "PG" ? pgBranchOptions(records, department) : [],
       ctc: ctcBounds(records),
     }),
-    [records],
+    [records, degreeLevel, department],
   );
   const { filters, update, toggle, reset } = useDashboardFilters(
     options.cycles[0]?.id ?? null,
   );
+  const filterOptions = useMemo(() => ({
+    ...options,
+    specializations: degreeLevel === "PG"
+      ? pgSpecializationNames(records, filters.branch, department?.code ?? null)
+      : [],
+  }), [options, degreeLevel, records, filters.branch, department?.code]);
 
   const view = useMemo(() => {
     const scope = scopeRecords(records, filters);
@@ -64,12 +76,21 @@ export default function PlacementAnalytics({ records, role, department, today }:
     };
   }, [records, filters]);
 
-  if (records.length === 0) {
+  // The trend intentionally spans every cycle and ignores offer filters, but PG
+  // specialization remains a population filter and must still apply to it.
+  const trendRecords = useMemo(
+    () => records.filter((record) =>
+      (filters.branch === null || record.department === filters.branch) &&
+      (filters.specialization === null || specializationOf(record) === filters.specialization)),
+    [records, filters.branch, filters.specialization],
+  );
+
+  if (records.length === 0 && degreeLevel === "UG") {
     return (
       <div className="mme-analytics">
-        <DashboardHeader role={role} department={department} cycles={0} students={0} />
+        <DashboardHeader role={role} department={department} cycles={0} students={0} degreeLevel={degreeLevel} />
         <section className="panel mme-empty mme-empty--page" role="status">
-          No placement records yet. Once historical data is imported, the
+          No UG placement records yet. Once historical data is imported, the
           dashboard fills in automatically.
         </section>
       </div>
@@ -83,13 +104,20 @@ export default function PlacementAnalytics({ records, role, department, today }:
         department={department}
         cycles={options.cycles.length}
         students={records.length}
+        degreeLevel={degreeLevel}
       />
       <DashboardFilters
         filters={filters}
-        options={options}
+        options={filterOptions}
         onChange={update}
         onReset={reset}
       />
+      {records.length === 0 && (
+        <section className="panel mme-empty mme-empty--page" role="status">
+          No PG placement records yet. The programme catalogue is available above;
+          figures will appear after historical records are imported.
+        </section>
+      )}
       <KPICards
         kpis={view.kpis}
         comparison={view.comparison}
@@ -100,6 +128,9 @@ export default function PlacementAnalytics({ records, role, department, today }:
 
       <PlacementBreakdown
         cycleId={filters.cycleId}
+        degreeLevel={degreeLevel}
+        specialization={filters.specialization}
+        branch={filters.branch}
         cycleLabel={
           options.cycles.find((cycle) => cycle.id === filters.cycleId)?.code ??
           "all placement cycles"
@@ -142,7 +173,7 @@ export default function PlacementAnalytics({ records, role, department, today }:
       </div>
 
       {/* Across every cycle and independent of the offer filters: a trend cut to one cycle would say nothing. */}
-      <StudentsOverTime records={records} today={today} departmentName={department?.name ?? null} />
+      <StudentsOverTime records={trendRecords} today={today} departmentName={department?.name ?? null} degreeLevel={degreeLevel} />
     </div>
   );
 }
