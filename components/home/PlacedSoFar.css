@@ -25,9 +25,9 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
-  padding: 22px 24px 0;
+  padding: 18px 20px 0;
   border: 1px solid var(--psf-border);
   border-radius: 10px;
   background: var(--psf-bg);
@@ -43,12 +43,12 @@
 .psf .psf-title {
   margin: 0;
   color: var(--psf-text);
-  font: 700 clamp(28px, 3vw, 34px)/0.95 "Playfair Display", Georgia, serif;
+  font: 700 22px/1.05 "Playfair Display", Georgia, serif;
   letter-spacing: -0.045em;
 }
 .psf-comparison-heading {
   color: var(--psf-text-dim);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -107,9 +107,9 @@
 .psf-figure {
   display: grid;
   align-content: start;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
-  padding: 12px 14px;
+  padding: 8px 12px;
   border: 1px solid var(--psf-tile-border);
   border-radius: 8px;
   background: var(--psf-tile-bg);
@@ -127,7 +127,7 @@
   margin: 0;
   color: var(--psf-text-dim);
   font:
-    600 32px/1.1 var(--psf-sans);
+    600 22px/1.1 var(--psf-sans);
   letter-spacing: -0.02em;
 }
 .psf .psf-figure.is-lead strong {
@@ -137,9 +137,9 @@
   grid-column: 1 / -1;
   margin: 0;
   color: var(--psf-flat);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.3;
 }
 .psf .psf-change--good {
   color: var(--psf-good);
@@ -159,24 +159,24 @@
   display: grid;
   justify-items: center;
   align-content: end;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
-  margin: auto -24px 0;
+  margin: auto -20px 0;
 }
 .psf-placement-summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 6px 16px;
-  padding: 0 16px;
+  gap: 4px 12px;
+  padding: 0 12px;
   color: var(--psf-text-dim);
-  font-size: 14px;
+  font-size: 12px;
 }
 .psf-placement-summary strong {
   width: 100%;
   color: var(--psf-text);
-  font-size: 15px;
+  font-size: 13px;
   text-align: center;
 }
 .psf-placement-summary span {
@@ -186,7 +186,7 @@
 }
 .psf-donut-wrap {
   position: relative;
-  width: min(320px, 100%);
+  width: min(200px, 100%);
   aspect-ratio: 320 / 176;
 }
 .psf-donut {
@@ -217,9 +217,9 @@
 }
 .psf-donut-value strong {
   color: var(--psf-text);
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: 22px;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
 }
 .psf-slot-number {
   display: inline-flex;
@@ -265,15 +265,15 @@
   font-size: 12px;
 }
 .psf .psf-figure-companies {
-  margin: 6px 0 0;
-  padding-top: 8px;
+  margin: 4px 0 0;
+  padding-top: 4px;
   border-top: 1px solid var(--psf-tile-border);
   color: var(--psf-text-dim);
-  font-size: 13px;
+  font-size: 11px;
 }
 .psf .psf-figure-companies b {
   color: var(--psf-text);
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
 }
 
