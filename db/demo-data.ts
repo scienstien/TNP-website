@@ -25,7 +25,7 @@ const ALL_DEPTS = DEPARTMENTS.map((dept) => dept.code) as DeptCode[];
 
 export const FIRST_YEAR = 2008;
 export const LAST_YEAR = 2027;
-export const MTECH_FIRST_YEAR = 2020;
+export const MTECH_FIRST_YEAR = FIRST_YEAR;
 
 // [name, sector, departments it hires from, package range in LPA]
 export const COMPANIES: [string, string, DeptCode[], [number, number]][] = [
@@ -116,8 +116,33 @@ export interface DemoCohort { cohortId: string; dept: DeptCode; level: "ug" | "p
 /** A role a cohort's students can receive an offer for in that cohort's cycle. */
 export interface DemoRole { roleId: string; driveId: string; companyId: string; hires: DeptCode[]; offerType: "PPO" | "FTE" | "FTE+6month"; pptDate: string; range: [number, number] }
 
+/** Exactly 10,000 enrollments across 2008-2027, with modest yearly growth and department-sized cohorts. */
+export function tenThousandStudentCounts(cohortList: DemoCohort[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (let year = FIRST_YEAR; year <= LAST_YEAR; year++) {
+    const cohortsForYear = cohortList.filter((cohort) => cohort.year === year);
+    if (!cohortsForYear.length) throw new Error(`No demo cohorts for ${year}.`);
+    // The symmetric 430-570 progression totals 10,000 over the twenty years.
+    const target = 430 + Math.round((year - FIRST_YEAR) * 140 / (LAST_YEAR - FIRST_YEAR));
+    const weights = cohortsForYear.map((cohort) =>
+      cohort.level === "ug" ? DEPARTMENTS.find((dept) => dept.code === cohort.dept)!.size : 10);
+    const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+    const shares = cohortsForYear.map((cohort, index) => {
+      const exact = target * weights[index] / weightTotal;
+      return { cohort, count: Math.floor(exact), remainder: exact % 1, index };
+    });
+    const left = target - shares.reduce((sum, share) => sum + share.count, 0);
+    shares.sort((a, b) => b.remainder - a.remainder || a.index - b.index);
+    for (let index = 0; index < left; index++) shares[index].count++;
+    for (const share of shares) counts.set(share.cohort.cohortId, share.count);
+  }
+  if ([...counts.values()].reduce((sum, count) => sum + count, 0) !== 10_000 || counts.size !== cohortList.length)
+    throw new Error("The demo cohort allocation must cover exactly 10,000 students.");
+  return counts;
+}
+
 /** Students, enrollments, per-cycle registration and final offers for the given cohorts. */
-export function generateStudents(cohortList: DemoCohort[], cycleIds: Map<number, string>, rolesByCycle: Map<number, DemoRole[]>, rng: Rng) {
+export function generateStudents(cohortList: DemoCohort[], cycleIds: Map<number, string>, rolesByCycle: Map<number, DemoRole[]>, rng: Rng, cohortCounts?: Map<string, number>) {
   const { random, pick, between } = rng;
   const byCode = new Map<string, (typeof DEPARTMENTS)[number]>(DEPARTMENTS.map((dept) => [dept.code, dept]));
   const studentRows: (typeof students.$inferInsert)[] = [];
@@ -126,14 +151,19 @@ export function generateStudents(cohortList: DemoCohort[], cycleIds: Map<number,
   const offerRows: (typeof placementOffers.$inferInsert)[] = [];
   for (const cohort of cohortList) {
     const dept = byCode.get(cohort.dept)!;
-    const count = cohort.level === "ug" ? dept.size - 6 + (cohort.year % 7) : between(7, 12);
+    const count = cohortCounts?.get(cohort.cohortId) ?? (cohort.level === "ug" ? dept.size - 6 + (cohort.year % 7) : between(7, 12));
     const cycleId = cycleIds.get(cohort.year)!;
     const roles = (rolesByCycle.get(cohort.year) ?? []).filter((role) => role.hires.includes(cohort.dept));
     const placedChance = Math.min(0.92, dept.placed * (0.82 + ((cohort.year - FIRST_YEAR) % 5) * 0.05)) * (cohort.level === "pg" ? 0.8 : 1);
     for (let index = 0; index < count; index++) {
       const studentId = randomUUID();
       const enrollmentId = randomUUID();
-      studentRows.push({ studentId, name: `${pick(FIRST)} ${pick(LAST)}`, genderCode: pick(["F", "M", "M", "F", "O"]) });
+      const genderRoll = random();
+      studentRows.push({
+        studentId,
+        name: `${pick(FIRST)} ${pick(LAST)}`,
+        genderCode: genderRoll < 0.49 ? "F" : genderRoll < 0.98 ? "M" : "O",
+      });
       enrollmentRows.push({
         enrollmentId,
         studentId,
@@ -176,6 +206,8 @@ export function demoOutreachRows(departmentId: string, code: DeptCode, existingN
       companyName: `${name} (outreach)`,
       hrName: `Outreach ${name.replace("DEMO ", "")}`,
       email: `outreach@${name.toLowerCase().replace(/[^a-z]+/g, "")}.example.com`,
+      phoneNumber: "+91 96000 10000",
       pvrStatus: false,
+      remarks: "Fictional outreach contact for dashboard demonstration.",
     }));
 }

@@ -52,7 +52,9 @@ is ported to it.
 - The calendar UI persists drive stages in PostgreSQL (drive_events/event_roles); the
   company directory's visit date is the earliest dated PPT drive event of the current cycle.
 - db/seed.ts and db/seed-dashboard-demo.ts (legacy fictional seeds) were removed;
-  npm run db:seed:departments fills the target schema with fictional data.
+  npm run db:seed:departments fills the target schema with fictional data. Its full
+  reset creates exactly 10,000 students across 2008-2027, with UG and PG cohorts
+  in every year; it preserves users and existing outreach contacts.
   db/seed-mme-2027-roster.ts still targets the preserved legacy_students table
   through db/legacy-schema.ts and has not been ported (it needs a registration
   decision per student, see below).

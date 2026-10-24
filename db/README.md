@@ -201,6 +201,13 @@ Migration 0005 creates an `mme` department so existing accounts and contacts sta
 valid. `npm run db:seed:departments` keeps it as the real Metallurgical and Materials
 Engineering department: the demo seed covers the nine B.Tech departments (chem,
 civil, cse, ece, eee, ice, mech, mme, prod), each with fictional B.Tech and M.Tech data.
+The full seed creates exactly 10,000 fictional students and one enrollment and
+student-cycle registration per student across graduating years 2008-2027. Both
+degree levels appear in every year. Year totals grow gradually from 430 to 570;
+department cohort sizes follow the demo department-size weights, and all final offers
+belong to registered participation. These are synthetic distributions, not institute
+statistics. The reset keeps user accounts and existing outreach contacts, and may add
+missing fictional outreach contacts.
 Shared demo definitions live in `db/demo-data.ts`. On a database the full seed refuses
 (for example one holding legacy rows), the add-only
 `DEMO_TOPUP_DATABASE=<name> npx tsx db/seed-departments-topup.ts` adds just the

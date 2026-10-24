@@ -2,7 +2,7 @@
  * FICTIONAL multi-department dataset for the department-scoped dashboard.
  *
  * Fills the institute-wide schema (db/schema.ts): the nine B.Tech departments, B.Tech and M.Tech programmes,
- * twenty graduating batches, placement cycles, companies, drives, roles, events, enrollments
+ * twenty graduating batches, exactly 10,000 students, placement cycles, companies, drives, roles, events, enrollments
  * and final offers, plus a few outreach contacts per department. Every company, student and roll
  * number is invented: companies use the "DEMO" prefix and roll numbers start with 9. The shared
  * definitions live in db/demo-data.ts.
@@ -25,7 +25,7 @@ import { eq, sql } from "drizzle-orm";
 
 import {
   addDays, CATEGORIES, COMPANIES, createRng, cycleCode, DEPARTMENTS, demoOutreachRows, FIRST_YEAR, GENDERS,
-  generateStudents, insertAll, LAST_YEAR, MTECH_FIRST_YEAR, MTECH_SPECIALIZATION, ROLE_DOMAINS, ROLE_TITLES,
+  generateStudents, insertAll, LAST_YEAR, MTECH_FIRST_YEAR, MTECH_SPECIALIZATION, ROLE_DOMAINS, ROLE_TITLES, tenThousandStudentCounts,
   type DemoCohort, type DemoRole, type DeptCode, type Tx,
 } from "./demo-data";
 import { db, postgresClient } from "./index";
@@ -183,6 +183,7 @@ async function seed() {
         hrName: `HR ${name.replace("DEMO ", "")}`,
         email: `hr@${slug}.example.com`,
         phoneNumber: `+91 98000 ${String(10000 + index * 7)}`,
+        remarks: "Fictional company for dashboard demonstration.",
         pvrStatus: random() < 0.5 ? null : random() < 0.5,
       };
     }));
@@ -207,8 +208,8 @@ async function seed() {
         });
         const pptDate = addDays(`${year - 1}-08-01`, between(0, 140));
         eventRows.push(
-          { eventId: randomUUID(), driveId, processType: "PPT", scheduledDate: pptDate, scope: "WHOLE_DRIVE" },
-          { eventId: randomUUID(), driveId, processType: "OT", scheduledDate: addDays(pptDate, between(2, 6)), scope: "WHOLE_DRIVE" },
+          { eventId: randomUUID(), driveId, processType: "PPT", scheduledDate: pptDate, label: "Pre-placement talk", scope: "WHOLE_DRIVE" },
+          { eventId: randomUUID(), driveId, processType: "OT", scheduledDate: addDays(pptDate, between(2, 6)), label: "Online test", scope: "WHOLE_DRIVE" },
         );
         const driveRoleIds: string[] = [];
         for (let r = 0; r < between(1, 2); r++) {
@@ -223,7 +224,7 @@ async function seed() {
         // The interview round is held for the first role only, to exercise role-scoped events.
         const piEvent = randomUUID();
         const piScope = driveRoleIds.length > 1 ? "SELECTED_ROLES" : "WHOLE_DRIVE";
-        eventRows.push({ eventId: piEvent, driveId, processType: "PI", scheduledDate: addDays(pptDate, between(8, 20)), scope: piScope });
+        eventRows.push({ eventId: piEvent, driveId, processType: "PI", scheduledDate: addDays(pptDate, between(8, 20)), label: "Personal interview", scope: piScope });
         if (piScope === "SELECTED_ROLES") eventRoleRows.push({ eventId: piEvent, roleId: driveRoleIds[0], driveId });
       }
       rolesByCycle.set(year, roles);
@@ -234,7 +235,9 @@ async function seed() {
     await insertAll(tx, eventRoles, eventRoleRows);
 
     // Students, enrollments, per-cycle registration and final offers.
-    const { studentRows, enrollmentRows, cycleRows, offerRows } = generateStudents(cohortList, cycleIds, rolesByCycle, rng);
+    const { studentRows, enrollmentRows, cycleRows, offerRows } = generateStudents(
+      cohortList, cycleIds, rolesByCycle, rng, tenThousandStudentCounts(cohortList),
+    );
     await insertAll(tx, students, studentRows);
     await insertAll(tx, enrollments, enrollmentRows);
     await insertAll(tx, studentCycles, cycleRows);
