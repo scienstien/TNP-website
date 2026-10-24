@@ -14,6 +14,9 @@ export interface CompanyRolePackageRow {
   roleId: string | null; driveId: string | null; driveReference: string | null; jobTitle: string | null; domain: string | null;
   offerCount: number; package: CompensationSummary;
 }
+export interface CompanyOfferTypeSummary {
+  key: string; label: string; count: number; package: CompensationSummary; stipend: CompensationSummary;
+}
 
 /** Only aggregates leave the server. All monetary summaries exclude NULL, retaining actual zero. */
 export async function getCompanyOfferSummaries(companyId: string, cycleId: string, requestedRoleId: string | null = null) {
@@ -30,7 +33,7 @@ export async function getCompanyOfferSummaries(companyId: string, cycleId: strin
       departmentId === null ? undefined : eq(programmes.departmentId, departmentId));
     const participation = and(eq(studentCycles.enrollmentId, placementOffers.enrollmentId),
       eq(studentCycles.cycleId, placementOffers.cycleId), eq(studentCycles.cohortId, enrollments.cohortId));
-    const amount = (column: typeof placementOffers.packageLpa) => ({
+    const amount = (column: typeof placementOffers.packageLpa | typeof placementOffers.monthlyStipendInr) => ({
       knownCount: count(column),
       median: sql<string | null>`percentile_cont(0.5) within group (order by ${column}::double precision)`,
       minimum: sql<string | null>`min(${column})`,
@@ -41,7 +44,12 @@ export async function getCompanyOfferSummaries(companyId: string, cycleId: strin
       .innerJoin(cohorts, eq(cohorts.cohortId, enrollments.cohortId))
       .innerJoin(programmes, eq(programmes.programmeId, cohorts.programmeId))
       .innerJoin(studentCycles, participation).where(population).groupBy(placementOffers.roleId);
-    const types = await tx.select({ type: placementOffers.offerType, count: count() }).from(placementOffers)
+    const types = await tx.select({
+      type: placementOffers.offerType,
+      count: count(),
+      package: amount(placementOffers.packageLpa),
+      stipend: amount(placementOffers.monthlyStipendInr),
+    }).from(placementOffers)
       .innerJoin(enrollments, eq(enrollments.enrollmentId, placementOffers.enrollmentId))
       .innerJoin(cohorts, eq(cohorts.cohortId, enrollments.cohortId))
       .innerJoin(programmes, eq(programmes.programmeId, cohorts.programmeId))
@@ -63,6 +71,19 @@ export async function getCompanyOfferSummaries(companyId: string, cycleId: strin
     const typeTotal = grouped.filter(row => selectedRoleId === null || row.roleId === selectedRoleId).reduce((sum, row) => sum + row.offerCount, 0);
     if (types.reduce((sum, row) => sum + row.count, 0) !== typeTotal)
       throw new Error("These figures don't add up; please refresh or report this.");
-    return { scopeLabel, rows, totalOffers, typeTotal, selectedRoleId, types: types.map(row => ({ key: row.type ?? "missing", label: row.type ?? "Not recorded", count: row.count })) };
+    return {
+      scopeLabel,
+      rows,
+      totalOffers,
+      typeTotal,
+      selectedRoleId,
+      types: types.map(row => ({
+        key: row.type ?? "missing",
+        label: row.type ?? "Not recorded",
+        count: row.count,
+        package: numeric(row.package),
+        stipend: numeric(row.stipend),
+      })),
+    };
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }

@@ -165,9 +165,10 @@ Departments and access (user-requested multi-department extension):
   client sends. A SUPERADMIN chooses a department in the dashboard's department
   navbar (a cookie, re-checked against the database) or "All departments", which
   is read-only. Mutations that need one department reject "all".
-- Dashboard analytics and the student editor use undergraduate (UG, B.Tech)
-  cohorts only: the batch is cohort.graduation_year. PG cohorts exist in the schema
-  and demo data but are not shown yet.
+- Dashboard analytics use undergraduate (UG, B.Tech) cohorts only. Student Records
+  has explicit `/students/ug` and `/students/pg` views and scopes reads and writes to
+  the selected degree level; the batch is cohort.graduation_year. PG dashboard
+  analytics are not shown yet.
 - Because the target schema has no role-target links, drives and company contacts are
   institute-wide, not per department.
 - Development accounts (created on the first sign-in request; in production only
@@ -395,8 +396,10 @@ Ported analytics and student/company integration:
   final offers; it is not a company-visit metric.
 - Student editors remain ADMIN-only (SUPERADMIN included) with role and department
   rechecks on every mutation, explicit offer removal, draft Save/Cancel and
-  no-overwrite company creation. A student's job role is stored as a drive role;
-  moving a student to another batch carries the offer but drops its drive and role.
+  no-overwrite company creation. Offer editing selects exact existing drive and role
+  IDs, while historical offers may omit both; offer dates are not ordered against
+  PPT events. Programme, cohort and offer-cycle reassignment remain blocked rather
+  than inferring or discarding placement history.
 - Recharts remain the current chart library; the domain-wise chart (role domain,
   drive_roles.domain) must not be mistaken for the academic department/programme
   dimension. The dashboard's domain filter also uses the role domain, never

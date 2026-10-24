@@ -14,17 +14,17 @@ actions.exports = Object.fromEntries(["createStudent", "createStudentCompany", "
   .map(name => [name, async () => { throw new Error(`${name} must not run in this test`); }]));
 require.cache[actionsPath] = actions;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { DeleteAction, deleteBlockedReason, removalConfirmation, sendRemoval } = require("./StudentRecords") as typeof import("./StudentRecords");
+const { DeleteAction, deleteBlockedReason, matchesOfferType, matchesPlacementStatus, removalConfirmation, sendRemoval, statusOf } = require("./StudentRecords") as typeof import("./StudentRecords");
 
 const student: StudentRecord = {
   studentId: "10000000-0000-4000-8000-000000000001", enrollmentId: "20000000-0000-4000-8000-000000000001",
-  rollNumber: 123456789, name: "Test Student", programmeId: "30000000-0000-4000-8000-000000000001", programmeLabel: "B.Tech",
+  rollNumber: 123456789, name: "Test Student", genderCode: null, reservationCategoryCode: null, programmeId: "30000000-0000-4000-8000-000000000001", programmeLabel: "B.Tech",
   cohortId: "40000000-0000-4000-8000-000000000001", batchYear: 2027, admissionYear: null,
   participations: [{ cycleId: "50000000-0000-4000-8000-000000000001", cycleCode: "26-27", registrationStatus: "REGISTERED" }], offer: null,
 };
 const placed: StudentRecord = {
   ...student,
-  offer: { offerId: "60000000-0000-4000-8000-000000000001", cycleId: "50000000-0000-4000-8000-000000000001", cycleCode: "26-27", companyId: "70000000-0000-4000-8000-000000000001", companyName: "Fictional Alloys", jobRole: null, packageLpa: null, offerType: null, offerDate: null },
+  offer: { offerId: "60000000-0000-4000-8000-000000000001", cycleId: "50000000-0000-4000-8000-000000000001", cycleCode: "26-27", companyId: "70000000-0000-4000-8000-000000000001", companyName: "Fictional Alloys", driveId: null, driveReference: null, roleId: null, jobRole: null, roleDomain: null, packageLpa: null, offerType: null, offerDate: null },
 };
 const noteId = "student-delete-blocked-123456789";
 
@@ -74,4 +74,31 @@ test("server-side rejection: the exact message is an alert and the record is not
   assert.deepEqual(await reject({}), { feedback: { text: "Unable to remove record.", alert: true }, refresh: false });
   assert.deepEqual(await sendRemoval(placed, async () => { throw new Error("offline"); }),
     { feedback: { text: "Unable to save. Check your connection and retry.", alert: true }, refresh: false });
+});
+
+test("placement status and offer type remain independent filters", () => {
+  const fte = { ...placed, offer: { ...placed.offer!, offerType: "FTE" as const } };
+  assert.equal(matchesPlacementStatus(fte, "Placed", "50000000-0000-4000-8000-000000000001"), true);
+  assert.equal(matchesPlacementStatus(fte, "FTE", "50000000-0000-4000-8000-000000000001"), false, "offer type is not a placement status");
+  assert.equal(matchesPlacementStatus(student, "Unplaced", "50000000-0000-4000-8000-000000000001"), true);
+  assert.equal(matchesOfferType(fte, "FTE"), true);
+  assert.equal(matchesOfferType(fte, "PPO"), false);
+  assert.equal(matchesOfferType(student, "FTE"), false);
+});
+
+test("placement status is scoped to an explicit cycle and all-cycle matching preserves separate outcomes", () => {
+  const secondCycle = "50000000-0000-4000-8000-000000000002";
+  const multiple = {
+    ...placed,
+    participations: [
+      ...placed.participations,
+      { cycleId: secondCycle, cycleCode: "27-28", registrationStatus: "REGISTERED" as const },
+    ],
+  };
+  assert.equal(statusOf(multiple, student.participations[0].cycleId), "Placed");
+  assert.equal(statusOf(multiple, secondCycle), "Unplaced");
+  assert.equal(matchesPlacementStatus(multiple, "Placed", secondCycle), false);
+  assert.equal(matchesPlacementStatus(multiple, "Unplaced", secondCycle), true);
+  assert.equal(matchesPlacementStatus(multiple, "Placed", ""), true);
+  assert.equal(matchesPlacementStatus(multiple, "Unplaced", ""), true);
 });

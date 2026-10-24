@@ -1316,7 +1316,7 @@ recorded as UNREGISTERED and cannot receive an offer.
 
 ### [MIG-005] Select exact drive/role IDs in the student editor
 
-- Priority: P1; Status: READY; Lane: A; Dependencies: MIG-004, merged MIG-007 options.
+- Priority: P1; Status: DONE; Owner: Codex orchestration; Dependencies: MIG-004, merged MIG-007 options.
 - Files: student types/read/store/validation/actions/editor and tests only.
 
 Evidence: `linkRole()` takes the first company drive and first matching title;
@@ -1333,6 +1333,12 @@ Preserve omitted values; explicit clear differs from omission. Remove the unsupp
 company-wide PPT date ordering rule (including UI minimum) while retaining valid
 ISO-date checks. Test PPO before PPT, unknown dates, repeated titles/drives,
 unrelated field edits and stale submissions. No company module edits in this task.
+
+Handoff (2026-10-24): Student Records now loads existing drive/role options, submits
+stable IDs, distinguishes repeated drives/roles in labels, validates company/cycle/
+drive/role parentage server-side, and permits historical offers with no drive or
+role. It no longer creates implicit drives/roles or checks offer dates against a
+company-wide PPT projection. Focused integrated tests, lint and TypeScript pass.
 
 ### [MIG-006] Make the company directory use stable IDs and explicit cycles
 
@@ -1449,16 +1455,17 @@ or another home/analytics edit.
 
 ### [MIG-013] Expose deferred optional student and offer fields
 
-- Priority: P2; Status: PAUSED by project owner on 2026-10-22; Lane: A when resumed.
+- Priority: P2; Status: DONE; Owner: Codex orchestration.
 - Dependencies: MIG-004 and MIG-005, as applicable.
 - Files: student types/read/store/validation/actions/editor/tests; no schema change.
 
-Deferred scope: monthly stipend in INR, reservation category, gender and any other
-currently omitted optional student/offer fields. These fields already exist in the
-target schema where applicable. When resumed, expose manual edit/display controls,
-preserve null rather than inventing values, distinguish omitted values from explicit
-clears, and protect existing stored values during unrelated edits. This task must not
-be started until the project owner resumes it.
+Resolution (project owner, 2026-10-24): resume gender and reservation-category
+support only; monthly-stipend entry is not required. Student Records now loads the
+controlled reference tables, displays both fields, permits create/edit/explicit
+clear, validates codes server-side, preserves NULL, and applies shared-person safety
+to gender writes. Existing monthly stipends remain preserved during unrelated edits
+but have no Student Records entry control. Focused integrated tests, lint and
+TypeScript pass.
 
 ### [MIG-011] Resolve remaining academic coverage and invariant enforcement gates
 
@@ -1486,8 +1493,10 @@ least one; and every linked role must belong to the event's drive. Cover inserts
 updates and deletes transactionally in a new reviewed migration. The Lane B server
 action checks remain defense in depth, not the final enforcement boundary.
 
-Required decision: which UG degrees are supported and whether PG has separate views;
-do not enable PG by simply removing the UG predicate. Record a matrix mapping each
+Presentation decision recorded 2026-10-24: Student Records has separate explicit
+`/students/ug` and `/students/pg` views. Reads, programme options and every mutation
+carry and validate that level; PG specialization remains programme catalogue data.
+Dashboard analytics remain UG-only until separately approved. Record a matrix mapping each
 invariant to all write paths and transactional enforcement/trigger choice. Existing
 MIG-001/004/008 tasks own their application checks; do not implement them twice.
 Any added database enforcement must use a new reviewed migration, validate existing
@@ -1574,6 +1583,43 @@ is retained if another enrollment exists. Display the server's exact rejection a
 accessible alert and keep the record unchanged. Add focused UI coverage for blocked
 deletion, confirmed allowed deletion and a server-side rejection. Frontend checks are
 guidance only; preserve all server authorization, transaction and foreign-key checks.
+
+## P1 — Legacy retirement follow-up
+
+### [MIG-017] Retire preserved legacy surfaces after reviewed target migration
+
+- Priority: P1; Status: BLOCKED; Owner: Unassigned.
+- Requested by: Project owner on 2026-10-24.
+- Dependencies: MIG-009 completed with reviewed reconciliation and rollback evidence.
+- Files: a new forward migration, `db/seed-mme-2027-roster.ts`,
+  `db/legacy-schema.ts`, dormant placement-cycle helpers, canonical database/module
+  documentation and focused verification. Existing migrations and snapshots are
+  immutable and excluded from deletion or rewriting.
+
+Context: runtime Student Records already uses the target schema, but the repository
+still carries legacy-only surfaces. `db/seed-mme-2027-roster.ts` writes only
+`legacy_students`; `db/legacy-schema.ts` exists only for that importer; migration
+0005 preserved legacy rows without copying them to the target model; dormant
+batch-to-cycle inference helpers remain under `lib/placements`; and the header in
+`db/schema.ts` incorrectly says application queries/actions/seeds still use the
+legacy model. Migrations 0000-0004 and their snapshots contain historical legacy
+columns by design and must remain unchanged.
+
+Required outcome: after MIG-009 has migrated and reconciled every preserved legacy
+row, remove the legacy-only roster importer and schema shim, retire the
+`legacy_students`, `legacy_companies` and `legacy_placement_offers` tables through a
+new reviewed forward migration, remove genuinely unused batch-to-cycle inference
+helpers after proving there are no production callers, and correct stale schema and
+module documentation. Do not treat DTO names such as `batchYear` or `companyName` as
+legacy dependencies when they map to target columns. Do not drop preserved tables,
+delete import tooling, or remove rollback evidence before MIG-009 acceptance is met.
+
+Acceptance: source-to-target row/count and nullable-field reconciliation is recorded;
+the new migration refuses or is not applied when unresolved legacy rows remain; no
+runtime/import path references a retired legacy table; dead helpers have no callers;
+current target-schema seed/import paths remain available; `db:check`, focused tests,
+lint, TypeScript and build pass; and migrations 0000-0006 plus their snapshots are
+byte-for-byte unchanged.
 
 ## P3 — Low priority
 

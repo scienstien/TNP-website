@@ -39,14 +39,19 @@ signature and earliest non-null PPT-per-company meaning. No migrations or seeds 
 - offer-history counts final REGISTERED offers across UG and PG, per explicit cycle;
   company drive cycles remain visible with zero offers. No date-based cycle inference.
 - offer-distribution groups that population by department/gender/reservationCategory
-  and exact role. Missing demographics have a Not recorded slice; All roles includes
-  offers without roles. Its total is independently counted and reconciled.
+  and exact role. The Department view is an institute-wide aggregate so it can show
+  the cross-department composition; Gender and Reservation category remain scoped to
+  the authenticated department. Missing demographics have a Not recorded slice; All
+  roles includes offers without roles. Its total is independently counted and
+  reconciled.
 - panel-queries authorizes then reuses readDriveOptions for exact company/cycle.
   Repeated/NULL titles and zero-offer roles retain stable IDs. Process validates the
   selected drive and reads all its shared calendar events with no date window.
 - offer-summaries returns only aggregates: role offer count, known annual package
-  count, SQL median/min/max (LPA), and typed/unknown offer counts. Monthly stipend is
-  not summarized or shown. Offer types have their own role filter, independent of the donut.
+  count, SQL median/min/max (LPA), and typed/unknown offer counts. The offer-type
+  card also reports annual-package and monthly-stipend median/ranges independently
+  for each FTE, FTE+6month, PPO, or unknown type. Offer types have their own role
+  filter, independent of the donut.
 - panel-actions exposes reads as protected Server Actions; each delegated query
   rechecks authorization. Independent key/retry generations prevent late responses
   replacing the current scope/company/cycle/role/dimension.

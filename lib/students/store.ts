@@ -9,17 +9,18 @@ import {
   driveRoles,
   drives,
   enrollments,
+  genderTypes,
   placementCycles,
   placementOffers,
   programmes,
+  reservationCategories,
   studentCycles,
   students,
 } from "@/db/schema";
-import { visitDatesByCompany } from "@/lib/companies/visit";
 import { readStudents, type Transaction } from "./read";
 import { offerTarget, participationRemovalProblem, registrationChangeProblem, sharedPersonProblem } from "./rules";
-import type { OfferChanges, ParticipationInput, StudentResult } from "./types";
-import { offerDateProblem, rollProblem, uuid, validateParticipation, validateStudent } from "./validation";
+import type { OfferChanges, ParticipationInput, StudentDegreeLevel, StudentResult } from "./types";
+import { rollProblem, uuid, validateParticipation, validateStudent } from "./validation";
 
 export type Operation = "create" | "patch" | "removeOffer" | "removeStudent" | "setParticipation" | "removeParticipation";
 
@@ -30,17 +31,23 @@ interface OfferContext {
 }
 
 /**
- * The cohort of one of the department's undergraduate programmes for a graduation year. A missing
+ * The cohort of one of the department's programmes at the explicit degree level for a graduation year. A missing
  * cohort is created: programme and graduation year are both explicit choices (AGENTS.md: cohort IDs
  * are generated internally for confirmed programme/year combinations).
  */
-async function cohortFor(tx: Transaction, departmentId: string, programmeId: string, graduationYear: number) {
+async function cohortFor(
+  tx: Transaction,
+  departmentId: string,
+  level: StudentDegreeLevel,
+  programmeId: string,
+  graduationYear: number,
+) {
   const [programme] = await tx
     .select({ programmeId: programmes.programmeId })
     .from(programmes)
     .innerJoin(degrees, eq(degrees.degreeId, programmes.degreeId))
-    .where(and(eq(programmes.programmeId, programmeId), eq(programmes.departmentId, departmentId), eq(degrees.level, "UG")));
-  if (!programme) throw new StudentError("Choose one of this department's undergraduate programmes.", "programmeId");
+    .where(and(eq(programmes.programmeId, programmeId), eq(programmes.departmentId, departmentId), eq(degrees.level, level)));
+  if (!programme) throw new StudentError(`Choose one of this department's ${level} programmes.`, "programmeId");
   await tx.insert(cohorts).values({ programmeId, graduationYear }).onConflictDoNothing();
   const [cohort] = await tx
     .select({ cohortId: cohorts.cohortId })
@@ -61,9 +68,8 @@ async function lockParticipation(tx: Transaction, enrollmentId: string) {
     .orderBy(studentCycles.cycleId)
     .for("update");
   const [existing] = await tx
-    .select({ offer: placementOffers, jobTitle: driveRoles.jobTitle })
+    .select({ offer: placementOffers })
     .from(placementOffers)
-    .leftJoin(driveRoles, eq(driveRoles.roleId, placementOffers.roleId))
     .where(eq(placementOffers.enrollmentId, enrollmentId))
     .for("update", { of: placementOffers });
   return { participations, existing };
@@ -95,32 +101,6 @@ async function registerParticipation(
     });
 }
 
-/** Drive and role records so the offer's job title has somewhere to live. */
-async function linkRole(tx: Transaction, context: OfferContext, companyId: string, jobRole: string | null) {
-  if (!jobRole) return { driveId: null, roleId: null };
-  let [drive] = await tx
-    .select({ driveId: drives.driveId })
-    .from(drives)
-    .where(and(eq(drives.companyId, companyId), eq(drives.cycleId, context.cycleId)))
-    .orderBy(drives.driveId)
-    .limit(1);
-  if (!drive) {
-    [drive] = await tx.insert(drives).values({ companyId, cycleId: context.cycleId }).returning({ driveId: drives.driveId });
-  }
-  let [role] = await tx
-    .select({ roleId: driveRoles.roleId })
-    .from(driveRoles)
-    .where(and(eq(driveRoles.driveId, drive.driveId), eq(driveRoles.jobTitle, jobRole)))
-    .limit(1);
-  if (!role) {
-    [role] = await tx
-      .insert(driveRoles)
-      .values({ driveId: drive.driveId, jobTitle: jobRole })
-      .returning({ roleId: driveRoles.roleId });
-  }
-  return { driveId: drive.driveId, roleId: role.roleId };
-}
-
 /**
  * Creates or updates the enrollment's final offer for the one REGISTERED student-cycle
  * offerTarget() accepts; ambiguous targets are rejected. The company is chosen by ID.
@@ -143,22 +123,31 @@ async function writeOffer(tx: Transaction, enrollmentId: string, patch: OfferCha
   }
   if (companyId === undefined) throw new StudentError("Select an existing company.", "companyId");
 
-  // The offer cannot predate the company's visit (PPT) in the same placement cycle.
-  const visitDate = (await visitDatesByCompany(tx, context.cycleId)).get(companyId);
   const offerDate = patch.offerDate !== undefined ? patch.offerDate : existing?.offer.offerDate;
-  const dateProblem = offerDateProblem(offerDate, visitDate);
-  if (dateProblem) throw new StudentError(dateProblem, "offerDate");
 
-  const currentRole = existing?.jobTitle ?? null;
-  const jobRole = patch.jobRole !== undefined ? patch.jobRole : currentRole;
-  const keepLink = existing && existing.offer.companyId === companyId && jobRole === currentRole;
-  const link = keepLink
-    ? { driveId: existing.offer.driveId, roleId: existing.offer.roleId }
-    : await linkRole(tx, context, companyId, jobRole);
+  const sameParent = existing?.offer.companyId === companyId && existing.offer.cycleId === context.cycleId;
+  const driveId = patch.driveId !== undefined ? patch.driveId : sameParent ? existing?.offer.driveId ?? null : null;
+  const roleId = patch.roleId !== undefined
+    ? patch.roleId
+    : sameParent && driveId === existing?.offer.driveId ? existing?.offer.roleId ?? null : null;
+  if (roleId && !driveId) throw new StudentError("Choose a drive for the selected role.", "driveId");
+  if (driveId) {
+    const [drive] = await tx.select({ driveId: drives.driveId })
+      .from(drives)
+      .where(and(eq(drives.driveId, driveId), eq(drives.companyId, companyId), eq(drives.cycleId, context.cycleId)));
+    if (!drive) throw new StudentError("Choose a drive belonging to the selected company and placement cycle.", "driveId");
+  }
+  if (roleId) {
+    const [role] = await tx.select({ roleId: driveRoles.roleId })
+      .from(driveRoles)
+      .where(and(eq(driveRoles.roleId, roleId), eq(driveRoles.driveId, driveId!)));
+    if (!role) throw new StudentError("Choose a role belonging to the selected drive.", "roleId");
+  }
   // Columns the editor does not show (such as the monthly stipend) are never written here.
   const values = {
     companyId,
-    ...link,
+    driveId,
+    roleId,
     packageLpa: patch.packageLpa !== undefined ? patch.packageLpa : (existing?.offer.packageLpa ?? null),
     offerType: patch.offerType !== undefined ? patch.offerType : (existing?.offer.offerType ?? null),
     offerDate: offerDate ?? null,
@@ -178,7 +167,7 @@ async function writeOffer(tx: Transaction, enrollmentId: string, patch: OfferCha
  * transaction throws, so a failed request leaves no partial write behind.
  */
 export async function mutateStudent(
-  departmentId: string, operation: Operation, input: unknown, roll?: unknown, expected?: unknown,
+  departmentId: string, level: StudentDegreeLevel, operation: Operation, input: unknown, roll?: unknown, expected?: unknown,
 ): Promise<StudentResult> {
   if (operation !== "create" && rollProblem(roll)) {
     return { fieldErrors: { rollNumber: rollProblem(roll)! } };
@@ -199,15 +188,24 @@ export async function mutateStudent(
     return await db.transaction(async tx => {
       const { data } = parsed;
       if (operation === "create") {
-        const cohortId = await cohortFor(tx, departmentId, data.programmeId!, data.batchYear!);
+        const cohortId = await cohortFor(tx, departmentId, level, data.programmeId!, data.batchYear!);
         // Always a new person: reusing an existing person needs an explicit identity and
         // shared-person policy (never a name match).
-        const [person] = await tx.insert(students).values({ name: data.name! }).returning({ studentId: students.studentId });
+        if (data.genderCode !== null && data.genderCode !== undefined) {
+          const [known] = await tx.select({ code: genderTypes.code }).from(genderTypes).where(eq(genderTypes.code, data.genderCode));
+          if (!known) throw new StudentError("Choose an existing gender option or leave it blank.", "genderCode");
+        }
+        if (data.reservationCategoryCode !== null && data.reservationCategoryCode !== undefined) {
+          const [known] = await tx.select({ code: reservationCategories.code }).from(reservationCategories).where(eq(reservationCategories.code, data.reservationCategoryCode));
+          if (!known) throw new StudentError("Choose an existing reservation category or leave it blank.", "reservationCategoryCode");
+        }
+        const [person] = await tx.insert(students).values({ name: data.name!, genderCode: data.genderCode ?? null }).returning({ studentId: students.studentId });
         const [enrollment] = await tx.insert(enrollments).values({
           studentId: person.studentId,
           rollNumber: data.rollNumber!,
           cohortId,
           admissionYear: data.admissionYear ?? null,
+          reservationCategoryCode: data.reservationCategoryCode ?? null,
         }).returning({ enrollmentId: enrollments.enrollmentId });
         if (data.participation) {
           await registerParticipation(tx, enrollment.enrollmentId, cohortId, data.participation, null);
@@ -229,8 +227,13 @@ export async function mutateStudent(
         .from(enrollments)
         .innerJoin(cohorts, eq(cohorts.cohortId, enrollments.cohortId))
         .innerJoin(programmes, eq(programmes.programmeId, cohorts.programmeId))
-        .where(and(eq(enrollments.rollNumber, id), eq(programmes.departmentId, departmentId)));
-      const [current] = row ? await readStudents(tx, departmentId, id) : [];
+        .innerJoin(degrees, eq(degrees.degreeId, programmes.degreeId))
+        .where(and(
+          eq(enrollments.rollNumber, id),
+          eq(programmes.departmentId, departmentId),
+          eq(degrees.level, level),
+        ));
+      const [current] = row ? await readStudents(tx, departmentId, level, id) : [];
       if (!row || !current) return { error: "This student no longer exists. Refresh the records." };
       if (JSON.stringify(current) !== expected) return { error: "This record changed. Cancel and reopen it to load the latest values." };
       const enrollmentId = row.enrollmentId;
@@ -278,11 +281,19 @@ export async function mutateStudent(
       if (data.batchYear !== undefined && data.batchYear !== current.batchYear) {
         throw new StudentError("Moving a student to another batch is not supported; it would discard registrations and offer details.", "batchYear");
       }
+      if (data.reservationCategoryCode !== undefined && data.reservationCategoryCode !== current.reservationCategoryCode) {
+        if (data.reservationCategoryCode !== null) {
+          const [known] = await tx.select({ code: reservationCategories.code }).from(reservationCategories).where(eq(reservationCategories.code, data.reservationCategoryCode));
+          if (!known) throw new StudentError("Choose an existing reservation category or leave it blank.", "reservationCategoryCode");
+        }
+        await tx.update(enrollments).set({ reservationCategoryCode: data.reservationCategoryCode }).where(eq(enrollments.enrollmentId, enrollmentId));
+      }
       if (data.admissionYear !== undefined && data.admissionYear !== current.admissionYear) {
         await tx.update(enrollments).set({ admissionYear: data.admissionYear }).where(eq(enrollments.enrollmentId, enrollmentId));
       }
-      if (data.name !== undefined && data.name !== current.name) {
-        // The name belongs to the person, who may also be enrolled elsewhere.
+      if ((data.name !== undefined && data.name !== current.name) ||
+          (data.genderCode !== undefined && data.genderCode !== current.genderCode)) {
+        // Name and gender belong to the shared person, who may be enrolled elsewhere.
         await tx.execute(sql`select 1 from students where student_id = ${row.studentId} for update`);
         const others = await tx
           .select({ departmentId: programmes.departmentId })
@@ -291,8 +302,15 @@ export async function mutateStudent(
           .innerJoin(programmes, eq(programmes.programmeId, cohorts.programmeId))
           .where(and(eq(enrollments.studentId, row.studentId), ne(enrollments.enrollmentId, enrollmentId)));
         const problem = sharedPersonProblem(departmentId, others.map((other) => other.departmentId));
-        if (problem) throw new StudentError(problem, "name");
-        await tx.update(students).set({ name: data.name }).where(eq(students.studentId, row.studentId));
+        if (problem) throw new StudentError(problem.replace("shared name", "person details"), data.genderCode !== undefined ? "genderCode" : "name");
+        if (data.genderCode !== undefined && data.genderCode !== current.genderCode && data.genderCode !== null) {
+          const [known] = await tx.select({ code: genderTypes.code }).from(genderTypes).where(eq(genderTypes.code, data.genderCode));
+          if (!known) throw new StudentError("Choose an existing gender option or leave it blank.", "genderCode");
+        }
+        await tx.update(students).set({
+          ...(data.name !== undefined ? { name: data.name } : {}),
+          ...(data.genderCode !== undefined ? { genderCode: data.genderCode } : {}),
+        }).where(eq(students.studentId, row.studentId));
       }
       if (data.offer && Object.keys(data.offer).length) await writeOffer(tx, enrollmentId, data.offer);
       return { ok: true };

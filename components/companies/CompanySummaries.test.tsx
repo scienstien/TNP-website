@@ -22,10 +22,13 @@ test("compensation card renders known sample size and the annual package only", 
 
 test("offer type card keeps unknown offers visible and refuses inconsistent totals", () => {
   const props = { total: 2, active: true, loading: false, error: null, onRetry: () => {}, roles: [], roleId: null, onRoleChange: () => {} };
-  const html = renderToStaticMarkup(<CompanyOfferTypes {...props} types={[{ key: "missing", label: "Not recorded", count: 2 }]} />);
+  const html = renderToStaticMarkup(<CompanyOfferTypes {...props} types={[{ key: "missing", label: "Not recorded", count: 2,
+    package: { knownCount: 0, median: null, minimum: null, maximum: null }, stipend: { knownCount: 0, median: null, minimum: null, maximum: null } }]} />);
   assert.match(html, /Not recorded/);
   assert.match(html, /100.0/);
-  const failed = renderToStaticMarkup(<CompanyOfferTypes {...props} types={[{ key: "PPO", label: "PPO", count: 1 }]} />);
+  assert.doesNotMatch(html, /12\.5-15/);
+  const failed = renderToStaticMarkup(<CompanyOfferTypes {...props} types={[{ key: "PPO", label: "PPO", count: 1,
+    package: { knownCount: 0, median: null, minimum: null, maximum: null }, stipend: { knownCount: 0, median: null, minimum: null, maximum: null } }]} />);
   assert.match(failed, /role="alert"/);
   assert.doesNotMatch(failed, /50.0/);
 });

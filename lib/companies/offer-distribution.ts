@@ -68,10 +68,15 @@ export async function getCompanyOfferDistribution(
 
   return db.transaction(async (tx) => {
     await assertCompanyPanelSelection(tx, input.companyId, input.cycleId);
+    // The Department view is specifically an institute-wide composition: a
+    // department-scoped company population would always produce one 100%
+    // bucket for department users. Demographic views remain scoped to the
+    // authenticated department.
+    const aggregateDepartmentId = input.dimension === "department" ? null : departmentId;
     await assertCompanyOfferIntegrity(tx, {
       companyId: input.companyId,
       cycleId: input.cycleId,
-      departmentId,
+      departmentId: aggregateDepartmentId,
     });
 
     // Role metadata is institute-wide: the model has no department/role target links.
@@ -89,7 +94,7 @@ export async function getCompanyOfferDistribution(
       eq(placementOffers.companyId, input.companyId),
       eq(placementOffers.cycleId, input.cycleId),
       eq(studentCycles.registrationStatus, "REGISTERED"),
-      departmentId === null ? undefined : eq(programmes.departmentId, departmentId),
+      aggregateDepartmentId === null ? undefined : eq(programmes.departmentId, aggregateDepartmentId),
     );
     const participation = and(
       eq(studentCycles.enrollmentId, placementOffers.enrollmentId),
@@ -148,7 +153,7 @@ export async function getCompanyOfferDistribution(
       throw new Error("These figures don't add up; please refresh or report this.");
 
     return {
-      scopeLabel,
+      scopeLabel: input.dimension === "department" ? "All departments" : scopeLabel,
       selectedRoleId,
       roleOptions,
       buckets,

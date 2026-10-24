@@ -1,5 +1,9 @@
 import { OFFER_TYPES, REGISTRATION_STATUSES, type RegistrationStatusValue } from "@/lib/placements/types";
-import type { OfferChanges, ParticipationInput, StudentInput } from "./types";
+import type { OfferChanges, ParticipationInput, StudentDegreeLevel, StudentInput } from "./types";
+
+/** Explicit Student Records route/action context; never derived from a year or programme label. */
+export const parseStudentDegreeLevel = (value: unknown): StudentDegreeLevel | null =>
+  value === "UG" || value === "ug" ? "UG" : value === "PG" || value === "pg" ? "PG" : null;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** A canonical (lower-case) UUID, or null. */
@@ -15,12 +19,6 @@ export const rollProblem = (value: unknown): string | null =>
   (typeof value === "string" && /^[1-9][0-9]{8}$/.test(value)) ||
   (typeof value === "number" && Number.isInteger(value) && value >= 100000000 && value <= 999999999)
     ? null : "Enter exactly 9 digits, with no leading zero.";
-
-export function offerDateProblem(offerDate: string | null | undefined, visitDate: string | null | undefined): string | null {
-  return offerDate && visitDate && offerDate < visitDate
-    ? "Offer date cannot be before the company's campus visit date."
-    : null;
-}
 
 const object = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value) &&
@@ -50,8 +48,8 @@ export function validateStudent(input: unknown, create: boolean) {
   const data: StudentInput = {};
   if (!object(input)) return { data, fieldErrors: { form: "Invalid student data." } };
   const allowed = create
-    ? ["rollNumber", "name", "programmeId", "batchYear", "admissionYear", "participation", "offer"]
-    : ["name", "programmeId", "batchYear", "admissionYear", "offer"];
+    ? ["rollNumber", "name", "genderCode", "reservationCategoryCode", "programmeId", "batchYear", "admissionYear", "participation", "offer"]
+    : ["name", "genderCode", "reservationCategoryCode", "programmeId", "batchYear", "admissionYear", "offer"];
   for (const key of Object.keys(input)) {
     if (!allowed.includes(key)) fieldErrors.form = `Field "${key}" cannot be changed.`;
   }
@@ -68,6 +66,16 @@ export function validateStudent(input: unknown, create: boolean) {
           !/\p{L}/u.test(name) || !/^[\p{L}\p{M} .'’-]+$/u.test(name)) {
         fieldErrors.name = "Use 1–100 characters: letters, spaces, apostrophes, periods or hyphens; no digits.";
       } else data.name = name;
+    }
+  }
+  for (const key of ["genderCode", "reservationCategoryCode"] as const) {
+    if (create || own(input, key)) {
+      const value = input[key];
+      if (value === undefined && !create) continue;
+      if (value === undefined || value === null || value === "") data[key] = null;
+      else if (typeof value !== "string" || value.trim() !== value || value.length === 0) {
+        fieldErrors[key] = "Choose an existing option or leave it blank.";
+      } else data[key] = value;
     }
   }
   if (create || own(input, "programmeId")) {
@@ -98,7 +106,7 @@ export function validateStudent(input: unknown, create: boolean) {
     if (!object(input.offer)) fieldErrors.offer = "Invalid offer. Use Remove offer to clear it.";
     else {
       const offer: OfferChanges = {};
-      const keys = ["cycleId", "companyId", "jobRole", "packageLpa", "offerType", "offerDate"];
+      const keys = ["cycleId", "companyId", "driveId", "roleId", "packageLpa", "offerType", "offerDate"];
       for (const [key, value] of Object.entries(input.offer)) {
         if (!keys.includes(key)) { fieldErrors.form = `Offer field "${key}" cannot be changed.`; continue; }
         if (key === "cycleId") {
@@ -109,9 +117,13 @@ export function validateStudent(input: unknown, create: boolean) {
           const companyId = uuid(value);
           if (!companyId) fieldErrors.companyId = "Select an existing company.";
           else offer.companyId = companyId;
-        } else if (key === "jobRole") {
-          if (value !== null && typeof value !== "string") fieldErrors.jobRole = "Enter a job role or leave it blank.";
-          else offer.jobRole = typeof value === "string" ? value.trim() || null : null;
+        } else if (key === "driveId" || key === "roleId") {
+          if (value === "" || value === null) offer[key] = null;
+          else {
+            const id = uuid(value);
+            if (!id) fieldErrors[key] = key === "driveId" ? "Choose an existing drive or leave it blank." : "Choose an existing role or leave it blank.";
+            else offer[key] = id;
+          }
         } else if (key === "packageLpa") {
           if (value === null || value === "") offer.packageLpa = null;
           else if (typeof value !== "string" || !/^\d+(\.\d+)?$/.test(value) ||

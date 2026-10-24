@@ -25,14 +25,19 @@ after(() => postgresClient.end());
 const roll = 123456789;
 const cycleId = "10000000-0000-4000-8000-000000000001";
 
+test("student writes do not load the company-wide visit/PPT projection", () => {
+  const visitModule = require.resolve("@/lib/companies/visit");
+  assert.equal(require.cache[visitModule], undefined);
+});
+
 test("setParticipation with a valid cycle/status plus an unexpected field is rejected before any write", async () => {
-  const result = await mutateStudent("department", "setParticipation", { cycleId, registrationStatus: "REGISTERED", extra: 1 }, roll, "{}");
+  const result = await mutateStudent("department", "UG", "setParticipation", { cycleId, registrationStatus: "REGISTERED", extra: 1 }, roll, "{}");
   assert.deepEqual(result, { fieldErrors: { form: "Only the placement cycle and registration status can be set." } });
 });
 
 test("a valid setParticipation request still passes validation and reaches the transaction", async (t) => {
   t.mock.method(console, "error", () => {});
-  const result = await mutateStudent("department", "setParticipation", { cycleId, registrationStatus: "UNREGISTERED" }, roll, "{}");
+  const result = await mutateStudent("department", "UG", "setParticipation", { cycleId, registrationStatus: "UNREGISTERED" }, roll, "{}");
   assert.equal(result.fieldErrors, undefined);
   assert.equal(result.error, "Unable to save changes. Please retry.", "only the unreachable test database stops it");
 });

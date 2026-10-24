@@ -7,6 +7,7 @@ import type { CompanyResult, StudentResult } from "./types";
 import { db } from "@/db";
 import { companies } from "@/db/schema";
 import { validateCompany } from "./company-validation";
+import { parseStudentDegreeLevel } from "./validation";
 
 /** The admin's department (or the super admin's chosen one), or the error to show instead. */
 async function adminDepartment(action: string) {
@@ -18,24 +19,29 @@ async function adminDepartment(action: string) {
   return { department };
 }
 
-async function run(operation: Operation, input: unknown, roll?: unknown, expected?: unknown): Promise<StudentResult> {
+async function run(levelInput: unknown, operation: Operation, input: unknown, roll?: unknown, expected?: unknown): Promise<StudentResult> {
+  const level = parseStudentDegreeLevel(levelInput);
+  if (!level) return { error: "Choose the UG or PG student-records view." };
   const scope = await adminDepartment("manage student records");
   if ("error" in scope) return { error: scope.error };
-  const result = await mutateStudent(scope.department.departmentId, operation, input, roll, expected);
-  if (result.ok) revalidatePath("/");
+  const result = await mutateStudent(scope.department.departmentId, level, operation, input, roll, expected);
+  if (result.ok) {
+    revalidatePath("/");
+    revalidatePath(`/students/${level.toLowerCase()}`);
+  }
   return result;
 }
-export async function createStudent(input: unknown) { return run("create", input); }
-export async function patchStudent(roll: unknown, changes: unknown, expected: unknown) { return run("patch", changes, roll, expected); }
-export async function removeStudentOffer(roll: unknown, expected: unknown) { return run("removeOffer", null, roll, expected); }
-export async function deleteStudent(roll: unknown, expected: unknown) { return run("removeStudent", null, roll, expected); }
+export async function createStudent(level: unknown, input: unknown) { return run(level, "create", input); }
+export async function patchStudent(level: unknown, roll: unknown, changes: unknown, expected: unknown) { return run(level, "patch", changes, roll, expected); }
+export async function removeStudentOffer(level: unknown, roll: unknown, expected: unknown) { return run(level, "removeOffer", null, roll, expected); }
+export async function deleteStudent(level: unknown, roll: unknown, expected: unknown) { return run(level, "removeStudent", null, roll, expected); }
 /** Registers the student for an explicit cycle, or changes that registration's status. */
-export async function setStudentParticipation(roll: unknown, participation: unknown, expected: unknown) {
-  return run("setParticipation", participation, roll, expected);
+export async function setStudentParticipation(level: unknown, roll: unknown, participation: unknown, expected: unknown) {
+  return run(level, "setParticipation", participation, roll, expected);
 }
 /** Removes one registration; refused while that cycle holds the student's offer. */
-export async function removeStudentParticipation(roll: unknown, cycleId: unknown, expected: unknown) {
-  return run("removeParticipation", { cycleId }, roll, expected);
+export async function removeStudentParticipation(level: unknown, roll: unknown, cycleId: unknown, expected: unknown) {
+  return run(level, "removeParticipation", { cycleId }, roll, expected);
 }
 
 /** Explicit creation only: never overwrite a company's existing profile or contacts. */

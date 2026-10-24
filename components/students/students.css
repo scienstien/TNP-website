@@ -3,11 +3,15 @@
 .student-records .section-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 24px; }
 .student-records .section-heading > div { flex: 1 1 420px; min-width: 0; }
 .student-records .section-heading > .dark-button { flex: 0 0 auto; margin-top: 4px; }
+.student-level-switch { display: flex; flex-direction: column; gap: 6px; color: #9aa7be; font-size: 12px; }
+.student-level-switch select { min-width: 92px; background: #131c2b; }
 .student-records h1 { margin: 6px 0; }
 .student-breadcrumb { margin: 0; color: #9aa7be; font-size: 13px; }
 .student-records .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .student-modal-backdrop { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 24px; background: #0b111d; }
 .student-modal { width: min(920px, 100%); max-height: calc(100dvh - 48px); overflow: auto; }
+.student-modal:focus { outline: none; }
+.student-modal :focus-visible { outline: 2px solid #9eb9ff; outline-offset: 2px; }
 .student-records .student-editor { padding: 24px; margin: 0; background: #131c2b; }
 .student-editor-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .student-editor-heading h2 { margin-top: 0; }
@@ -31,11 +35,12 @@
 .student-offer-toggle { display: flex; align-items: center; gap: 8px; }
 .student-company-create { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #687181; border-radius: 5px; min-width: 0; }
 .student-table-scroll { overflow-x: auto; }
-.student-table-card { overflow: hidden; padding: 0; }
+.student-table-card { min-width: 0; max-width: 100%; overflow: hidden; padding: 0; }
 .student-table-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 22px 24px 18px; border-bottom: 1px solid var(--line); background: linear-gradient(110deg, rgb(25 42 72 / 0.62), rgb(19 28 43 / 0.26)); }
+.student-table-card-header > div { min-width: 0; }
 .student-table-kicker { margin: 0 0 6px; color: #89aef7; font: 10px "DM Mono", monospace; letter-spacing: .12em; }
 .student-table-card-header h2 { margin: 0; font-size: 19px; letter-spacing: -.02em; }
-.student-table-card-header > div > p:last-child { margin: 5px 0 0; color: #9aa7be; font-size: 12px; }
+.student-table-card-header > div > p:last-child { margin: 5px 0 0; color: #9aa7be; font-size: 12px; overflow-wrap: anywhere; }
 .student-table-stats { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .student-stat { display: flex; align-items: center; gap: 8px; min-width: 92px; padding: 8px 10px; border: 1px solid rgb(112 160 255 / .24); border-radius: 8px; color: #9db9ef; background: rgb(11 19 33 / .48); }
 .student-stat span { display: grid; gap: 1px; color: #97a5be; font-size: 10px; line-height: 1.1; }
@@ -43,12 +48,13 @@
 .student-stat--placed { border-color: rgb(75 180 138 / .35); color: #69c6a0; }
 .student-stat--unplaced { border-color: rgb(198 152 79 / .36); color: #e0b768; }
 .student-db-table { width: 100%; min-width: 1360px; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 13px; }
-.student-db-table th, .student-db-table td { padding: 14px 12px; border-bottom: 1px solid #68718155; vertical-align: middle; }
+.student-db-table th, .student-db-table td { padding: 14px 12px; border-bottom: 1px solid #68718155; vertical-align: middle; overflow-wrap: anywhere; }
 .student-db-table th { position: sticky; top: 0; z-index: 1; white-space: nowrap; color: #91a0b9; background: #182338; font: 10px "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
 .student-db-table tbody tr { transition: background .16s ease; }
 .student-db-table tbody tr:hover { background: rgb(55 94 160 / .14); }
 .student-db-table tbody tr:last-child td { border-bottom: 0; }
-.student-db-table td:nth-child(1), .student-db-table td:nth-child(4), .student-db-table td:nth-child(10), .student-db-table td:nth-child(11), .student-db-table td:nth-child(12) { color: #b5c4dc; font-family: "DM Mono", monospace; font-size: 12px; white-space: nowrap; }
+.student-db-table td:nth-child(1), .student-db-table td:nth-child(4), .student-db-table td:nth-child(10), .student-db-table td:nth-child(11), .student-db-table td:nth-child(12) { color: #b5c4dc; font-family: "DM Mono", monospace; font-size: 12px; }
+.student-db-table td:nth-child(1) { white-space: nowrap; }
 .student-status { display: inline-flex; align-items: center; padding: 4px 8px; border: 1px solid; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .student-status--placed { border-color: rgb(74 179 135 / .45); background: rgb(36 123 93 / .16); color: #7ed4ae; }
 .student-status--unplaced { border-color: rgb(159 174 202 / .28); background: rgb(120 137 166 / .1); color: #b8c5da; }
@@ -63,7 +69,7 @@
 .student-registrations li > .student-row-actions { margin-left: auto; }
 .student-records .student-registrations button { padding: 6px 10px; border: 1px solid #687181; border-radius: 5px; color: inherit; background: transparent; }
 .student-toolbar { display: grid; gap: 14px; margin: 0; padding: 18px 20px; border-bottom: 1px solid var(--line); background: rgb(10 17 29 / .16); }
-.student-toolbar-controls { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.student-toolbar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .student-search, .student-filter-select { height: 38px; border: 1px solid #687181; border-radius: 7px; background: #131c2b; }
 .student-search { display: flex; align-items: center; flex: 1 1 260px; min-width: 160px; gap: 9px; padding: 0 11px; color: #9aa7be; }
 .student-search input { width: 100%; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; }
