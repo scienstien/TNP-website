@@ -11,7 +11,7 @@ import { OFFER_TYPE_LABELS } from "./chartTheme";
 
 export interface FilterOptions {
   cycles: PlacementCycleOption[];
-  branches: { code: string; name: string }[];
+  showPgProgrammes: boolean;
   companies: string[];
   domains: string[];
   specializations: string[];
@@ -73,10 +73,6 @@ export default function DashboardFilters({
       label: `PG programme: ${filters.specialization}`,
       clear: () => onChange({ specialization: null }),
     });
-  if (filters.branch) {
-    const branch = options.branches.find((option) => option.code === filters.branch);
-    chips.push({ label: `Branch: ${branch?.name ?? filters.branch}`, clear: () => onChange({ branch: null, specialization: null }) });
-  }
   if (filters.offerType)
     chips.push({
       label: OFFER_TYPE_LABELS[filters.offerType],
@@ -160,37 +156,22 @@ export default function DashboardFilters({
           </select>
         </label>
 
-        {options.branches.length > 0 && (
-          <>
-            <label className="mme-field" htmlFor={`${id}-branch`}>
-              <span>PG branch</span>
-              <select
-                id={`${id}-branch`}
-                value={filters.branch ?? ""}
-                onChange={(e) => onChange({ branch: e.target.value || null, specialization: null })}
-              >
-                <option value="">All PG branches</option>
-                {options.branches.map((branch) => (
-                  <option key={branch.code} value={branch.code}>{branch.name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="mme-field" htmlFor={`${id}-specialization`}>
-              <span>PG programme / specialization</span>
-              <select
-                id={`${id}-specialization`}
-                value={filters.specialization ?? ""}
-                onChange={(e) => onChange({ specialization: e.target.value || null })}
-              >
-                <option value="">All PG programmes</option>
-                {options.specializations.map((specialization) => (
-                  <option key={specialization} value={specialization}>
-                    {specialization === NOT_RECORDED ? "Not recorded" : specialization}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </>
+        {options.showPgProgrammes && (
+          <label className="mme-field" htmlFor={`${id}-specialization`}>
+            <span>PG programme / specialization</span>
+            <select
+              id={`${id}-specialization`}
+              value={filters.specialization ?? ""}
+              onChange={(e) => onChange({ specialization: e.target.value || null })}
+            >
+              <option value="">All PG programmes</option>
+              {options.specializations.map((specialization) => (
+                <option key={specialization} value={specialization}>
+                  {specialization === NOT_RECORDED ? "Not recorded" : specialization}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
 
         <label className="mme-field" htmlFor={`${id}-type`}>

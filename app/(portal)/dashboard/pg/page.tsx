@@ -16,6 +16,7 @@ export default async function PostgraduateDashboardPage() {
       : "Admin";
   return (
     <PlacementAnalytics
+      key={department?.code ?? "all"}
       records={records}
       role={role}
       department={department ? { code: department.code, name: department.name } : null}

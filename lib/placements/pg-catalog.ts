@@ -27,3 +27,8 @@ export const PG_BRANCHES = [
 ] as const;
 
 export type PgBranch = (typeof PG_BRANCHES)[number];
+
+/** Departments in the PG catalogue with no B.Tech branch in this dashboard. */
+export const PG_ONLY_BRANCH_CODES = new Set([
+  "dee", "ca", "physics", "architecture", "chemistry", "maths", "humanities", "management",
+]);

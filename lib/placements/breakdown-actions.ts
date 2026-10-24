@@ -11,7 +11,6 @@ export async function loadPlacementBreakdown(
   cycleId: string | null,
   degreeLevel: DegreeLevel = "UG",
   specialization: string | null = null,
-  branch: string | null = null,
 ) {
   if (!BREAKDOWN_DIMENSIONS.includes(dimension)) {
     throw new Error("Choose a valid breakdown.");
@@ -25,8 +24,5 @@ export async function loadPlacementBreakdown(
   if (specialization !== null && typeof specialization !== "string") {
     throw new Error("Choose a valid specialization.");
   }
-  if (branch !== null && (typeof branch !== "string" || !/^[a-z][a-z0-9_-]{0,49}$/.test(branch))) {
-    throw new Error("Choose a valid PG branch.");
-  }
-  return getPlacementBreakdown(dimension, cycleId, degreeLevel, specialization, branch);
+  return getPlacementBreakdown(dimension, cycleId, degreeLevel, specialization);
 }

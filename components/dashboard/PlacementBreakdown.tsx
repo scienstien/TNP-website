@@ -21,15 +21,14 @@ interface Props {
   scopeKey: string;
   degreeLevel?: DegreeLevel;
   specialization: string | null;
-  branch: string | null;
 }
 
 /** Placed ÷ registered per department, gender or category, switched with a toggle. */
-export default function PlacementBreakdown({ cycleId, cycleLabel, scopeKey, degreeLevel = "UG", specialization, branch }: Props) {
+export default function PlacementBreakdown({ cycleId, cycleLabel, scopeKey, degreeLevel = "UG", specialization }: Props) {
   const [dimension, setDimension] = useState<BreakdownDimension>("department");
   const { data, error, loading, retry } = useCompanyPanel(
-    `${scopeKey}:${degreeLevel}:${branch ?? "all"}:${specialization ?? "all"}:${dimension}:${cycleId ?? "all"}`,
-    () => loadPlacementBreakdown(dimension, cycleId, degreeLevel, specialization, branch),
+    `${scopeKey}:${degreeLevel}:${specialization ?? "all"}:${dimension}:${cycleId ?? "all"}`,
+    () => loadPlacementBreakdown(dimension, cycleId, degreeLevel, specialization),
   );
 
   const rows = data?.rows;

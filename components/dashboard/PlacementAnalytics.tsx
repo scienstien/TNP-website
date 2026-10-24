@@ -13,7 +13,6 @@ import {
   scopeRecords,
   specializationOf,
   domainNames,
-  pgBranchOptions,
   pgSpecializationNames,
   domainPlacement,
   topCompanies,
@@ -49,10 +48,10 @@ export default function PlacementAnalytics({ records, role, department, today, d
       cycles: placementCycles(records),
       companies: companyNames(records),
       domains: domainNames(records),
-      branches: degreeLevel === "PG" ? pgBranchOptions(records, department) : [],
+      showPgProgrammes: degreeLevel === "PG",
       ctc: ctcBounds(records),
     }),
-    [records, degreeLevel, department],
+    [records, degreeLevel],
   );
   const { filters, update, toggle, reset } = useDashboardFilters(
     options.cycles[0]?.id ?? null,
@@ -60,9 +59,9 @@ export default function PlacementAnalytics({ records, role, department, today, d
   const filterOptions = useMemo(() => ({
     ...options,
     specializations: degreeLevel === "PG"
-      ? pgSpecializationNames(records, filters.branch, department?.code ?? null)
+      ? pgSpecializationNames(records, department)
       : [],
-  }), [options, degreeLevel, records, filters.branch, department?.code]);
+  }), [options, degreeLevel, records, department]);
 
   const view = useMemo(() => {
     const scope = scopeRecords(records, filters);
@@ -76,13 +75,11 @@ export default function PlacementAnalytics({ records, role, department, today, d
     };
   }, [records, filters]);
 
-  // The trend intentionally spans every cycle and ignores offer filters, but PG
-  // specialization remains a population filter and must still apply to it.
+  // The trend spans every cycle and ignores offer filters; PG specialization still applies.
   const trendRecords = useMemo(
     () => records.filter((record) =>
-      (filters.branch === null || record.department === filters.branch) &&
       (filters.specialization === null || specializationOf(record) === filters.specialization)),
-    [records, filters.branch, filters.specialization],
+    [records, filters.specialization],
   );
 
   if (records.length === 0 && degreeLevel === "UG") {
@@ -130,7 +127,6 @@ export default function PlacementAnalytics({ records, role, department, today, d
         cycleId={filters.cycleId}
         degreeLevel={degreeLevel}
         specialization={filters.specialization}
-        branch={filters.branch}
         cycleLabel={
           options.cycles.find((cycle) => cycle.id === filters.cycleId)?.code ??
           "all placement cycles"

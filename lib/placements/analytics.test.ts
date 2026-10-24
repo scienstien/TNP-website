@@ -8,7 +8,6 @@ import {
   isRegisteredParticipation,
   mergeDashboardFilters,
   placementCycles,
-  pgBranchOptions,
   pgSpecializationNames,
   specializationNames,
   scopeRecords,
@@ -96,31 +95,26 @@ test("specialization filters every registered analytics population", () => {
   assert.equal(scopeRecords(source, defaultFilters()).population.length, 3);
 });
 
-test("PG catalogue includes branches with no B.Tech or imported placement records", () => {
-  const branches = pgBranchOptions([], null);
-  for (const code of ["ca", "dee", "physics", "architecture", "chemistry", "maths", "humanities", "management"]) {
-    assert.ok(branches.some((branch) => branch.code === code), code);
-  }
-  assert.deepEqual(pgBranchOptions([], { code: "physics", name: "Physics" }), [{ code: "physics", name: "Physics" }]);
-  assert.ok(pgSpecializationNames([], "physics", null).includes("Non-Destructive Testing"));
-  assert.ok(pgSpecializationNames([], "civil", null).includes("Water Resources Engineering and Management"));
-  assert.ok(pgSpecializationNames([], "ca", null).includes("Computer Applications"));
-  assert.ok(pgSpecializationNames([], "management", null).includes("Management Studies"));
-  assert.deepEqual(pgSpecializationNames([], "dee", "physics"), ["Non-Destructive Testing", "Physics"]);
+test("PG programme options follow the top department selection", () => {
+  assert.ok(pgSpecializationNames([], { code: "physics", name: "Physics" }).includes("Non-Destructive Testing"));
+  assert.ok(pgSpecializationNames([], { code: "civil", name: "Civil Engineering" }).includes("Water Resources Engineering and Management"));
+  assert.ok(pgSpecializationNames([], { code: "ca", name: "Computer Applications" }).includes("Computer Applications"));
+  assert.ok(pgSpecializationNames([], { code: "management", name: "Management Studies" }).includes("Management Studies"));
+  assert.deepEqual(pgSpecializationNames([], { code: "dee", name: "Energy and Environment" }), ["Energy Engineering"]);
+  assert.ok(pgSpecializationNames([], null).includes("Data Analytics"));
 });
 
-test("branch and specialization narrow KPIs and explicit comparison cycles together", () => {
+test("authorized department records and specialization narrow cycle comparisons", () => {
   const source = [
     withOffer({ ...record("a", "2026-27", "physics"), specialization: "Non-Destructive Testing" }),
     withOffer({ ...record("b", "2025-26", "physics"), specialization: "Non-Destructive Testing" }),
-    withOffer({ ...record("b", "2025-26", "mme"), specialization: "Materials Science and Engineering" }),
     { ...record("a", "2026-27", "physics"), specialization: "Physics", registrationStatus: "UNREGISTERED" as const },
   ];
-  const filters = { ...EMPTY_FILTERS, cycleId: "a", comparisonCycleId: "b", branch: "physics", specialization: "Non-Destructive Testing" };
+  const filters = { ...EMPTY_FILTERS, cycleId: "a", comparisonCycleId: "b", specialization: "Non-Destructive Testing" };
   assert.equal(computeKpis(scopeRecords(source, filters)).placed, 1);
   assert.equal(comparisonCycleKpis(source, filters)?.kpis.total, 1);
   assert.equal(computeKpis(scopeRecords(source, { ...filters, specialization: null })).total, 1);
-  assert.equal(computeKpis(scopeRecords(source, { ...filters, cycleId: null, specialization: null, branch: null })).total, 3);
+  assert.equal(computeKpis(scopeRecords(source, { ...filters, cycleId: null, specialization: null })).total, 2);
 });
 
 test("compares two explicitly selected cycles", () => {

@@ -31,7 +31,6 @@ export async function getPlacementBreakdown(
   cycleId: string | null,
   degreeLevel: DegreeLevel = "UG",
   specialization: string | null = null,
-  branch: string | null = null,
 ): Promise<PlacementBreakdown> {
   const user = await requireUser();
   const department = await resolveDepartment(user);
@@ -73,7 +72,6 @@ export async function getPlacementBreakdown(
     .where(
       and(
         placementRecordsScope(department?.departmentId ?? null, degreeLevel),
-        branch === null ? undefined : eq(departments.code, branch),
         specialization === "Not recorded"
           ? sql`${programmes.specialization} is null`
           : specialization === null

@@ -5,7 +5,7 @@ The "Dashboard" view (`components/dashboard/`) is computed from placement data i
 ## Data flow
 
 1. `app/(portal)/page.tsx` and the UG/PG dashboard routes call `getPlacementRecords()` from `lib/placements/queries.ts`. That query requires a signed-in user and returns one row per explicit student-cycle participation at the requested degree level, including programme ID, nullable specialization, graduation year, cycle identity, optional cycle dates, registration status, and the offer for that same cycle (if any). Student names, roll numbers and any other student identifier are not sent to the browser; names are provided separately only to the ADMIN student editor.
-2. `components/dashboard/PlacementAnalytics.tsx` keeps one shared filter state (`useDashboardFilters`). Its primary and comparison cycle selectors use explicit cycle IDs returned by the server; no previous cycle is inferred. PG also filters the population by branch and specialization; there is no graduating-batch filter. It derives every KPI and chart dataset through `lib/placements/analytics.ts`.
+2. `components/dashboard/PlacementAnalytics.tsx` keeps the cycle, offer and PG specialization filters in `useDashboardFilters`. Its primary and comparison cycle selectors use explicit cycle IDs returned by the server; no previous cycle is inferred. The top department navbar is the single branch selector, and its cookie changes the authorized server query scope. There is no graduating-batch filter. Client KPIs and charts derive from `lib/placements/analytics.ts`.
 2a. `components/dashboard/PlacementBreakdown.tsx` shows placed ÷ registered per department, gender or reservation category. Gender and category are never sent with the records: `breakdown-queries.ts` aggregates on the server (scoped by `resolveDepartment()`), and `breakdown-actions.ts` is the Server Action the card calls. It follows the selected cycle only, not the offer filters. The Department view's "Share of institute placed" divides by the institute-wide placed count, which the server returns as one number to every role (no other department's rows); Gender and Category divide by the placed count of the current selection. Groups are not suppressed when small (open owner decision).
 3. Each chart (`components/dashboard/charts/*`) is an independent component. It receives prepared data and a selection callback, and contains no filtering logic.
 
@@ -45,17 +45,17 @@ picker and last-20-batches view are no longer part of the home page.
 ## Degree levels and PG specialization
 
 The home page and UG dashboard use the default `UG` query scope. The PG dashboard passes
-`PG` explicitly and supports all postgraduate degrees. Its branch and specialization
-selectors include the institute's published PG programmes from `pg-catalog.ts`, including
+`PG` explicitly and supports all postgraduate degrees. The existing top department selector
+includes the nine B.Tech departments and the PG-only departments added by migration 0007:
 Energy and Environment, Computer Applications, Physics, Architecture and Planning,
-Chemistry, Mathematics, Humanities and Social Sciences, and Management Studies. Recorded
-historical names are also retained. Options are limited to the authorized department when
-one is selected; a super admin viewing all departments sees the full catalogue. The
-specialization list follows the selected branch and includes `Not recorded` when recorded
-history contains a NULL value. The selected branch and specialization apply to every KPI,
-chart, cycle comparison, time series and server-side demographic breakdown. The catalogue
-is for display only: it does not create departments, programmes, cohorts or placement
-records, and a programme without records has undefined placement percentage.
+Chemistry, Mathematics, Humanities and Social Sciences, and Management Studies. The
+in-page PG programme/specialization selector uses the published names in `pg-catalog.ts`
+plus recorded historical names. It follows the authorized department selected at the top
+and includes `Not recorded` when recorded history contains a NULL value. The top selection
+scopes the server query; specialization applies to every KPI, chart, cycle comparison,
+time series and server-side demographic breakdown. The catalogue itself is display-only:
+it does not create programmes, cohorts or placement records, and a programme without
+records has undefined placement percentage.
 
 ## Departments
 

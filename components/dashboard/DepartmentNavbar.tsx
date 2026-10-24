@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { selectDepartmentAction } from "@/lib/auth/department-actions";
+import { PG_ONLY_BRANCH_CODES } from "@/lib/placements/pg-catalog";
 import "./department-navbar.css";
 
 export interface DepartmentOption {
@@ -29,12 +30,17 @@ export default function DepartmentNavbar({
   const router = useRouter();
   const choose = (code: string) => startSwitch(() => selectDepartmentAction(code));
   const programme = pathname?.includes("/dashboard/pg") ? "PG" : "UG";
+  const ugDashboard = pathname?.startsWith("/dashboard/ug") || pathname === "/dashboard";
+  const visibleDepartments = ugDashboard
+    ? departments.filter((department) =>
+        !PG_ONLY_BRANCH_CODES.has(department.code) || department.code === current?.code)
+    : departments;
 
   const options = [
     { code: "all", name: "All departments", short: "All" },
-    ...departments.map((department) => ({
+    ...visibleDepartments.map((department) => ({
       ...department,
-      short: department.code.toUpperCase(),
+      short: programme === "PG" ? department.name : department.code.toUpperCase(),
     })),
   ];
 

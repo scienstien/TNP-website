@@ -170,10 +170,10 @@ Departments and access (user-requested multi-department extension):
   outreach and the calendar show every department. Student Records still needs one
   department chosen (it asks to choose one on "All"). Mutations that need one department
   reject "all".
-- Dashboard analytics use undergraduate (UG, B.Tech) cohorts only. Student Records
+- UG dashboard analytics use undergraduate (UG, B.Tech) cohorts only. Student Records
   has explicit `/students/ug` and `/students/pg` views and scopes reads and writes to
-  the selected degree level; the batch is cohort.graduation_year. PG dashboard
-  analytics are not shown yet.
+  the selected degree level; the batch is cohort.graduation_year. The PG dashboard
+  uses PG cohorts and the existing department navbar for branch selection.
 - Because the target schema has no role-target links, drives and company contacts are
   institute-wide, not per department.
 - Development accounts (created on the first sign-in request; in production only
@@ -390,10 +390,11 @@ Ported analytics and student/company integration:
   registration status, department and the offer for that same cycle. It carries no
   roll number or name: student identifiers stay on the server. The analytics
   functions and charts filter by explicit placement cycle (there is no batch
-  filter); PG additionally filters by branch and specialization. The PG selectors
-  include the published programmes in lib/placements/pg-catalog.ts, including
-  departments without B.Tech programmes, as well as recorded historical names.
-  Catalogue options do not create academic or placement data. Analytics use
+  filter); the top navbar scopes the authorized department, and the PG dashboard
+  additionally filters by specialization. Migration 0007 adds the PG-only
+  departments to the department selector. The specialization selector includes
+  published programmes in lib/placements/pg-catalog.ts and recorded historical
+  names; catalogue options do not create programme or placement data. Analytics use
   REGISTERED participation as their population. UNREGISTERED participation is
   excluded before placed/unplaced and offer analytics are derived. Server-side
   cycle filtering is tracked as a later optimization; authorization remains
