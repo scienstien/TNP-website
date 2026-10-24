@@ -24,6 +24,7 @@ import DashboardFilters from "./DashboardFilters";
 import DashboardHeader, { type HeaderRole } from "./DashboardHeader";
 import KPICards from "./KPICards";
 import PlacementBreakdown from "./PlacementBreakdown";
+import StudentsOverTime from "./StudentsOverTime";
 import { offerFilterParts } from "./offerFilterText";
 import { useDashboardFilters } from "./useDashboardFilters";
 import "./analytics.css";
@@ -32,10 +33,12 @@ interface Props {
   records: PlacementRecord[];
   role: HeaderRole;
   department: { code: string; name: string } | null;
+  /** Today at the institute (YYYY-MM-DD); decides the "current" year, month and week. */
+  today: string;
 }
 
 /** The main dashboard: header, shared filters, KPIs and the four independent charts. */
-export default function PlacementAnalytics({ records, role, department }: Props) {
+export default function PlacementAnalytics({ records, role, department, today }: Props) {
   const { filters, update, toggle, reset } = useDashboardFilters();
 
   const options = useMemo(
@@ -136,6 +139,9 @@ export default function PlacementAnalytics({ records, role, department }: Props)
           }
         />
       </div>
+
+      {/* Across every cycle and independent of the offer filters: a trend cut to one cycle would say nothing. */}
+      <StudentsOverTime records={records} today={today} departmentName={department?.name ?? null} />
     </div>
   );
 }

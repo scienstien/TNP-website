@@ -55,7 +55,7 @@ export function placementCycles(records: PlacementRecord[]): PlacementCycleOptio
   const cycles = new Map<string, string>();
   for (const record of records) cycles.set(record.cycleId, record.cycleCode);
   return [...cycles].map(([id, code]) => ({ id, code })).sort((a, b) =>
-    a.code.localeCompare(b.code, undefined, { numeric: true }),
+    b.code.localeCompare(a.code, undefined, { numeric: true }),
   );
 }
 

@@ -112,8 +112,10 @@ export async function requireRole(role: Role): Promise<CurrentUser> {
   return user;
 }
 
-/** Cookie holding the department a SUPERADMIN is currently working in; absent means "all". */
+/** Cookie holding the department a SUPERADMIN is currently working in, or ALL_DEPARTMENTS. */
 export const DEPARTMENT_COOKIE = "tnp-department";
+/** Cookie value for the explicitly chosen cross-department view (no department has this code). */
+export const ALL_DEPARTMENTS = "all";
 
 /**
  * The department a request acts on. Everyone except a SUPERADMIN is pinned to their own
@@ -125,7 +127,9 @@ export const DEPARTMENT_COOKIE = "tnp-department";
 export async function resolveDepartment(user: CurrentUser): Promise<DepartmentRef | null> {
   if (user.role !== "SUPERADMIN") return user.department;
   const code = (await cookies()).get(DEPARTMENT_COOKIE)?.value;
+  if (code?.trim().toLowerCase() === ALL_DEPARTMENTS) return null;
   const db = await getDb();
+  // No choice yet: all departments, except that the local auth bypass starts in the first one.
   if (!code) {
     if (!isLocalAuthBypassEnabled()) return null;
     const [firstDepartment] = await db

@@ -546,3 +546,43 @@ button.mme-legend-item:hover,
     grid-template-columns: 1fr;
   }
 }
+
+/* Students placed over time */
+.mme-time { gap: 0; }
+.mme-seg { display: inline-flex; flex: 0 0 auto; gap: 3px; padding: 3px; border: 1px solid #354d76; border-radius: 8px; background: #0f1828; }
+.mme-seg button { min-width: 64px; min-height: 34px; padding: 0 14px; border: 0; border-radius: 6px; background: transparent; color: #9eacc3; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.mme-seg button:hover { color: #fff; background: rgba(112, 160, 255, .1); }
+.mme-seg button[aria-checked="true"] { background: #2454c5; color: #fff; box-shadow: 0 1px 6px rgba(36, 84, 197, .45); }
+.mme-seg button:focus-visible, .mme-time-retry:focus-visible { outline: 2px solid #70a0ff; outline-offset: 2px; }
+.mme-time-kpis { margin-bottom: 14px; }
+.mme-delta--up { color: #4cc38a !important; }
+.mme-delta--down { color: #ff7a7a !important; }
+.mme-delta--flat { color: #c4d0e4 !important; }
+.mme-time-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 8px; padding: 0; list-style: none; color: #aebbd0; font-size: 12px; }
+.mme-time-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.mme-time-swatch { display: inline-block; flex: 0 0 auto; background: var(--swatch); }
+.mme-time-swatch--bar { width: 12px; height: 12px; border-radius: 2px; }
+.mme-time-swatch--solid, .mme-time-swatch--thick { width: 22px; height: 3px; border-radius: 2px; }
+.mme-time-swatch--thin { width: 22px; height: 1.5px; }
+.mme-time-swatch--dashed { width: 22px; height: 0; background: none; border-top: 2px dashed var(--swatch); }
+.mme-time-chart { min-width: 0; height: 320px; }
+.mme-time-chart .recharts-wrapper, .mme-time-chart .recharts-surface { outline: none; }
+.mme-time-state { gap: 12px; align-content: center; justify-items: center; min-height: 260px; }
+.mme-time-state p { margin: 0; }
+.mme-time-retry { min-height: 34px; padding: 6px 14px; border: 1px solid #536786; border-radius: 6px; background: #121d30; color: #dbe7fc; cursor: pointer; }
+.mme-time-skeleton { display: grid; gap: 14px; }
+.mme-time-skeleton-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mme-time-skeleton-kpis span, .mme-time-skeleton-chart { border-radius: 6px; background: linear-gradient(100deg, rgba(53, 77, 118, .22) 30%, rgba(112, 160, 255, .12) 50%, rgba(53, 77, 118, .22) 70%); background-size: 220% 100%; animation: mme-shimmer 1.4s ease-in-out infinite; }
+.mme-time-skeleton-kpis span { height: 88px; }
+.mme-time-skeleton-chart { height: 320px; }
+@keyframes mme-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@media (prefers-reduced-motion: reduce) { .mme-time-skeleton-kpis span, .mme-time-skeleton-chart { animation: none; } .mme-seg button { transition: none; } }
+@media (max-width: 760px) {
+  .mme-time .mme-card-head { flex-direction: column; align-items: stretch; }
+  .mme-seg { width: 100%; }
+  .mme-seg button { flex: 1; }
+  .mme-time-kpis { --kpi-cols: 1 !important; }
+  .mme-time-skeleton-kpis { grid-template-columns: 1fr; }
+  .mme-time-chart { height: 280px; }
+}
+

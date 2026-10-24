@@ -7,7 +7,8 @@ import { requireRole } from "@/lib/auth/dal";
 import { requireCompanyPanelScope } from "./panel-scope";
 import { directoryCondition } from "./directory-condition";
 import { companyRecord, isUuid } from "./records";
-import { offerCountsByCompany } from "./offer-counts";
+import { offerStatsByCompany } from "./offer-counts";
+import { companyVolume } from "./volume";
 import { visitDatesByCompany } from "./visit";
 import type { CompanyListRecord } from "./types";
 
@@ -26,6 +27,9 @@ export async function getCompanies(cycleId: string | null): Promise<CompanyListR
   if (cycleId !== null && !(await getCompanyCycles()).some(cycle => cycle.cycleId === cycleId)) return [];
   const rows = await db.select().from(companies).where(directoryCondition(cycleId)).orderBy(asc(companies.name));
   const visits = await visitDatesByCompany(db, cycleId);
-  const offers = await offerCountsByCompany(db, cycleId, departmentId);
-  return rows.map(row => ({ ...companyRecord(row, visits.get(row.companyId) ?? null), offerCount: offers.get(row.companyId) ?? 0 }));
+  const stats = await offerStatsByCompany(db, cycleId, departmentId);
+  return rows.map(row => {
+    const { offers, medianLpa } = stats.get(row.companyId) ?? { offers: 0, medianLpa: null };
+    return { ...companyRecord(row, visits.get(row.companyId) ?? null), offerCount: offers, medianLpa, volume: companyVolume(medianLpa, offers) };
+  });
 }

@@ -1,10 +1,11 @@
 /**
  * FICTIONAL multi-department dataset for the department-scoped dashboard.
  *
- * Fills the institute-wide schema (db/schema.ts): four departments, B.Tech and M.Tech programmes,
+ * Fills the institute-wide schema (db/schema.ts): the nine B.Tech departments, B.Tech and M.Tech programmes,
  * twenty graduating batches, placement cycles, companies, drives, roles, events, enrollments
  * and final offers, plus a few outreach contacts per department. Every company, student and roll
- * number is invented: companies use the "DEMO" prefix and roll numbers start with 9.
+ * number is invented: companies use the "DEMO" prefix and roll numbers start with 9. The shared
+ * definitions live in db/demo-data.ts.
  *
  * It only runs on a database the operator names as disposable (see db/seed-safety.ts): set
  * DEMO_SEED_RESET_DATABASE to the exact database name. It refuses with NODE_ENV=production and on
@@ -12,7 +13,8 @@
  * Re-running replaces every placement and academic row in that database. It never deletes, moves
  * or creates user accounts, never renames existing departments and never deletes outreach records;
  * the development accounts (superadmin, admin123<dept>@nitt.edu) are created on the first sign-in
- * request, see lib/auth/dev-accounts.ts.
+ * request, see lib/auth/dev-accounts.ts. For a database with legacy rows, use the add-only
+ * db/seed-departments-topup.ts instead.
  *
  *   DEMO_SEED_RESET_DATABASE=<database name> npm run db:seed:departments
  */
@@ -21,6 +23,11 @@ import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 
+import {
+  addDays, CATEGORIES, COMPANIES, createRng, cycleCode, DEPARTMENTS, demoOutreachRows, FIRST_YEAR, GENDERS,
+  generateStudents, insertAll, LAST_YEAR, MTECH_FIRST_YEAR, MTECH_SPECIALIZATION, ROLE_DOMAINS, ROLE_TITLES,
+  type DemoCohort, type DemoRole, type DeptCode, type Tx,
+} from "./demo-data";
 import { db, postgresClient } from "./index";
 import {
   cohorts,
@@ -51,97 +58,11 @@ import {
   type SeedSnapshot,
 } from "./seed-safety";
 
-const DEPARTMENTS = [
-  { code: "civil", name: "Civil Engineering", index: 1, size: 56, placed: 0.7 },
-  { code: "cse", name: "Computer Science and Engineering", index: 2, size: 70, placed: 0.88 },
-  { code: "ece", name: "Electronics and Communication Engineering", index: 3, size: 66, placed: 0.82 },
-  { code: "mech", name: "Mechanical Engineering", index: 4, size: 62, placed: 0.74 },
-] as const;
-type DeptCode = (typeof DEPARTMENTS)[number]["code"];
+/** Placeholder departments from earlier migrations that must not appear in the demo (none now: mme is a real department). */
+const RETIRED_DEPARTMENTS: string[] = [];
 
-/** Placeholder departments from earlier migrations that must not appear in the demo. */
-const RETIRED_DEPARTMENTS = ["mme"];
-
-const FIRST_YEAR = 2008;
-const LAST_YEAR = 2027;
-const MTECH_FIRST_YEAR = 2020;
-
-// [name, sector, departments it hires from, package range in LPA]
-const COMPANIES: [string, string, DeptCode[], [number, number]][] = [
-  ["DEMO Ferrous Works", "Core: steel", ["civil", "mech"], [8, 13]],
-  ["DEMO Rolling Mills", "Core: steel", ["civil", "mech"], [7, 11]],
-  ["DEMO Alloy Smelters", "Core: non-ferrous", ["civil"], [9, 15]],
-  ["DEMO Mining Corp", "Mining", ["civil", "mech"], [7, 12]],
-  ["DEMO Ceramics Ltd", "Materials", ["civil"], [8, 12]],
-  ["DEMO Aero Materials", "Aerospace", ["civil", "mech"], [13, 20]],
-  ["DEMO Auto Components", "Manufacturing", ["mech", "civil", "ece"], [6, 10]],
-  ["DEMO Power Systems", "Energy", ["mech", "ece"], [9, 14]],
-  ["DEMO Materials Research", "R&D", ["civil", "ece"], [10, 16]],
-  ["DEMO Data Labs", "Analytics", ["civil", "cse", "ece", "mech"], [11, 18]],
-  ["DEMO Software", "IT / Software", ["civil", "cse", "ece", "mech"], [8, 28]],
-  ["DEMO Strategy Partners", "Consulting", ["civil", "cse", "ece", "mech"], [13, 20]],
-  ["DEMO Capital", "Finance", ["civil", "cse", "ece", "mech"], [15, 26]],
-  ["DEMO Cloud Systems", "IT / Software", ["cse", "ece"], [12, 32]],
-  ["DEMO Chip Works", "Semiconductors", ["ece", "cse"], [14, 30]],
-  ["DEMO Telecom Net", "Telecom", ["ece", "cse"], [9, 16]],
-  ["DEMO Robotics", "Robotics", ["mech", "ece", "cse"], [10, 18]],
-  ["DEMO Turbines", "Energy", ["mech"], [8, 14]],
-  ["DEMO Infra Build", "Infrastructure", ["mech"], [6, 10]],
-  ["DEMO Cyber Shield", "Security", ["cse"], [12, 24]],
-  ["DEMO Game Studio", "Gaming", ["cse"], [10, 22]],
-  ["DEMO Embedded Labs", "Embedded", ["ece", "cse"], [9, 17]],
-  ["DEMO Thermal Tech", "Manufacturing", ["mech"], [7, 12]],
-  ["DEMO Fintech Pay", "Finance", ["cse", "ece"], [14, 28]],
-];
-
-const MTECH_SPECIALIZATION: Record<DeptCode, string> = {
-  civil: "Structural Engineering",
-  cse: "Computer Science",
-  ece: "VLSI Design",
-  mech: "Thermal Engineering",
-};
-
-const ROLE_TITLES = ["Graduate Engineer", "Software Engineer", "Design Engineer", "Analyst", "Process Engineer"];
-// Fictional role domains (drive_roles.domain) used by the domain-wise analytics.
-const ROLE_DOMAINS: Record<string, string> = { "Graduate Engineer": "Core Engineering", "Software Engineer": "Software", "Design Engineer": "Design", Analyst: "Analytics", "Process Engineer": "Production" };
-const FIRST = ["Asha", "Bala", "Charu", "Dev", "Esha", "Farid", "Gita", "Hari", "Indu", "Jai", "Kavya", "Lohit", "Mira", "Nikhil", "Ojas", "Priya", "Ravi", "Sana", "Tara", "Uday"];
-const LAST = ["Example", "Sample", "Demo", "Test", "Placeholder", "Fictional"];
-const GENDERS: [string, string][] = [["F", "Female"], ["M", "Male"], ["O", "Other"]];
-const CATEGORIES: [string, string][] = [["GEN", "General"], ["OBC", "Other Backward Classes"], ["SC", "Scheduled Caste"], ["ST", "Scheduled Tribe"], ["EWS", "Economically Weaker Section"]];
-
-/** Small seeded PRNG so the dataset is identical on every machine. */
-function mulberry32(seed: number) {
-  return () => {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-const random = mulberry32(2027);
-const pick = <T,>(items: readonly T[]): T => items[Math.floor(random() * items.length)];
-const between = (low: number, high: number) => low + Math.floor(random() * (high - low + 1));
-
-const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-const addDays = (date: string, days: number) => {
-  const [y, m, d] = date.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-};
-const cycleCode = (year: number) => `${year - 1}-${String(year).slice(2)}`;
-
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-/** Inserts in batches so very large statements stay below PostgreSQL's parameter limit. */
-async function insertAll<T extends Parameters<Tx["insert"]>[0]>(
-  tx: Tx,
-  table: T,
-  rows: T["$inferInsert"][],
-  size = 1000,
-) {
-  for (let i = 0; i < rows.length; i += size) {
-    await tx.insert(table).values(rows.slice(i, i + size));
-  }
-}
+const rng = createRng(2027);
+const { random, pick, between } = rng;
 
 /** Reads what the safety gate needs. Read-only; runs inside the seed's transaction. */
 async function readSnapshot(tx: Tx): Promise<SeedSnapshot> {
@@ -189,9 +110,8 @@ async function seed() {
     for (const dept of DEPARTMENTS) {
       await tx.insert(departments).values({ code: dept.code, name: dept.name }).onConflictDoNothing({ target: departments.code });
     }
-    // The original MME placeholder (created by migration 0005) is not part of the demo data. It is
-    // removed only when nothing refers to it; accounts and outreach records are never deleted or
-    // moved to another department to make that possible.
+    // Retired placeholders are removed only when nothing refers to them; accounts and outreach
+    // records are never deleted or moved to another department to make that possible.
     for (const code of RETIRED_DEPARTMENTS) {
       const [old] = await tx.select().from(departments).where(eq(departments.code, code));
       if (!old) continue;
@@ -232,8 +152,7 @@ async function seed() {
       cycleId: cycleIds.get(year)!, code: cycleCode(year), startsOn: `${year - 1}-07-01`, endsOn: `${year}-06-30`,
     })));
 
-    interface Cohort { cohortId: string; dept: DeptCode; level: "ug" | "pg"; year: number }
-    const cohortList: Cohort[] = [];
+    const cohortList: DemoCohort[] = [];
     for (const dept of DEPARTMENTS) {
       for (const year of years) {
         for (const level of ["ug", "pg"] as const) {
@@ -269,15 +188,14 @@ async function seed() {
     }));
 
     // Drives, roles and events, per cycle. A company's drive can serve any department.
-    interface Role { roleId: string; driveId: string; cycleId: string; companyId: string; hires: DeptCode[]; offerType: "PPO" | "FTE" | "FTE+6month"; pptDate: string; range: [number, number] }
-    const rolesByCycle = new Map<number, Role[]>();
+    const rolesByCycle = new Map<number, DemoRole[]>();
     const driveRows: (typeof drives.$inferInsert)[] = [];
     const roleRows: (typeof driveRoles.$inferInsert)[] = [];
     const eventRows: (typeof driveEvents.$inferInsert)[] = [];
     const eventRoleRows: (typeof eventRoles.$inferInsert)[] = [];
     for (const year of years) {
       const cycleId = cycleIds.get(year)!;
-      const roles: Role[] = [];
+      const roles: DemoRole[] = [];
       for (const [name, , hires, range] of COMPANIES) {
         if (random() > 0.8) continue;
         const companyId = companyIds.get(name)!;
@@ -300,7 +218,7 @@ async function seed() {
           driveRoleIds.push(roleId);
           const jobTitle = pick(ROLE_TITLES);
           roleRows.push({ roleId, driveId, jobTitle, domain: ROLE_DOMAINS[jobTitle] });
-          roles.push({ roleId, driveId, cycleId, companyId, hires: [...hires], offerType, pptDate, range });
+          roles.push({ roleId, driveId, companyId, hires: [...hires], offerType, pptDate, range });
         }
         // The interview round is held for the first role only, to exercise role-scoped events.
         const piEvent = randomUUID();
@@ -316,55 +234,7 @@ async function seed() {
     await insertAll(tx, eventRoles, eventRoleRows);
 
     // Students, enrollments, per-cycle registration and final offers.
-    const deptIndex = new Map<string, number>(DEPARTMENTS.map((dept) => [dept.code, dept.index]));
-    const deptPlaced = new Map<string, number>(DEPARTMENTS.map((dept) => [dept.code, dept.placed]));
-    const deptSize = new Map<string, number>(DEPARTMENTS.map((dept) => [dept.code, dept.size]));
-
-    const studentRows: (typeof students.$inferInsert)[] = [];
-    const enrollmentRows: (typeof enrollments.$inferInsert)[] = [];
-    const cycleRows: (typeof studentCycles.$inferInsert)[] = [];
-    const offerRows: (typeof placementOffers.$inferInsert)[] = [];
-    for (const cohort of cohortList) {
-      const count = cohort.level === "ug"
-        ? deptSize.get(cohort.dept)! - 6 + (cohort.year % 7)
-        : between(7, 12);
-      const cycleId = cycleIds.get(cohort.year)!;
-      const roles = (rolesByCycle.get(cohort.year) ?? []).filter((role) => role.hires.includes(cohort.dept));
-      const placedChance = Math.min(0.92, deptPlaced.get(cohort.dept)! * (0.82 + ((cohort.year - FIRST_YEAR) % 5) * 0.05)) * (cohort.level === "pg" ? 0.8 : 1);
-      for (let index = 0; index < count; index++) {
-        const studentId = randomUUID();
-        const enrollmentId = randomUUID();
-        studentRows.push({ studentId, name: `${pick(FIRST)} ${pick(LAST)}`, genderCode: pick(["F", "M", "M", "F", "O"]) });
-        enrollmentRows.push({
-          enrollmentId,
-          studentId,
-          // 9 · department · yy · level · 4-digit serial: nine digits, all in the demo range.
-          rollNumber: Number(`9${deptIndex.get(cohort.dept)}${String(cohort.year % 100).padStart(2, "0")}${cohort.level === "ug" ? 1 : 2}${String(index + 1).padStart(4, "0")}`),
-          cohortId: cohort.cohortId,
-          admissionYear: cohort.year - (cohort.level === "ug" ? 4 : 2),
-          reservationCategoryCode: pick(["GEN", "GEN", "OBC", "OBC", "SC", "ST", "EWS"]),
-        });
-
-        const role = roles.length > 0 && random() < placedChance ? pick(roles) : null;
-        const offerDate = role && random() >= 0.08 ? addDays(role.pptDate, between(5, 70)) : null;
-        // The current season is still running: offers that would be dated after today do not exist yet.
-        const placed = role !== null && !(offerDate && offerDate > today);
-        // An offer needs a REGISTERED student-cycle; otherwise some students opt out.
-        cycleRows.push({
-          cycleId, enrollmentId, cohortId: cohort.cohortId,
-          registrationStatus: placed || random() < 0.9 ? "REGISTERED" : "UNREGISTERED",
-        });
-        if (!placed || !role) continue;
-        const [low, high] = role.range;
-        offerRows.push({
-          enrollmentId, cycleId, companyId: role.companyId, driveId: role.driveId, roleId: role.roleId,
-          packageLpa: random() < 0.05 ? null : String(Math.round((low + random() * (high - low)) * (1 + (cohort.year - FIRST_YEAR) * 0.03) * 2) / 2),
-          monthlyStipendInr: role.offerType === "FTE+6month" ? String(between(25, 60) * 1000) : null,
-          offerType: random() < 0.05 ? null : role.offerType,
-          offerDate,
-        });
-      }
-    }
+    const { studentRows, enrollmentRows, cycleRows, offerRows } = generateStudents(cohortList, cycleIds, rolesByCycle, rng);
     await insertAll(tx, students, studentRows);
     await insertAll(tx, enrollments, enrollmentRows);
     await insertAll(tx, studentCycles, cycleRows);
@@ -374,15 +244,7 @@ async function seed() {
     for (const dept of DEPARTMENTS) {
       const existing = new Set((await tx.select({ companyName: outreachContacts.companyName }).from(outreachContacts)
         .where(eq(outreachContacts.departmentId, departmentId(dept.code)))).map((row) => row.companyName));
-      const rows = COMPANIES.filter(([, , hires]) => hires.includes(dept.code)).slice(-3)
-        .filter(([name]) => !existing.has(`${name} (outreach)`))
-        .map(([name]) => ({
-          departmentId: departmentId(dept.code),
-          companyName: `${name} (outreach)`,
-          hrName: `Outreach ${name.replace("DEMO ", "")}`,
-          email: `outreach@${name.toLowerCase().replace(/[^a-z]+/g, "")}.example.com`,
-          pvrStatus: false,
-        }));
+      const rows = demoOutreachRows(departmentId(dept.code), dept.code, existing);
       if (rows.length) await tx.insert(outreachContacts).values(rows);
     }
 

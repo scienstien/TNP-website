@@ -42,6 +42,6 @@ export function homeCycleSummaries(
       companies: [...summary.companies].sort((a, b) => a.localeCompare(b)),
     }))
     .sort((a, b) =>
-      a.cycleCode.localeCompare(b.cycleCode, undefined, { numeric: true }),
+      b.cycleCode.localeCompare(a.cycleCode, undefined, { numeric: true }),
     );
 }

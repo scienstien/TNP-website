@@ -7,6 +7,7 @@ import {
   DEMO_RESET_TABLES,
   LEGACY_TABLES,
   planDemoSeed,
+  planDemoTopUp,
   type SeedSnapshot,
 } from "./seed-safety";
 
@@ -76,4 +77,12 @@ test("the seed never writes user accounts and decides before its first write", (
   const decision = body.indexOf("planDemoSeed(");
   const firstWrite = body.search(/tx\.(insert|update|delete)\(|delete from/);
   assert.ok(decision > 0 && firstWrite > decision, "planDemoSeed() must run before any write");
+});
+
+test("the add-only top-up needs the database named exactly and never runs in production", () => {
+  assert.deepEqual(planDemoTopUp("tnp", { topUpDatabase: "tnp" }), {});
+  assert.deepEqual(planDemoTopUp("tnp", { topUpDatabase: " tnp " }), {});
+  assert.match(planDemoTopUp("tnp", {}).refuse ?? "", /DEMO_TOPUP_DATABASE=tnp/);
+  assert.match(planDemoTopUp("tnp", { topUpDatabase: "other" }).refuse ?? "", /Nothing was changed/);
+  assert.match(planDemoTopUp("tnp", { topUpDatabase: "tnp", nodeEnv: "production" }).refuse ?? "", /production/);
 });

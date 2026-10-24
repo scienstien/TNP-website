@@ -49,3 +49,22 @@ Records come from the institute-wide schema (see `db/README.md`): one row per ex
 ## Local data
 
 `npm run db:seed:departments` loads a **fictional** four-department, twenty-batch (2008–2027) dataset (DEMO companies, roll numbers starting with 9). It refuses to run over real enrollments or non-DEMO companies. Never run it against a production database.
+
+## Students placed over time
+
+The dashboard's bottom section counts final offers by `placement_offers.offer_date` (not by
+admission, which has only a year). Pure aggregation in `time-series.ts`, aggregated once per data
+change so the Year | Month | Week | Day toggle only picks a series. Registered participation
+only; the dashboard's cycle and offer filters do not apply (a trend cut to one cycle says
+nothing), but the department scope does. Zero-filled, with ISO weeks (Monday start):
+
+| View | Chart | Window | Extras |
+| --- | --- | --- | --- |
+| Year | columns, current year highlighted | first dated year to now | data labels |
+| Month | two lines: this year solid, last year dashed | Jan–Dec | the current year stops at today |
+| Week | weekly line + 4-week average | last 52 ISO weeks | |
+| Day | daily line + 7-day average | last 30 days | the average uses the 6 days before the window |
+
+KPIs follow the toggle: placed this period (so far), % change vs the previous period (undefined
+when that was 0) and the peak. Offers with no valid date, and offers dated after today, are
+reported in a footnote rather than placed on the chart.

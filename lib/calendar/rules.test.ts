@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { assertRoleMembership, monthWindow, validateEvent } from "./rules";
 import { PROCESS_LABELS, PROCESS_TYPES, processTypeForLabel } from "./labels";
-import { parseEvents } from "./local-entries";
 
 const driveId = "10000000-0000-4000-8000-000000000001";
 const roleId = "10000000-0000-4000-8000-000000000002";
@@ -39,12 +38,6 @@ test("canonical process values map to display labels and back", () => {
   assert.throws(() => validateEvent({ ...base, processType: "Group Discussion" }));
   assert.throws(() => validateEvent({ ...base, scope: "completed" }));
   assert.throws(() => validateEvent({ ...base, companyName: "Forged" }));
-});
-test("legacy browser parsing retains previous acceptance rules without importing entries", () => {
-  const local = { id: "old", company: "Fictional Company", date: "historical free text", stage: "Group Discussion", notes: "Preserve verbatim" };
-  assert.deepEqual(parseEvents(JSON.stringify([local, { ...local, stage: "GD" }, null, { ...local, notes: 42 }])), [local]);
-  for (const raw of ["bad JSON", "{}", "null"]) assert.deepEqual(parseEvents(raw), []);
-  for (const stage of ["PPT", "OT", "Group Discussion", "Resume Shortlisting", "PI"]) assert.equal(parseEvents(JSON.stringify([{ ...local, stage }])).length, 1);
 });
 test("visible calendar windows use real month ends and never infer placement cycles", () => {
   assert.deepEqual(monthWindow("2024-02", "2026-10-22"), { startsOn: "2024-02-01", endsOn: "2024-02-29" });

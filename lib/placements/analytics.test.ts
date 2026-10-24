@@ -51,10 +51,10 @@ const records = [
 const positions = (source: PlacementRecord[], scoped: PlacementRecord[]) =>
   scoped.map((item) => source.indexOf(item));
 
-test("lists each explicit placement cycle once", () => {
+test("lists each explicit placement cycle once, newest first", () => {
   assert.deepEqual(placementCycles(records), [
-    { id: "cycle-a", code: "2026-27" },
     { id: "cycle-b", code: "special-2027" },
+    { id: "cycle-a", code: "2026-27" },
   ]);
 });
 
@@ -282,4 +282,12 @@ test("shares the registered-participation rule with home calculations", () => {
     [registered, unregistered].filter(isRegisteredParticipation),
     [registered],
   );
+});
+
+test("cycle options run from the latest year down to 2008, comparing years as numbers", () => {
+  const years = [2008, 2009, 2017, 2018, 2027, 2026, 2019];
+  const cycles = placementCycles(years.map((year) => ({ ...records[0], cycleId: `id-${year}`, cycleCode: `${year - 1}-${String(year).slice(2)}` })));
+  assert.deepEqual(cycles.map((cycle) => cycle.code), ["2026-27", "2025-26", "2018-19", "2017-18", "2016-17", "2008-09", "2007-08"]);
+  assert.equal(cycles[0].code, "2026-27");
+  assert.equal(cycles.at(-1)!.code, "2007-08");
 });
