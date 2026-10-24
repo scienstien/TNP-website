@@ -83,6 +83,7 @@ export default function StudentRecords({ data }: { data: StudentData }) {
   const [offerTypeFilter, setOfferTypeFilter] = useState("All");
   const [batchFilter, setBatchFilter] = useState("All");
   const [companyFilter, setCompanyFilter] = useState("All");
+  const [expandedRoll, setExpandedRoll] = useState<number | null>(null);
   const [editing, setEditing] = useState<StudentRecord | "new" | null>(null);
   const [registrationsRoll, setRegistrationsRoll] = useState<number | null>(null);
   const [editorDirty, setEditorDirty] = useState(false);
@@ -140,15 +141,20 @@ export default function StudentRecords({ data }: { data: StudentData }) {
   return (
     <section className="student-records">
       <div className="section-heading">
-        <div><p className="student-breadcrumb">Dashboard / Student records / {level}</p><h1>{level} student records</h1>
-          <p>Showing only {level} programmes for this department. Saved registrations and offers update dashboard statistics.</p></div>
-        <label className="student-level-switch">Degree level
-          <select value={level} disabled={busy} onChange={(event) => router.push(`/students/${event.target.value.toLowerCase()}`)}>
-            <option value="UG">UG</option><option value="PG">PG</option>
-          </select>
-        </label>
-        <button className="dark-button" disabled={busy}
-          onClick={() => { setEditing("new"); setFeedback(null); }}>Add {level} student</button>
+        <div className="student-heading-copy">
+          <p className="student-eyebrow">{level} PLACEMENT ROSTER</p>
+          <h1>{level === "UG" ? "UG Student Directory" : "PG Student Directory"}</h1>
+          <p>Search, filter, and manage student registrations and recorded offers.</p>
+        </div>
+        <div className="student-heading-actions">
+          <label className="student-level-switch">Degree level
+            <select value={level} disabled={busy} onChange={(event) => router.push(`/students/${event.target.value.toLowerCase()}`)}>
+              <option value="UG">UG</option><option value="PG">PG</option>
+            </select>
+          </label>
+          <button className="dark-button" disabled={busy}
+            onClick={() => { setEditing("new"); setFeedback(null); }}>Add {level} student</button>
+        </div>
       </div>
       {feedback?.alert && <p role="alert">{feedback.text}</p>}
       {feedback && !feedback.alert && <p role="status">{feedback.text}</p>}
@@ -165,19 +171,12 @@ export default function StudentRecords({ data }: { data: StudentData }) {
           onClose={() => { setRegistrationsRoll(null); router.refresh(); }}
           onDirtyChange={setRegistrationDirty} />
       </StudentEditorModal>}
+      <div className="student-table-stats" aria-label="Student record summary">
+        <Stat label="Recorded students" value={students.length} icon={UsersRound} />
+        <Stat label={selectedCycleId ? "Placed students" : "Placed cycles"} value={placedCount} icon={BriefcaseBusiness} tone="placed" />
+        <Stat label={selectedCycleId ? "Unplaced students" : "Unplaced cycles"} value={unplacedCount} icon={CircleSlash2} tone="unplaced" />
+      </div>
       <section className="panel table-panel student-table-card">
-        <div className="student-table-card-header">
-          <div>
-            <p className="student-table-kicker">{level} PLACEMENT ROSTER</p>
-            <h2>{level} student directory</h2>
-            <p>Search, filter, and update each student&apos;s registrations and recorded offer.</p>
-          </div>
-          <div className="student-table-stats" aria-label="Student record summary">
-            <Stat label="Recorded" value={students.length} icon={UsersRound} />
-            <Stat label={selectedCycleId ? "Placed" : "Placed cycles"} value={placedCount} icon={BriefcaseBusiness} tone="placed" />
-            <Stat label={selectedCycleId ? "Unplaced" : "Unplaced cycles"} value={unplacedCount} icon={CircleSlash2} tone="unplaced" />
-          </div>
-        </div>
         <div className="student-toolbar">
           <div className="student-toolbar-controls">
             <label className="student-search">
@@ -220,31 +219,38 @@ export default function StudentRecords({ data }: { data: StudentData }) {
         </div>
         {!visible.length && <p className="table-hint" role="status">{students.length
           ? "No students match the current filters." : "No student records loaded."}</p>}
-        <div className="student-table-scroll">
-          <table className="student-db-table">
-            <thead><tr>{["Roll number", "Name", "Gender", "Category", "Programme", "Batch", "Admission year", "Cycles", "Status", "Company", "Description", "Job role", "Offer type", "CTC (LPA)", "Offer date", "Actions"]
-              .map(h => <th key={h}>{h}</th>)}</tr></thead>
-            <tbody>{visible.map(s => <tr key={s.rollNumber}>
-              <td>{s.rollNumber}</td><td>{s.name}</td>
-              <td>{options.genderTypes.find(option => option.code === s.genderCode)?.label ?? "Not recorded"}</td>
-              <td>{options.reservationCategories.find(option => option.code === s.reservationCategoryCode)?.label ?? "Not recorded"}</td>
-              <td>{s.programmeLabel}</td><td>{s.batchYear}</td><td>{s.admissionYear ?? "Not recorded"}</td>
-              <td>{s.participations.length ? <span className="student-cycles">{s.participations.map(p =>
-                <span key={p.cycleId} title={p.registrationStatus}
-                  className={`student-cycle${p.registrationStatus === "UNREGISTERED" ? " student-cycle--unregistered" : ""}`}>
-                  {p.cycleCode}{p.registrationStatus === "UNREGISTERED" ? " · unregistered" : ""}
-                </span>)}</span> : "—"}</td>
-              <td>{selectedCycleId
-                ? <span className={`student-status student-status--${statusClass[statusOf(s, selectedCycleId)]}`}>{statusOf(s, selectedCycleId)}</span>
-                : s.participations.length ? <span className="student-cycles">{s.participations.map(p => {
-                  const status = statusOf(s, p.cycleId);
-                  return <span key={p.cycleId} className={`student-status student-status--${statusClass[status]}`} title={`${p.cycleCode}: ${status}`}>{p.cycleCode}: {status}</span>;
-                })}</span> : <span className="student-status student-status--unregistered">No cycle</span>}</td>
-              <td>{s.offer?.companyName ?? "—"}</td>
-              <td>{options.companies.find(c => c.companyId === s.offer?.companyId)?.domain ?? "—"}</td>
-              <td>{s.offer?.jobRole ?? "—"}</td><td>{s.offer?.offerType ?? "—"}</td>
-              <td>{s.offer?.packageLpa ?? "—"}</td><td>{s.offer?.offerDate ?? "—"}</td>
-              <td><div className="student-row-actions">
+        {!!visible.length && <div className="student-card-list">{visible.map(s => {
+          const expanded = expandedRoll === s.rollNumber;
+          const panelId = `student-details-${s.rollNumber}`;
+          const selectedStatus = selectedCycleId ? statusOf(s, selectedCycleId) : null;
+          const summaryStatus: Status = selectedStatus ?? (s.offer
+            ? "Placed"
+            : s.participations.some(participation => participation.registrationStatus === "REGISTERED")
+              ? "Unplaced"
+              : "Not registered");
+          const companyDescription = options.companies.find(c => c.companyId === s.offer?.companyId)?.domain ?? null;
+          return <article key={s.rollNumber} className={`student-record-card${expanded ? " student-record-card--expanded" : ""}`}>
+            <div className="student-record-summary">
+              <button type="button" className="student-record-toggle" aria-expanded={expanded} aria-controls={panelId}
+                onClick={() => setExpandedRoll(expanded ? null : s.rollNumber)}>
+                <span className="student-record-identity">
+                  <strong>{s.name}</strong>
+                  <span>{s.rollNumber}</span>
+                </span>
+                <span className="student-record-facts">
+                  <span><b>Programme</b>{s.programmeLabel}</span>
+                  <span><b>Batch</b>{s.batchYear}</span>
+                  <span><b>Placement cycle</b>{selectedCycleId
+                    ? cycles.find(c => c.cycleId === selectedCycleId)?.code ?? "Selected cycle"
+                    : s.participations.length ? s.participations.map(participation => participation.cycleCode).join(", ") : "Not recorded"}</span>
+                  <span><b>Company</b>{s.offer?.companyName ?? "No final offer"}</span>
+                </span>
+                <span className="student-record-state">
+                  <span className={`student-status student-status--${statusClass[summaryStatus]}`}>{summaryStatus}</span>
+                  <span className="student-record-action">{expanded ? "Hide details" : "View details"}<ChevronDown size={17} aria-hidden="true" /></span>
+                </span>
+              </button>
+              <div className="student-card-actions" aria-label={`Actions for ${s.name}`}>
                 <button className="student-icon-button" type="button" title={`Edit ${s.name}`} aria-label={`Edit ${s.name}`}
                   disabled={busy} onClick={() => { setEditing(s); setFeedback(null); }}><Pencil size={15} /></button>
                 <button className="student-icon-button" type="button" title={`${s.name}'s placement-cycle registrations`}
@@ -253,10 +259,32 @@ export default function StudentRecords({ data }: { data: StudentData }) {
                 {s.offer && <button className="student-icon-button student-icon-button--warning" type="button" title={`Remove ${s.name}'s offer`} aria-label={`Remove ${s.name}'s offer`}
                   disabled={busy} onClick={() => remove(s, true)}><BriefcaseBusiness size={15} /></button>}
                 <DeleteAction student={s} disabled={busy} onDelete={() => remove(s, false)} />
-              </div></td>
-            </tr>)}</tbody>
-          </table>
-        </div>
+              </div>
+            </div>
+            {expanded && <div id={panelId} className="student-record-details">
+              <dl className="student-detail-grid">
+                <div><dt>Gender</dt><dd>{options.genderTypes.find(option => option.code === s.genderCode)?.label ?? "Not recorded"}</dd></div>
+                <div><dt>Category</dt><dd>{options.reservationCategories.find(option => option.code === s.reservationCategoryCode)?.label ?? "Not recorded"}</dd></div>
+                <div><dt>Admission year</dt><dd>{s.admissionYear ?? "Not recorded"}</dd></div>
+                <div><dt>Programme</dt><dd>{s.programmeLabel}</dd></div>
+                <div className="student-detail-wide"><dt>Placement cycles</dt><dd>{s.participations.length ? <span className="student-cycles">{s.participations.map(p =>
+                  <span key={p.cycleId} className={`student-cycle${p.registrationStatus === "UNREGISTERED" ? " student-cycle--unregistered" : ""}`}>
+                    {p.cycleCode}{p.registrationStatus === "UNREGISTERED" ? " · unregistered" : ""}
+                  </span>)}</span> : "Not recorded"}</dd></div>
+                <div className="student-detail-wide"><dt>Placement status</dt><dd>{s.participations.length ? <span className="student-cycles">{s.participations.map(p => {
+                  const status = statusOf(s, p.cycleId);
+                  return <span key={p.cycleId} className={`student-status student-status--${statusClass[status]}`}>{p.cycleCode}: {status}</span>;
+                })}</span> : <span className="student-status student-status--unregistered">No cycle</span>}</dd></div>
+                <div><dt>Company</dt><dd>{s.offer?.companyName ?? "Not recorded"}</dd></div>
+                <div><dt>Description</dt><dd>{companyDescription ?? "Not recorded"}</dd></div>
+                <div><dt>Job role</dt><dd>{s.offer?.jobRole ?? "Not recorded"}</dd></div>
+                <div><dt>Offer type</dt><dd>{s.offer?.offerType ?? "Not recorded"}</dd></div>
+                <div><dt>CTC (LPA)</dt><dd>{s.offer?.packageLpa ?? "Not recorded"}</dd></div>
+                <div><dt>Offer date</dt><dd>{s.offer?.offerDate ?? "Not recorded"}</dd></div>
+              </dl>
+            </div>}
+          </article>;
+        })}</div>}
       </section>
     </section>
   );
