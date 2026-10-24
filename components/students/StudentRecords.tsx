@@ -7,6 +7,7 @@ import {
   ChevronDown,
   CircleSlash2,
   ClipboardList,
+  Plus,
   Pencil,
   Search,
   Trash2,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import {
   createStudent,
+  createPlacementCycle,
   createStudentCompany,
   deleteStudent,
   patchStudent,
@@ -403,6 +405,8 @@ function StudentEditor({ initial, options, level, onCancel, onSaved, onDirtyChan
   onSaved: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const [cycleOptions, setCycleOptions] = useState(options.cycles);
+  const cycles = cycleOptions;
   const registered = initial?.participations.filter(p => p.registrationStatus === "REGISTERED") ?? [];
   const baseline = {
     rollNumber: initial ? String(initial.rollNumber) : "", name: initial?.name ?? "",
@@ -531,8 +535,20 @@ function StudentEditor({ initial, options, level, onCancel, onSaved, onDirtyChan
       <legend>Placement-cycle registration (optional)</legend>
       <p className="student-note">Choose an existing cycle and the student&apos;s status. Nothing is assumed when this is left blank.</p>
       <div className="student-fields">
-        {choice("cycleId", "Placement cycle", [["", "No registration yet"], ...options.cycles.map(c => [c.cycleId, c.code] as [string, string])],
-          { errorKey: "participation" })}
+        <div className="student-cycle-picker">
+          {choice("cycleId", "Placement cycle", [["", "No registration yet"], ...cycles.map(c => [c.cycleId, c.code] as [string, string])],
+            { errorKey: "participation" })}
+          <button type="button" className="student-cycle-add" title="Add next placement cycle" aria-label="Add next placement cycle" disabled={pending}
+            onClick={() => startTransition(async () => {
+              const created = await createPlacementCycle();
+              if (created.ok && created.cycle) {
+                setCycleOptions(current => [...current, created.cycle!].sort((a, b) => b.code.localeCompare(a.code, undefined, { numeric: true })));
+                set("cycleId", created.cycle.cycleId);
+              } else setResult({ error: created.error ?? "Unable to create the placement cycle." });
+            })}>
+            <Plus size={16} aria-hidden="true" />
+          </button>
+        </div>
         {choice("registrationStatus", "Registration status", [["", "Choose a status"], ...REGISTRATION_STATUSES.map(s => [s, s] as [string, string])])}
       </div>
       {!options.cycles.length && <p className="student-note">No placement cycles exist yet. Cycles are not created from the student editor.</p>}

@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { desc } from "drizzle-orm";
 import { getCurrentUser, isAdminRole, resolveDepartment } from "@/lib/auth/dal";
 import { mutateStudent, type Operation } from "./store";
-import type { CompanyResult, StudentResult } from "./types";
+import type { CompanyResult, PlacementCycleResult, StudentResult } from "./types";
 import { db } from "@/db";
-import { companies } from "@/db/schema";
+import { companies, placementCycles } from "@/db/schema";
 import { validateCompany } from "./company-validation";
 import { parseStudentDegreeLevel } from "./validation";
 
@@ -42,6 +43,28 @@ export async function setStudentParticipation(level: unknown, roll: unknown, par
 /** Removes one registration; refused while that cycle holds the student's offer. */
 export async function removeStudentParticipation(level: unknown, roll: unknown, cycleId: unknown, expected: unknown) {
   return run(level, "removeParticipation", { cycleId }, roll, expected);
+}
+
+/** Create the next July–June placement cycle for the student editor. */
+export async function createPlacementCycle(): Promise<PlacementCycleResult> {
+  const scope = await adminDepartment("create placement cycles");
+  if ("error" in scope) return { error: scope.error };
+  try {
+    const rows = await db.select({ cycleId: placementCycles.cycleId, code: placementCycles.code })
+      .from(placementCycles).orderBy(desc(placementCycles.code));
+    const latestYear = rows.reduce((latest, row) => {
+      const match = /^(\d{4})-(\d{2})$/.exec(row.code);
+      return match ? Math.max(latest, Number(match[1]) + 1) : latest;
+    }, 0);
+    const batchYear = latestYear || new Date().getUTCFullYear() + 1;
+    const code = `${batchYear}-${String(batchYear + 1).slice(2)}`;
+    const [cycle] = await db.insert(placementCycles).values({ code, startsOn: `${batchYear}-07-01`, endsOn: `${batchYear + 1}-06-30` })
+      .onConflictDoNothing({ target: placementCycles.code })
+      .returning({ cycleId: placementCycles.cycleId, code: placementCycles.code });
+    if (!cycle) return { error: "That placement cycle already exists. Refresh and try again." };
+    revalidatePath("/students/ug");
+    return { ok: true, cycle };
+  } catch { return { error: "Unable to create the placement cycle." }; }
 }
 
 /** Explicit creation only: never overwrite a company's existing profile or contacts. */

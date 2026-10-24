@@ -8,7 +8,7 @@ import { getCurrentUser, isAdminRole } from "@/lib/auth/dal";
 import { readCalendarEvents } from "@/lib/calendar/read";
 import type { CalendarEvent } from "@/lib/calendar/types";
 import { readDriveOptions } from "./read";
-import { assertSnapshot, isUuid, validateDrive, validateRole } from "./rules";
+import { assertSnapshot, isUuid, validateDrive, validateDriveCycleCode, validateRole } from "./rules";
 import { authorizeDriveWrite, insertDriveWithRoles, lockDrive, writeError } from "./write";
 import type { DriveOption, DriveResult } from "./types";
 
@@ -43,6 +43,7 @@ export async function createDrive(input: unknown): Promise<DriveResult> {
       const [company] = await tx.select().from(companies).where(eq(companies.companyId, data.companyId));
       const [cycle] = await tx.select().from(placementCycles).where(eq(placementCycles.cycleId, data.cycleId));
       if (!company || !cycle) throw new Error("Choose an existing company and placement cycle.");
+      validateDriveCycleCode(cycle.code);
       await insertDriveWithRoles(tx, data);
     });
     refresh(); return { ok: true };

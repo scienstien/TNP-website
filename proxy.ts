@@ -5,11 +5,19 @@
  * or changed.
  */
 import NextAuth from "next-auth";
+import { NextResponse } from "next/server";
 import { authConfig } from "./auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-export default auth;
+export default auth((request) => {
+  // Keep the dashboard alias redirect out of the Server Component render. A
+  // redirect() from that page aborts RSC prerender timing in Next dev/Turbopack
+  // and can trigger a negative Performance.measure timestamp in the dev client.
+  if (request.nextUrl.pathname === "/dashboard") {
+    return NextResponse.redirect(new URL("/dashboard/ug", request.url));
+  }
+});
 
 export const config = {
   // Everything except Auth.js endpoints, Next.js internals and public files.

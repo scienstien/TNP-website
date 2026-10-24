@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { companies, placementCycles } from "@/db/schema";
 import { getCurrentUser, isAdminRole, resolveDepartment } from "@/lib/auth/dal";
-import { validateNewCompanyDrives } from "@/lib/drives/rules";
+import { validateDriveCycleCode, validateNewCompanyDrives } from "@/lib/drives/rules";
 import { insertDriveWithRoles } from "@/lib/drives/write";
 import { validateCompanyCreate, validateCompanyUpdate } from "./validation";
 import { companyRecord, companySnapshotMatches, isUuid } from "./records";
@@ -44,8 +44,9 @@ export async function createCompany(input: unknown): Promise<CompanyResult> {
       if (!row) return null;
       const cycleIds = [...new Set(newDrives.map(drive => drive.cycleId))];
       if (cycleIds.length) {
-        const found = await tx.select({ cycleId: placementCycles.cycleId }).from(placementCycles).where(inArray(placementCycles.cycleId, cycleIds));
+        const found = await tx.select({ cycleId: placementCycles.cycleId, code: placementCycles.code }).from(placementCycles).where(inArray(placementCycles.cycleId, cycleIds));
         if (found.length !== cycleIds.length) throw new Error(missingCycle);
+        found.forEach(cycle => validateDriveCycleCode(cycle.code));
       }
       for (const drive of newDrives) await insertDriveWithRoles(tx, { companyId: row.companyId, ...drive });
       const [created] = await tx.select().from(companies).where(eq(companies.companyId, row.companyId));

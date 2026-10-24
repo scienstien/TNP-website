@@ -39,8 +39,6 @@ interface Props {
 
 /** The main dashboard: header, shared filters, KPIs and the four independent charts. */
 export default function PlacementAnalytics({ records, role, department, today }: Props) {
-  const { filters, update, toggle, reset } = useDashboardFilters();
-
   const options = useMemo(
     () => ({
       cycles: placementCycles(records),
@@ -49,6 +47,9 @@ export default function PlacementAnalytics({ records, role, department, today }:
       ctc: ctcBounds(records),
     }),
     [records],
+  );
+  const { filters, update, toggle, reset } = useDashboardFilters(
+    options.cycles[0]?.id ?? null,
   );
 
   const view = useMemo(() => {

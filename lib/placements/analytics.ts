@@ -78,8 +78,8 @@ export function ctcBounds(records: PlacementRecord[]): [number, number] {
   return [Math.floor(Math.min(...values)), Math.ceil(Math.max(...values))];
 }
 
-export function defaultFilters(): DashboardFilterState {
-  return { ...EMPTY_FILTERS };
+export function defaultFilters(cycleId: string | null = null): DashboardFilterState {
+  return { ...EMPTY_FILTERS, cycleId };
 }
 
 export function mergeDashboardFilters(

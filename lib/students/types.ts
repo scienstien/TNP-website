@@ -112,6 +112,11 @@ export interface StudentResult {
   error?: string;
   fieldErrors?: Record<string, string>;
 }
+export interface PlacementCycleResult {
+  ok?: boolean;
+  error?: string;
+  cycle?: CycleOption;
+}
 export interface CompanyResult extends StudentResult {
   company?: CompanyOption;
 }

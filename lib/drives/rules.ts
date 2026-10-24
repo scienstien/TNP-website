@@ -10,6 +10,14 @@ export function canManageDrives(role: string | null, hasDepartment: boolean): bo
 
 export const MAX_DRIVE_ROLES = 20;
 
+/** A drive cannot be created for a cycle that has not started yet. */
+export function validateDriveCycleCode(code: string, now = new Date()) {
+  const match = /^(\d{4})-(\d{2})$/.exec(code);
+  if (match && Number(match[1]) > now.getUTCFullYear()) {
+    throw new Error(`A drive cannot be created for the future placement cycle ${code}.`);
+  }
+}
+
 export function objectInput(input: unknown): Record<string, unknown> {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid data.");
   return input as Record<string, unknown>;

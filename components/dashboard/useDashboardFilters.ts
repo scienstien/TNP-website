@@ -11,8 +11,10 @@ import {
  * The one filter state every KPI and chart reads. Chart clicks and the filter bar both
  * write here, so nothing filters on its own.
  */
-export function useDashboardFilters() {
-  const [filters, setFilters] = useState<DashboardFilterState>(defaultFilters);
+export function useDashboardFilters(defaultCycleId: string | null = null) {
+  const [filters, setFilters] = useState<DashboardFilterState>(() =>
+    defaultFilters(defaultCycleId),
+  );
 
   const update = useCallback(
     (patch: Partial<DashboardFilterState>) =>
@@ -33,7 +35,10 @@ export function useDashboardFilters() {
     [],
   );
 
-  const reset = useCallback(() => setFilters(defaultFilters()), []);
+  const reset = useCallback(
+    () => setFilters(defaultFilters(defaultCycleId)),
+    [defaultCycleId],
+  );
 
   return { filters, update, toggle, reset };
 }
