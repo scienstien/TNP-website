@@ -187,6 +187,10 @@ Department scoping is enforced on the server by `resolveDepartment()` in
 admin works in the department named by a cookie that is re-checked against the
 database, or in all departments (read-only). Placement tables have no department
 column: a department is reached through programme, cohort and enrollment.
+The top Programme selector changes the UG/PG route for Dashboard and Student
+Records and retains that navigation preference in browser storage; it does not
+change a user's department or the database. The route level is rechecked on
+student reads and writes.
 Professors remain read-only; administrators (and the super admin) perform authorized
 writes through `requireRole('ADMIN')`, which admits `SUPERADMIN`.
 

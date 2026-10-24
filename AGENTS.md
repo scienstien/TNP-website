@@ -173,7 +173,10 @@ Departments and access (user-requested multi-department extension):
 - UG dashboard analytics use undergraduate (UG, B.Tech) cohorts only. Student Records
   has explicit `/students/ug` and `/students/pg` views and scopes reads and writes to
   the selected degree level; the batch is cohort.graduation_year. The PG dashboard
-  uses PG cohorts and the existing department navbar for branch selection.
+  uses PG cohorts and the existing department navbar for branch selection. The top
+  Programme selector changes degree level within Dashboard or Student Records;
+  the sidebar keeps that level when moving between them. Student Records has no
+  duplicate degree selector in its page heading.
 - Because the target schema has no role-target links, drives and company contacts are
   institute-wide, not per department.
 - Development accounts (created on the first sign-in request; in production only

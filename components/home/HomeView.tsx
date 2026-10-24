@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { PlacementRecord } from "@/lib/placements/types";
+import { useProgrammeLevel } from "@/components/portal/useProgrammeLevel";
 import HomeActions from "./HomeActions";
 import PlacementProgress from "./PlacementProgress";
 import "./home.css";
@@ -14,7 +15,8 @@ export default function HomeView({
   placementRecords: PlacementRecord[];
 }) {
   const router = useRouter();
-  const onDashboard = () => router.push("/dashboard");
+  const programme = useProgrammeLevel(usePathname());
+  const onDashboard = () => router.push(`/dashboard/${programme.toLowerCase()}`);
   const onCalendar = () => router.push("/calendar");
   return (
     <section className="home-view home-view--comparison">

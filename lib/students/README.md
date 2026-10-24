@@ -6,6 +6,11 @@ a cohort year. `getStudentData(level)` requires ADMIN (SUPERADMIN included) and
 returns the chosen department's enrollments and editor choices for that level.
 It returns null when a SUPERADMIN has not chosen a department.
 
+The portal's top Programme selector switches between these routes while on
+Student Records. The sidebar and Home dashboard link retain the selected UG/PG
+level when navigating from other pages. Student Records has no second degree
+selector; the route level is passed to each server read and mutation.
+
 Each `StudentRecord` is one enrollment (roll number). It carries:
 - stable IDs: `studentId`, `enrollmentId`, `programmeId`, `cohortId`;
 - the programme label and the cohort's graduation year (`batchYear`);

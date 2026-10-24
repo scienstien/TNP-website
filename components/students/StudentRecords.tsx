@@ -149,11 +149,6 @@ export default function StudentRecords({ data }: { data: StudentData }) {
           <p>Search, filter, and manage student registrations and recorded offers.</p>
         </div>
         <div className="student-heading-actions">
-          <label className="student-level-switch">Degree level
-            <select value={level} disabled={busy} onChange={(event) => router.push(`/students/${event.target.value.toLowerCase()}`)}>
-              <option value="UG">UG</option><option value="PG">PG</option>
-            </select>
-          </label>
           <button className="dark-button" disabled={busy}
             onClick={() => { setEditing("new"); setFeedback(null); }}>Add {level} student</button>
         </div>

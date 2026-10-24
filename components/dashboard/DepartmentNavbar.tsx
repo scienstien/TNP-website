@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { selectDepartmentAction } from "@/lib/auth/department-actions";
 import { PG_ONLY_BRANCH_CODES } from "@/lib/placements/pg-catalog";
+import { programmeDestination, saveProgramme, useProgrammeLevel, type ProgrammeLevel } from "@/components/portal/useProgrammeLevel";
 import "./department-navbar.css";
 
 export interface DepartmentOption {
@@ -29,7 +30,7 @@ export default function DepartmentNavbar({
   const pathname = usePathname();
   const router = useRouter();
   const choose = (code: string) => startSwitch(() => selectDepartmentAction(code));
-  const programme = pathname?.includes("/dashboard/pg") ? "PG" : "UG";
+  const programme = useProgrammeLevel(pathname);
   const ugDashboard = pathname?.startsWith("/dashboard/ug") || pathname === "/dashboard";
   const visibleDepartments = ugDashboard
     ? departments.filter((department) =>
@@ -51,7 +52,11 @@ export default function DepartmentNavbar({
         <select
           className="dept-navbar-select"
           value={programme}
-          onChange={(event) => router.push(`/dashboard/${event.target.value.toLowerCase()}`)}
+          onChange={(event) => {
+            const level = event.target.value as ProgrammeLevel;
+            saveProgramme(level);
+            router.push(programmeDestination(pathname, level));
+          }}
           aria-label="Programme level"
         >
           <option value="UG">UG</option>

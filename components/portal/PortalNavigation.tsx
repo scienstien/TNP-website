@@ -11,12 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { PortalRole } from "./types";
-
-const commonItems = [
-  { href: "/", label: "Home", icon: HomeIcon },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
-] as const;
+import { useProgrammeLevel } from "./useProgrammeLevel";
 
 const adminItems = [
   { href: "/companies", label: "Companies", icon: Building2 },
@@ -24,10 +19,6 @@ const adminItems = [
 
 const trailingItems = [
   { href: "/outreach", label: "Outreach", icon: ClipboardList },
-] as const;
-
-const adminTrailingItems = [
-  { href: "/students/ug", label: "Student records", icon: GraduationCap },
 ] as const;
 
 export default function PortalNavigation({
@@ -39,11 +30,14 @@ export default function PortalNavigation({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const programme = useProgrammeLevel(pathname);
   const items = [
-    ...commonItems,
+    { href: "/", label: "Home", icon: HomeIcon },
+    { href: `/dashboard/${programme.toLowerCase()}`, label: "Dashboard", icon: LayoutDashboard },
+    { href: "/calendar", label: "Calendar", icon: CalendarDays },
     ...(role === "Admin" ? adminItems : []),
     ...trailingItems,
-    ...(role === "Admin" ? adminTrailingItems : []),
+    ...(role === "Admin" ? [{ href: `/students/${programme.toLowerCase()}`, label: "Student records", icon: GraduationCap }] : []),
   ];
 
   return (
@@ -53,7 +47,7 @@ export default function PortalNavigation({
           key={item.href}
           active={
             pathname === item.href ||
-            (item.href === "/students/ug" && pathname.startsWith("/students/"))
+            (item.href.startsWith("/students/") && pathname.startsWith("/students/"))
           }
           onClick={() => router.push(item.href)}
           icon={item.icon}
