@@ -7,7 +7,7 @@ export function validateCompany(input: unknown) {
   }
   const values = input as Record<string, unknown>;
   if (Object.keys(values).some(key => key !== "name" && key !== "domain")) {
-    fieldErrors.form = "Only company name and sector can be set here.";
+    fieldErrors.form = "Only company name and description can be set here.";
   }
   if (typeof values.name !== "string") fieldErrors.name = "Enter the company name.";
   else {
@@ -17,10 +17,10 @@ export function validateCompany(input: unknown) {
     }
   }
   if (values.domain !== undefined && values.domain !== null) {
-    if (typeof values.domain !== "string") fieldErrors.domain = "Enter a sector or leave it blank.";
+    if (typeof values.domain !== "string") fieldErrors.domain = "Enter a description or leave it blank.";
     else {
       data.domain = values.domain.trim().replace(/\s+/gu, " ") || null;
-      if (data.domain && data.domain.length > 80) fieldErrors.domain = "Use at most 80 characters for the sector.";
+      if (data.domain && data.domain.length > 80) fieldErrors.domain = "Use at most 80 characters for the description.";
     }
   }
   return { data, fieldErrors };

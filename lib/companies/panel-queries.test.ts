@@ -41,6 +41,7 @@ const drive = { driveId, companyId, cycleId, reference: null, companyName: "Fict
 const role = { roleId, driveId, jobTitle: null };
 const selection = () => [[{ id: companyId }], [{ id: cycleId }]];
 const distribution = () => getCompanyOfferDistribution({ companyId, cycleId, dimension: "gender", selectedRoleId: roleId });
+const departmentDistribution = () => getCompanyOfferDistribution({ companyId, cycleId, dimension: "department", selectedRoleId: roleId });
 
 test("protected drive options keep nullable and zero-offer roles and scope exact company/cycle", async () => {
   setup([...selection(), [drive], [role, { ...role, roleId: roleId.replace(/1$/, "2") }]]);
@@ -59,6 +60,13 @@ test("distribution includes selectable zero-offer role and uses REGISTERED depar
   assert.equal(result.totalOffers, 0);
   assert.deepEqual(result.buckets, []);
   assert.ok(predicates.some(query => query.params.includes("department-A") && query.params.includes("REGISTERED") && query.params.includes(roleId)));
+});
+test("department distribution aggregates across departments for department users", async () => {
+  setup([...selection(), [], [drive], [role], [{ count: 0 }], [], [{ count: 0 }]]);
+  const result = await departmentDistribution();
+  assert.equal(result.scopeLabel, "All departments");
+  assert.ok(predicates.some(query => query.params.includes("REGISTERED") && query.params.includes(roleId)));
+  assert.ok(!predicates.some(query => query.params.includes("department-A")));
 });
 test("distribution rejects a mismatch against independently counted final offers", async () => {
   setup([...selection(), [], [drive], [role], [{ count: 0 }], [{ key: "gender:missing", label: "Not recorded", count: 1 }], [{ count: 2 }]]);
@@ -92,11 +100,15 @@ test("runtime payload missing a required cycle cannot broaden the drive read", a
 test("compensation rows keep role identity and missing amounts; offer types include NULL", async () => {
   setup([...selection(), [], [drive], [role, { ...role, roleId: roleId.replace(/1$/, "2") }],
     [{ roleId, offerCount: 2, package: { knownCount: 1, median: "0", minimum: "0", maximum: "0" } }],
-    [{ type: null, count: 2 }]]);
+    [{ type: null, count: 2,
+      package: { knownCount: 1, median: "0", minimum: "0", maximum: "0" },
+      stipend: { knownCount: 0, median: null, minimum: null, maximum: null } }]]);
   const result = await getCompanyOfferSummaries(companyId, cycleId);
   assert.equal(result.rows.length, 3, "two recorded roles plus No role recorded");
   assert.equal(result.rows[0].package.median, 0, "actual zero is retained");
   assert.equal(result.rows[1].offerCount, 0, "zero-offer role is retained");
-  assert.deepEqual(result.types, [{ key: "missing", label: "Not recorded", count: 2 }]);
+  assert.deepEqual(result.types, [{ key: "missing", label: "Not recorded", count: 2,
+    package: { knownCount: 1, median: 0, minimum: 0, maximum: 0 },
+    stipend: { knownCount: 0, median: null, minimum: null, maximum: null } }]);
   assert.equal(result.typeTotal, 2);
 });

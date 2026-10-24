@@ -22,20 +22,22 @@ import {
   setStudentParticipation,
 } from "@/lib/students/actions";
 import { validateCompany } from "@/lib/students/company-validation";
-import { EMPTY_STUDENT_FILTERS, studentListQuery, STUDENT_STATUSES, type StudentListFilters, type StudentStatusFilter } from "@/lib/students/list-params";
 import { validateParticipation, validateStudent } from "@/lib/students/validation";
 import { OFFER_TYPES, REGISTRATION_STATUSES } from "@/lib/placements/types";
-import type { CompanyOption, StudentData, StudentRecord, StudentResult } from "@/lib/students/types";
+import type { CompanyOption, StudentData, StudentDegreeLevel, StudentRecord, StudentResult } from "@/lib/students/types";
 import { DatePicker } from "@/components/ui/date-picker";
 import "./students.css";
 
-type Options = Omit<StudentData, "students" | "list" | "readOnly">;
+type Options = Omit<StudentData, "students" | "level">;
 type Status = "Placed" | "Unplaced" | "Not registered";
 
 /** Derived, never stored: an offer means placed; REGISTERED without an offer means unplaced. */
-const statusOf = (student: StudentRecord): Status =>
-  student.offer ? "Placed"
-    : student.participations.some((item) => item.registrationStatus === "REGISTERED") ? "Unplaced" : "Not registered";
+export const statusOf = (student: StudentRecord, cycleId: string): Status => {
+  const participation = student.participations.find(item => item.cycleId === cycleId);
+  return participation?.registrationStatus === "REGISTERED"
+    ? student.offer?.cycleId === cycleId ? "Placed" : "Unplaced"
+    : "Not registered";
+};
 const statusClass: Record<Status, string> = { Placed: "placed", Unplaced: "unplaced", "Not registered": "unregistered" };
 
 /** Outcome text for the records list; failures are announced as alerts. */
@@ -52,6 +54,16 @@ export function removalConfirmation(student: StudentRecord, offer: boolean) {
       "The person record is kept if they have another enrollment. This cannot be undone.";
 }
 
+/** Placement status and offer type are independent filters; offer type is never a status. */
+export const matchesPlacementStatus = (student: StudentRecord, filter: string, cycleId: string) =>
+  filter === "All" || (cycleId
+    ? statusOf(student, cycleId) === filter
+    : student.participations.length
+      ? student.participations.some(p => statusOf(student, p.cycleId) === filter)
+      : filter === "Not registered");
+export const matchesOfferType = (student: StudentRecord, filter: string) =>
+  filter === "All" || student.offer?.offerType === filter;
+
 /** Sends one confirmed removal. A rejection keeps the record and shows the server's exact message as an alert. */
 export async function sendRemoval(student: StudentRecord, send: (roll: number, expected: string) => Promise<StudentResult>) {
   try {
@@ -65,43 +77,62 @@ export async function sendRemoval(student: StudentRecord, send: (roll: number, e
 }
 
 export default function StudentRecords({ data }: { data: StudentData }) {
-  const { students, readOnly = false, list, ...options } = data;
-  const { filters } = list;
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [cycleFilter, setCycleFilter] = useState("All");
+  const [offerTypeFilter, setOfferTypeFilter] = useState("All");
+  const [batchFilter, setBatchFilter] = useState("All");
+  const [companyFilter, setCompanyFilter] = useState("All");
   const [editing, setEditing] = useState<StudentRecord | "new" | null>(null);
   const [registrationsRoll, setRegistrationsRoll] = useState<number | null>(null);
+  const [editorDirty, setEditorDirty] = useState(false);
+  const [registrationDirty, setRegistrationDirty] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [searchText, setSearchText] = useState(filters.q);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(searchTimer.current), []);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const { students, level, ...options } = data;
+  const cycles = options.cycles;
+  const selectedCycleId = cycleFilter === "All" ? "" : cycleFilter;
   const busy = pending || editing !== null || registrationsRoll !== null;
-  /** Search, filters and paging run on the server: each change loads the matching page (page 1 unless the page itself changes). */
-  const go = (change: Partial<StudentListFilters>) =>
-    startTransition(() => router.replace(`/students${studentListQuery({ ...filters, page: 1, ...change })}`));
-  const search = (text: string) => {
-    setSearchText(text);
-    clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => go({ q: text.trim() }), 300);
-  };
+  const batches = [...new Set(students.map(s => s.batchYear))]
+    .sort((a, b) => b - a);
+  const companies = [...new Set(students.flatMap(s => s.offer ? [s.offer.companyName] : []))]
+    .sort((a, b) => a.localeCompare(b));
+  const statusRows = selectedCycleId
+    ? students.filter(s => s.participations.some(p => p.cycleId === selectedCycleId))
+      .map(s => statusOf(s, selectedCycleId))
+    : students.flatMap(s => s.participations.map(p => statusOf(s, p.cycleId)));
+  const placedCount = statusRows.filter(status => status === "Placed").length;
+  const unplacedCount = statusRows.filter(status => status === "Unplaced").length;
+  const visible = students.filter(s =>
+    `${s.rollNumber} ${s.name} ${s.programmeLabel} ${s.batchYear} ${s.participations.map(p => p.cycleCode).join(" ")} ${s.offer?.companyName ?? ""}`
+      .toLowerCase().includes(query.toLowerCase()) &&
+    (batchFilter === "All" || s.batchYear === Number(batchFilter)) &&
+    (companyFilter === "All" || s.offer?.companyName === companyFilter) &&
+    matchesPlacementStatus(s, statusFilter, selectedCycleId) && matchesOfferType(s, offerTypeFilter));
   const clearFilters = () => {
-    clearTimeout(searchTimer.current);
-    setSearchText("");
-    go({ ...EMPTY_STUDENT_FILTERS });
+    setQuery("");
+    setBatchFilter("All");
+    setCompanyFilter("All");
+    setStatusFilter("All");
+    setOfferTypeFilter("All");
+    setCycleFilter("All");
   };
-  const pages = Math.max(1, Math.ceil(list.matching / list.pageSize));
-  const firstShown = students.length ? (list.page - 1) * list.pageSize + 1 : 0;
   const activeFilters = [
-    filters.q && { label: `Search: ${filters.q}`, clear: () => { setSearchText(""); go({ q: "" }); } },
-    filters.department && { label: `Department: ${filters.department.toUpperCase()}`, clear: () => go({ department: null }) },
-    filters.batch !== null && { label: `Batch: ${filters.batch}`, clear: () => go({ batch: null }) },
-    filters.company && { label: `Company: ${filters.company}`, clear: () => go({ company: null }) },
-    filters.status && { label: `Status: ${filters.status}`, clear: () => go({ status: null }) },
+    query && { label: `Search: ${query}`, clear: () => setQuery("") },
+    batchFilter !== "All" && { label: `Batch: ${batchFilter}`, clear: () => setBatchFilter("All") },
+    companyFilter !== "All" && { label: `Company: ${companyFilter}`, clear: () => setCompanyFilter("All") },
+    statusFilter !== "All" && { label: `Status: ${statusFilter}`, clear: () => setStatusFilter("All") },
+    offerTypeFilter !== "All" && { label: `Offer type: ${offerTypeFilter}`, clear: () => setOfferTypeFilter("All") },
+    cycleFilter !== "All" && { label: `Cycle: ${cycles.find(c => c.cycleId === cycleFilter)?.code ?? "Selected"}`, clear: () => setCycleFilter("All") },
   ].filter(Boolean) as { label: string; clear: () => void }[];
   function remove(student: StudentRecord, offer: boolean) {
     if (!window.confirm(removalConfirmation(student, offer))) return;
     startTransition(async () => {
-      const { feedback, refresh } = await sendRemoval(student, offer ? removeStudentOffer : deleteStudent);
+      const send = offer
+        ? (roll: number, expected: string) => removeStudentOffer(level, roll, expected)
+        : (roll: number, expected: string) => deleteStudent(level, roll, expected);
+      const { feedback, refresh } = await sendRemoval(student, send);
       setFeedback(feedback);
       if (refresh) router.refresh();
     });
@@ -109,36 +140,42 @@ export default function StudentRecords({ data }: { data: StudentData }) {
   return (
     <section className="student-records">
       <div className="section-heading">
-        <div><p className="student-breadcrumb">Dashboard / Student records</p><h1>Student records</h1>
-          <p>Saved students, placement-cycle registrations and offers from the database. Save each edit to update dashboard statistics.</p></div>
-        {!readOnly && (
+        <div><p className="student-breadcrumb">Dashboard / Student records / {level}</p><h1>{level} student records</h1>
+          <p>Showing only {level} programmes for this department. Saved registrations and offers update dashboard statistics.</p></div>
+        <label className="student-level-switch">Degree level
+          <select value={level} disabled={busy} onChange={(event) => router.push(`/students/${event.target.value.toLowerCase()}`)}>
+            <option value="UG">UG</option><option value="PG">PG</option>
+          </select>
+        </label>
         <button className="dark-button" disabled={busy}
-          onClick={() => { setEditing("new"); setFeedback(null); }}>Add student</button>)}
+          onClick={() => { setEditing("new"); setFeedback(null); }}>Add {level} student</button>
       </div>
       {feedback?.alert && <p role="alert">{feedback.text}</p>}
       {feedback && !feedback.alert && <p role="status">{feedback.text}</p>}
-      {editing && <StudentEditorModal onClose={() => { setEditing(null); router.refresh(); }}>
+      {editing && <StudentEditorModal onClose={() => { setEditing(null); setEditorDirty(false); router.refresh(); }} isDirty={editorDirty}>
         <StudentEditor key={editing === "new" ? "new" : editing.rollNumber}
-          initial={editing === "new" ? null : editing} options={options}
+          initial={editing === "new" ? null : editing} options={options} level={level}
           onCancel={() => { setEditing(null); router.refresh(); }}
+          onDirtyChange={setEditorDirty}
           onSaved={() => { setEditing(null); setFeedback({ text: "Saved to the database.", alert: false }); }} />
       </StudentEditorModal>}
       {registrationsRoll !== null && <StudentEditorModal labelledBy="student-registrations-title"
-        onClose={() => { setRegistrationsRoll(null); router.refresh(); }}>
-        <RegistrationEditor student={students.find(s => s.rollNumber === registrationsRoll) ?? null} options={options}
-          onClose={() => { setRegistrationsRoll(null); router.refresh(); }} />
+        onClose={() => { setRegistrationsRoll(null); setRegistrationDirty(false); router.refresh(); }} isDirty={registrationDirty}>
+        <RegistrationEditor student={students.find(s => s.rollNumber === registrationsRoll) ?? null} options={options} level={level}
+          onClose={() => { setRegistrationsRoll(null); router.refresh(); }}
+          onDirtyChange={setRegistrationDirty} />
       </StudentEditorModal>}
       <section className="panel table-panel student-table-card">
         <div className="student-table-card-header">
           <div>
-            <p className="student-table-kicker">PLACEMENT ROSTER</p>
-            <h2>Student directory</h2>
+            <p className="student-table-kicker">{level} PLACEMENT ROSTER</p>
+            <h2>{level} student directory</h2>
             <p>Search, filter, and update each student&apos;s registrations and recorded offer.</p>
           </div>
           <div className="student-table-stats" aria-label="Student record summary">
-            <Stat label="Recorded" value={list.recorded} icon={UsersRound} />
-            <Stat label="Placed" value={list.placed} icon={BriefcaseBusiness} tone="placed" />
-            <Stat label="Unplaced" value={list.unplaced} icon={CircleSlash2} tone="unplaced" />
+            <Stat label="Recorded" value={students.length} icon={UsersRound} />
+            <Stat label={selectedCycleId ? "Placed" : "Placed cycles"} value={placedCount} icon={BriefcaseBusiness} tone="placed" />
+            <Stat label={selectedCycleId ? "Unplaced" : "Unplaced cycles"} value={unplacedCount} icon={CircleSlash2} tone="unplaced" />
           </div>
         </div>
         <div className="student-toolbar">
@@ -146,23 +183,27 @@ export default function StudentRecords({ data }: { data: StudentData }) {
             <label className="student-search">
               <Search size={17} aria-hidden="true" />
               <span className="sr-only">Search students</span>
-              <input value={searchText} placeholder="Search name, roll number, cycle or company"
-                onChange={e => search(e.target.value)} />
+              <input value={query} placeholder="Search name, roll number, cycle or company"
+                onChange={e => setQuery(e.target.value)} />
             </label>
-            {readOnly && <FilterSelect label="Department" value={filters.department ?? "All"} onChange={value => go({ department: value === "All" ? null : value })}>
-              <option value="All">All departments</option>
-              {list.departmentCodes.map(code => <option key={code} value={code}>{code.toUpperCase()}</option>)}
-            </FilterSelect>}
-            <FilterSelect label="Batch" value={filters.batch === null ? "All" : String(filters.batch)} onChange={value => go({ batch: value === "All" ? null : Number(value) })}>
+            <FilterSelect label="Batch" value={batchFilter} onChange={setBatchFilter}>
               <option value="All">All batches</option>
-              {list.batches.map(batch => <option key={batch} value={batch}>{batch}</option>)}
+              {batches.map(batch => <option key={batch} value={batch}>{batch}</option>)}
             </FilterSelect>
-            <FilterSelect label="Company" value={filters.company ?? "All"} onChange={value => go({ company: value === "All" ? null : value })}>
+            <FilterSelect label="Company" value={companyFilter} onChange={setCompanyFilter}>
               <option value="All">All companies</option>
-              {list.companies.map(company => <option key={company} value={company}>{company}</option>)}
+              {companies.map(company => <option key={company} value={company}>{company}</option>)}
             </FilterSelect>
-            <FilterSelect label="Status" value={filters.status ?? "All"} onChange={value => go({ status: value === "All" ? null : value as StudentStatusFilter })}>
-              {["All", ...STUDENT_STATUSES].map(status => <option key={status}>{status}</option>)}
+            <FilterSelect label="Cycle" value={cycleFilter} onChange={setCycleFilter}>
+              <option value="All">All cycles</option>
+              {cycles.map(cycle => <option key={cycle.cycleId} value={cycle.cycleId}>{cycle.code}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter}>
+              {["All", "Placed", "Unplaced", "Not registered"].map(status => <option key={status}>{status}</option>)}
+            </FilterSelect>
+            <FilterSelect label="Offer type" value={offerTypeFilter} onChange={setOfferTypeFilter}>
+              <option value="All">All offer types</option>
+              {OFFER_TYPES.map(type => <option key={type}>{type}</option>)}
             </FilterSelect>
           </div>
           <div className="student-toolbar-summary">
@@ -173,30 +214,37 @@ export default function StudentRecords({ data }: { data: StudentData }) {
               {activeFilters.length > 0 && <button type="button" className="student-clear-filters" onClick={clearFilters}>Clear all</button>}
             </div>
             <span className="student-result-count" role="status">
-              {students.length ? `Showing ${firstShown}–${firstShown + students.length - 1} of ${list.matching}` : `Showing 0 of ${list.matching}`}
+              {visible.length ? `Showing 1–${visible.length} of ${students.length}` : `Showing 0 of ${students.length}`}
             </span>
           </div>
         </div>
-        {!students.length && <p className="table-hint" role="status">{list.recorded
+        {!visible.length && <p className="table-hint" role="status">{students.length
           ? "No students match the current filters." : "No student records loaded."}</p>}
         <div className="student-table-scroll">
           <table className="student-db-table">
-            <thead><tr>{[...(readOnly ? ["Department"] : []), "Roll number", "Name", "Programme", "Batch", "Cycles", "Status", "Company", "Sector", "Job role", "Offer type", "CTC (LPA)", "Offer date", ...(readOnly ? [] : ["Actions"])]
+            <thead><tr>{["Roll number", "Name", "Gender", "Category", "Programme", "Batch", "Admission year", "Cycles", "Status", "Company", "Description", "Job role", "Offer type", "CTC (LPA)", "Offer date", "Actions"]
               .map(h => <th key={h}>{h}</th>)}</tr></thead>
-            <tbody>{students.map(s => <tr key={s.rollNumber}>
-              {readOnly && <td>{s.departmentCode.toUpperCase()}</td>}
-              <td>{s.rollNumber}</td><td>{s.name}</td><td>{s.programmeLabel}</td><td>{s.batchYear}</td>
+            <tbody>{visible.map(s => <tr key={s.rollNumber}>
+              <td>{s.rollNumber}</td><td>{s.name}</td>
+              <td>{options.genderTypes.find(option => option.code === s.genderCode)?.label ?? "Not recorded"}</td>
+              <td>{options.reservationCategories.find(option => option.code === s.reservationCategoryCode)?.label ?? "Not recorded"}</td>
+              <td>{s.programmeLabel}</td><td>{s.batchYear}</td><td>{s.admissionYear ?? "Not recorded"}</td>
               <td>{s.participations.length ? <span className="student-cycles">{s.participations.map(p =>
                 <span key={p.cycleId} title={p.registrationStatus}
                   className={`student-cycle${p.registrationStatus === "UNREGISTERED" ? " student-cycle--unregistered" : ""}`}>
                   {p.cycleCode}{p.registrationStatus === "UNREGISTERED" ? " · unregistered" : ""}
                 </span>)}</span> : "—"}</td>
-              <td><span className={`student-status student-status--${statusClass[statusOf(s)]}`}>{statusOf(s)}</span></td>
+              <td>{selectedCycleId
+                ? <span className={`student-status student-status--${statusClass[statusOf(s, selectedCycleId)]}`}>{statusOf(s, selectedCycleId)}</span>
+                : s.participations.length ? <span className="student-cycles">{s.participations.map(p => {
+                  const status = statusOf(s, p.cycleId);
+                  return <span key={p.cycleId} className={`student-status student-status--${statusClass[status]}`} title={`${p.cycleCode}: ${status}`}>{p.cycleCode}: {status}</span>;
+                })}</span> : <span className="student-status student-status--unregistered">No cycle</span>}</td>
               <td>{s.offer?.companyName ?? "—"}</td>
               <td>{options.companies.find(c => c.companyId === s.offer?.companyId)?.domain ?? "—"}</td>
               <td>{s.offer?.jobRole ?? "—"}</td><td>{s.offer?.offerType ?? "—"}</td>
               <td>{s.offer?.packageLpa ?? "—"}</td><td>{s.offer?.offerDate ?? "—"}</td>
-              {!readOnly && <td><div className="student-row-actions">
+              <td><div className="student-row-actions">
                 <button className="student-icon-button" type="button" title={`Edit ${s.name}`} aria-label={`Edit ${s.name}`}
                   disabled={busy} onClick={() => { setEditing(s); setFeedback(null); }}><Pencil size={15} /></button>
                 <button className="student-icon-button" type="button" title={`${s.name}'s placement-cycle registrations`}
@@ -205,15 +253,10 @@ export default function StudentRecords({ data }: { data: StudentData }) {
                 {s.offer && <button className="student-icon-button student-icon-button--warning" type="button" title={`Remove ${s.name}'s offer`} aria-label={`Remove ${s.name}'s offer`}
                   disabled={busy} onClick={() => remove(s, true)}><BriefcaseBusiness size={15} /></button>}
                 <DeleteAction student={s} disabled={busy} onDelete={() => remove(s, false)} />
-              </div></td>}
+              </div></td>
             </tr>)}</tbody>
           </table>
         </div>
-        {pages > 1 && <nav className="student-pagination" aria-label="Student records pages">
-          <button type="button" disabled={list.page <= 1} onClick={() => go({ page: list.page - 1 })}>Previous</button>
-          <span>Page {list.page} of {pages}</span>
-          <button type="button" disabled={list.page >= pages} onClick={() => go({ page: list.page + 1 })}>Next</button>
-        </nav>}
       </section>
     </section>
   );
@@ -261,23 +304,58 @@ function FilterSelect({ label, value, onChange, children }: {
   </label>;
 }
 
-function StudentEditorModal({ children, onClose, labelledBy = "student-editor-title" }: {
+function StudentEditorModal({ children, onClose, labelledBy = "student-editor-title", isDirty }: {
   children: React.ReactNode;
   onClose: () => void;
   labelledBy?: string;
+  isDirty: boolean;
 }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const closeRef = useRef(onClose);
+  const dirtyRef = useRef(isDirty);
+  useEffect(() => { closeRef.current = onClose; dirtyRef.current = isDirty; }, [onClose, isDirty]);
   useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusable = () => Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ) ?? []).filter(element => element.offsetParent !== null);
+    const first = focusable()[0];
+    (first ?? dialogRef.current)?.focus();
+    const keyHandler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (!dirtyRef.current || window.confirm("Discard your unsaved changes?")) closeRef.current();
+      }
+      if (event.key === "Tab") {
+        const items = focusable();
+        if (!items.length) { event.preventDefault(); dialogRef.current?.focus(); return; }
+        const firstItem = items[0], lastItem = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === firstItem) { event.preventDefault(); lastItem.focus(); }
+        else if (!event.shiftKey && document.activeElement === lastItem) { event.preventDefault(); firstItem.focus(); }
+      }
     };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
+    document.addEventListener("keydown", keyHandler);
+    return () => {
+      document.removeEventListener("keydown", keyHandler);
+      openerRef.current?.focus();
+    };
+  }, []);
+  const requestClose = () => {
+    if (!dirtyRef.current || window.confirm("Discard your unsaved changes?")) closeRef.current();
+  };
+  const interceptClose = (event: React.MouseEvent) => {
+    if ((event.target as HTMLElement).closest("[data-modal-close]")) {
+      event.preventDefault();
+      event.stopPropagation();
+      requestClose();
+    }
+  };
 
   return <div className="student-modal-backdrop" onMouseDown={(event) => {
-    if (event.target === event.currentTarget) onClose();
+    if (event.target === event.currentTarget) requestClose();
   }}>
-    <section className="student-modal" role="dialog" aria-modal="true" aria-labelledby={labelledBy}>
+    <section className="student-modal" ref={dialogRef} onClickCapture={interceptClose} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={labelledBy}>
       {children}
     </section>
   </div>;
@@ -289,21 +367,25 @@ function cohortLinked(options: Options, programmeId: string, batchYear: number, 
   return cohort ? cohort.cycleIds.includes(cycleId) : null;
 }
 
-function StudentEditor({ initial, options, onCancel, onSaved }: {
+function StudentEditor({ initial, options, level, onCancel, onSaved, onDirtyChange }: {
   initial: StudentRecord | null;
   options: Options;
+  level: StudentDegreeLevel;
   onCancel: () => void;
   onSaved: () => void;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const registered = initial?.participations.filter(p => p.registrationStatus === "REGISTERED") ?? [];
   const baseline = {
     rollNumber: initial ? String(initial.rollNumber) : "", name: initial?.name ?? "",
+    genderCode: initial?.genderCode ?? "", reservationCategoryCode: initial?.reservationCategoryCode ?? "",
     programmeId: initial?.programmeId ?? "", batchYear: initial ? String(initial.batchYear) : "",
     admissionYear: initial?.admissionYear == null ? "" : String(initial.admissionYear),
     cycleId: "", registrationStatus: "",
     // A new offer on an existing student goes to an explicitly shown cycle: the only REGISTERED one, or the admin's choice.
     offerCycleId: initial?.offer?.cycleId ?? (registered.length === 1 ? registered[0].cycleId : ""),
-    companyId: initial?.offer?.companyId ?? "", jobRole: initial?.offer?.jobRole ?? "",
+    companyId: initial?.offer?.companyId ?? "", driveId: initial?.offer?.driveId ?? "",
+    roleId: initial?.offer?.roleId ?? "",
     packageLpa: initial?.offer?.packageLpa ?? "", offerType: initial?.offer?.offerType ?? "",
     offerDate: initial?.offer?.offerDate ?? "",
   };
@@ -318,21 +400,28 @@ function StudentEditor({ initial, options, onCancel, onSaved }: {
     .sort((a, b) => a.name.localeCompare(b.name));
   const [result, setResult] = useState<StudentResult>({});
   const [pending, startTransition] = useTransition();
+  const dirty = JSON.stringify(draft) !== JSON.stringify(baseline) || hasOffer !== !!initial?.offer || creatingCompany ||
+    companyDraft.name !== "" || companyDraft.domain !== "";
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
   const router = useRouter();
   type Field = keyof typeof baseline;
   // An offer needs a REGISTERED participation: an existing one, or the registration chosen for a new student.
   const canAddOffer = initial ? registered.length > 0 : draft.cycleId !== "" && draft.registrationStatus === "REGISTERED";
   const offerOpen = hasOffer && (!!initial?.offer || canAddOffer);
   const set = (key: Field, value: string) => { setDraft(d => ({ ...d, [key]: value })); setResult({}); };
+  const offerCycleId = initial?.offer ? initial.offer.cycleId : initial ? draft.offerCycleId : draft.cycleId;
+  const availableDrives = options.drives.filter(drive => drive.companyId === draft.companyId && drive.cycleId === offerCycleId);
+  const selectedDrive = availableDrives.find(drive => drive.driveId === draft.driveId);
   function payload() {
     const offer = {
       ...(initial?.offer ? {} : { cycleId: initial ? draft.offerCycleId : draft.cycleId }),
-      companyId: draft.companyId, jobRole: draft.jobRole,
+      companyId: draft.companyId, driveId: draft.driveId || null, roleId: draft.roleId || null,
       packageLpa: draft.packageLpa, offerType: draft.offerType, offerDate: draft.offerDate,
     };
     return {
       rollNumber: draft.rollNumber, name: draft.name, programmeId: draft.programmeId,
       batchYear: draft.batchYear, admissionYear: draft.admissionYear,
+      genderCode: draft.genderCode, reservationCategoryCode: draft.reservationCategoryCode,
       ...(!initial && (draft.cycleId || draft.registrationStatus)
         ? { participation: { cycleId: draft.cycleId, registrationStatus: draft.registrationStatus } } : {}),
       ...(offerOpen ? { offer } : {}),
@@ -372,36 +461,43 @@ function StudentEditor({ initial, options, onCancel, onSaved }: {
     const validated = validateStudent(complete, true);
     if (Object.keys(validated.fieldErrors).length) { setResult({ fieldErrors: validated.fieldErrors }); return; }
     const changes: Record<string, unknown> = {};
-    for (const key of ["name", "admissionYear"] as const) if (draft[key] !== baseline[key]) changes[key] = draft[key];
+    for (const key of ["name", "genderCode", "reservationCategoryCode", "admissionYear"] as const) {
+      if (draft[key] !== baseline[key]) changes[key] = draft[key];
+    }
     if (offerOpen) {
       const offer: Record<string, unknown> = {};
       if (!initial?.offer) offer.cycleId = draft.offerCycleId;
-      for (const key of ["companyId", "jobRole", "packageLpa", "offerType", "offerDate"] as const) {
+      for (const key of ["companyId", "driveId", "roleId", "packageLpa", "offerType", "offerDate"] as const) {
         if (!initial?.offer || draft[key] !== baseline[key]) offer[key] = draft[key];
       }
       if (Object.keys(offer).length) changes.offer = offer;
     }
     startTransition(async () => {
       try {
-        const saved = initial ? await patchStudent(initial.rollNumber, changes, JSON.stringify(initial)) : await createStudent(complete);
+        const saved = initial
+          ? await patchStudent(level, initial.rollNumber, changes, JSON.stringify(initial))
+          : await createStudent(level, complete);
         setResult(saved);
         if (saved.ok) { router.refresh(); onSaved(); }
       } catch { setResult({ error: "Unable to save. Your draft is preserved; try again." }); }
     });
   }}>
     <div className="student-editor-heading">
-      <h2 id="student-editor-title">{initial ? `Edit ${initial.rollNumber}` : "Add student — unsaved draft"}</h2>
-      <button type="button" className="student-editor-close" onClick={onCancel} disabled={pending} aria-label="Close editor">×</button>
+      <h2 id="student-editor-title">{initial ? `Edit ${level} ${initial.rollNumber}` : `Add ${level} student — unsaved draft`}</h2>
+      <button type="button" data-modal-close className="student-editor-close" onClick={onCancel} disabled={pending} aria-label="Close editor">×</button>
     </div>
     <div className="student-fields">
+      <label className="student-field">Degree level<input readOnly value={level} /></label>
       {field("rollNumber", "Roll number (9 digits)", { inputMode: "numeric", readOnly: !!initial })}
       {field("name", "Student name")}
+      {choice("genderCode", "Gender (optional)", [["", "Not recorded"], ...options.genderTypes.map(o => [o.code, o.label] as [string, string])])}
+      {choice("reservationCategoryCode", "Reservation category (optional)", [["", "Not recorded"], ...options.reservationCategories.map(o => [o.code, o.label] as [string, string])])}
       {choice("programmeId", "Programme", [["", "Choose a programme"], ...options.programmes.map(p => [p.programmeId, p.label] as [string, string])],
         { disabled: !!initial })}
       {field("batchYear", "Graduating batch", { inputMode: "numeric", readOnly: !!initial })}
       {field("admissionYear", "Admission year (optional)", { inputMode: "numeric", maxLength: 4 })}
     </div>
-    {!options.programmes.length && <p className="student-note">This department has no undergraduate programme yet, so students cannot be added.</p>}
+    {!options.programmes.length && <p className="student-note">This department has no {level} programme yet, so students cannot be added.</p>}
     {initial && <p className="student-note">Programme and batch cannot be changed here: moving a student would discard registrations and offer details. Use the registrations button in the table to manage placement cycles.</p>}
     {!initial && <fieldset disabled={pending} className="student-company-create">
       <legend>Placement-cycle registration (optional)</legend>
@@ -424,13 +520,17 @@ function StudentEditor({ initial, options, onCancel, onSaved }: {
       {initial?.offer
         ? <label className="student-field">Placement cycle<input readOnly value={initial.offer.cycleCode} /></label>
         : initial
-          ? choice("offerCycleId", "Placement cycle", [["", "Choose a cycle"], ...registered.map(p => [p.cycleId, p.cycleCode] as [string, string])])
+          ? <label className="student-field">Placement cycle
+            <select value={draft.offerCycleId} disabled={pending} onChange={e => setDraft(d => ({ ...d, offerCycleId: e.target.value, driveId: "", roleId: "" }))}>
+              <option value="">Choose a cycle</option>{registered.map(p => <option key={p.cycleId} value={p.cycleId}>{p.cycleCode}</option>)}
+            </select>
+          </label>
           : <label className="student-field">Placement cycle<input readOnly value={options.cycles.find(c => c.cycleId === draft.cycleId)?.code ?? ""} /></label>}
       <div className="student-field">
         <label htmlFor="student-companyId">Company</label>
         <select id="student-companyId" value={draft.companyId} disabled={pending} aria-invalid={!!result.fieldErrors?.companyId}
           aria-describedby="student-error-companyId"
-          onChange={e => set("companyId", e.target.value)}>
+          onChange={e => setDraft(d => ({ ...d, companyId: e.target.value, driveId: "", roleId: "" }))}>
           <option value="">Select an existing company</option>
           {companyOptions.map(c => <option key={c.companyId} value={c.companyId}>{c.name}</option>)}
         </select>
@@ -447,11 +547,11 @@ function StudentEditor({ initial, options, onCancel, onSaved }: {
             aria-invalid={!!companyResult.fieldErrors?.name} aria-describedby="new-company-name-error"
             onChange={e => { setCompanyDraft(d => ({ ...d, name: e.target.value })); setCompanyResult({}); }} />
           <span id="new-company-name-error" className="student-field-error">{companyResult.fieldErrors?.name}</span>
-          <label htmlFor="new-company-sector">Company sector (optional)</label>
-          <input id="new-company-sector" value={companyDraft.domain}
-            aria-invalid={!!companyResult.fieldErrors?.domain} aria-describedby="new-company-sector-error"
+          <label htmlFor="new-company-description">Company description (optional)</label>
+          <input id="new-company-description" value={companyDraft.domain}
+            aria-invalid={!!companyResult.fieldErrors?.domain} aria-describedby="new-company-description-error"
             onChange={e => { setCompanyDraft(d => ({ ...d, domain: e.target.value })); setCompanyResult({}); }} />
-          <span id="new-company-sector-error" className="student-field-error">{companyResult.fieldErrors?.domain}</span>
+          <span id="new-company-description-error" className="student-field-error">{companyResult.fieldErrors?.domain}</span>
           {(companyResult.error || companyResult.fieldErrors?.form) &&
             <p role="alert">{companyResult.error || companyResult.fieldErrors?.form}</p>}
           <div className="student-row-actions">
@@ -465,7 +565,7 @@ function StudentEditor({ initial, options, onCancel, onSaved }: {
                   if (saved.ok && saved.company) {
                     const company = saved.company;
                     setCreatedCompanies(current => [...current, company]);
-                    setDraft(current => ({ ...current, companyId: company.companyId }));
+                    setDraft(current => ({ ...current, companyId: company.companyId, driveId: "", roleId: "" }));
                     setResult({});
                     setCreatingCompany(false);
                     setCompanyDraft({ name: "", domain: "" });
@@ -478,26 +578,50 @@ function StudentEditor({ initial, options, onCancel, onSaved }: {
           </div>
         </fieldset>}
       </div>
-      <label className="student-field">Sector<input readOnly value={companyOptions.find(c => c.companyId === draft.companyId)?.domain ?? ""} /></label>
-      {field("jobRole", "Job role (optional)")}
+      <label className="student-field">Company description<input readOnly value={companyOptions.find(c => c.companyId === draft.companyId)?.domain ?? ""} /></label>
+      <label className="student-field">Drive (optional)
+        <select value={draft.driveId} disabled={pending || !draft.companyId || !offerCycleId}
+          aria-invalid={!!result.fieldErrors?.driveId} aria-describedby="student-error-driveId"
+          onChange={e => setDraft(d => ({ ...d, driveId: e.target.value, roleId: "" }))}>
+          <option value="">No drive recorded</option>
+          {availableDrives.map(drive => <option key={drive.driveId} value={drive.driveId}>
+            {drive.reference || "Unreferenced drive"} · {drive.cycleCode} · {drive.driveId.slice(0, 8)}
+          </option>)}
+        </select>
+        <span className="student-field-error" id="student-error-driveId">{result.fieldErrors?.driveId}</span>
+        {draft.companyId && offerCycleId && !availableDrives.length && <small>No existing drives for this company and cycle. Historical offer details may be saved without a drive.</small>}
+      </label>
+      <label className="student-field">Role (optional)
+        <select value={draft.roleId} disabled={pending || !selectedDrive}
+          aria-invalid={!!result.fieldErrors?.roleId} aria-describedby="student-error-roleId"
+          onChange={e => set("roleId", e.target.value)}>
+          <option value="">No role recorded</option>
+          {selectedDrive?.roles.map(role => <option key={role.roleId} value={role.roleId}>
+            {role.jobTitle || "Untitled role"}{role.domain ? ` · ${role.domain}` : ""} · {role.roleId.slice(0, 8)}
+          </option>)}
+        </select>
+        <span className="student-field-error" id="student-error-roleId">{result.fieldErrors?.roleId}</span>
+      </label>
       {field("packageLpa", "Package in LPA (optional)", { inputMode: "decimal" })}
       <label className="student-field">Offer type (optional)
-        <select value={draft.offerType} disabled={pending} onChange={e => set("offerType", e.target.value)}>
+        <select id="student-offerType" value={draft.offerType} disabled={pending} aria-invalid={!!result.fieldErrors?.offerType}
+          aria-describedby="student-error-offerType" onChange={e => set("offerType", e.target.value)}>
           <option value="">Not recorded</option>{OFFER_TYPES.map(t => <option key={t}>{t}</option>)}
-        </select><span className="student-field-error">{result.fieldErrors?.offerType}</span>
+        </select><span id="student-error-offerType" className="student-field-error">{result.fieldErrors?.offerType}</span>
       </label>
       <div className="student-field">
         <label htmlFor="student-offerDate">Offer date (optional)</label>
         <DatePicker id="student-offerDate" value={draft.offerDate} disabled={pending}
+          ariaInvalid={!!result.fieldErrors?.offerDate} ariaDescribedBy="student-error-offerDate"
           onChange={(value) => set("offerDate", value)} />
-        <span className="student-field-error">{result.fieldErrors?.offerDate}</span>
+        <span id="student-error-offerDate" className="student-field-error">{result.fieldErrors?.offerDate}</span>
       </div>
     </div>}
     {(result.error || result.fieldErrors?.form || result.fieldErrors?.offer) &&
       <p role="alert">{result.error || result.fieldErrors?.form || result.fieldErrors?.offer}</p>}
     <div className="student-row-actions">
       <button type="submit" className="dark-button" disabled={pending || creatingCompany}>{pending ? "Saving…" : "Save"}</button>
-      <button type="button" disabled={pending} onClick={onCancel}>Cancel</button>
+      <button type="button" data-modal-close disabled={pending} onClick={onCancel}>Cancel</button>
     </div>
   </form>;
 }
@@ -506,19 +630,23 @@ function StudentEditor({ initial, options, onCancel, onSaved }: {
  * Placement-cycle registrations of one enrollment. Each change is its own explicit, confirmed save
  * against the record shown, so it never mixes with an unsaved student draft.
  */
-function RegistrationEditor({ student, options, onClose }: {
+function RegistrationEditor({ student, options, level, onClose, onDirtyChange }: {
   student: StudentRecord | null;
   options: Options;
+  level: StudentDegreeLevel;
   onClose: () => void;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const [draft, setDraft] = useState({ cycleId: "", registrationStatus: "" });
   const [result, setResult] = useState<StudentResult>({});
   const [notice, setNotice] = useState("");
   const [pending, startTransition] = useTransition();
+  const dirty = draft.cycleId !== "" || draft.registrationStatus !== "";
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
   const router = useRouter();
   const heading = <div className="student-editor-heading">
     <h2 id="student-registrations-title">{student ? `Registrations · ${student.rollNumber} ${student.name}` : "Registrations"}</h2>
-    <button type="button" className="student-editor-close" onClick={onClose} disabled={pending} aria-label="Close registrations">×</button>
+    <button type="button" data-modal-close className="student-editor-close" onClick={onClose} disabled={pending} aria-label="Close registrations">×</button>
   </div>;
   if (!student) return <div className="panel student-editor">{heading}<p role="alert">This student no longer exists. Close and refresh the records.</p></div>;
 
@@ -555,12 +683,12 @@ function RegistrationEditor({ student, options, onClose }: {
           <div className="student-row-actions">
             <button type="button" disabled={pending || (holdsOffer && next === "UNREGISTERED")} onClick={() => {
               if (!window.confirm(`Mark ${student.name} ${next} for ${p.cycleCode}?`)) return;
-              save(() => setStudentParticipation(student.rollNumber, { cycleId: p.cycleId, registrationStatus: next }, expected),
+              save(() => setStudentParticipation(level, student.rollNumber, { cycleId: p.cycleId, registrationStatus: next }, expected),
                 `Marked ${next} for ${p.cycleCode}.`);
             }}>Mark {next}</button>
             <button type="button" disabled={pending || holdsOffer} onClick={() => {
               if (!window.confirm(`Remove ${student.name}'s ${p.cycleCode} registration?`)) return;
-              save(() => removeStudentParticipation(student.rollNumber, p.cycleId, expected), `Removed the ${p.cycleCode} registration.`);
+              save(() => removeStudentParticipation(level, student.rollNumber, p.cycleId, expected), `Removed the ${p.cycleCode} registration.`);
             }}>Remove</button>
           </div>
         </li>;
@@ -571,25 +699,29 @@ function RegistrationEditor({ student, options, onClose }: {
       {available.length ? <>
         <div className="student-fields">
           <label className="student-field">Placement cycle
-            <select value={draft.cycleId} onChange={e => { setDraft(d => ({ ...d, cycleId: e.target.value })); setResult({}); }}>
+            <select id="registration-cycle" value={draft.cycleId} aria-invalid={!!result.fieldErrors?.participation}
+              aria-describedby="registration-cycle-error" onChange={e => { setDraft(d => ({ ...d, cycleId: e.target.value })); setResult({}); }}>
               <option value="">Choose a cycle</option>
               {available.map(c => <option key={c.cycleId} value={c.cycleId}>{c.code}</option>)}
             </select>
           </label>
           <label className="student-field">Registration status
-            <select value={draft.registrationStatus} onChange={e => { setDraft(d => ({ ...d, registrationStatus: e.target.value })); setResult({}); }}>
+            <select id="registration-status" value={draft.registrationStatus} aria-invalid={!!result.fieldErrors?.registrationStatus}
+              aria-describedby="registration-status-error" onChange={e => { setDraft(d => ({ ...d, registrationStatus: e.target.value })); setResult({}); }}>
               <option value="">Choose a status</option>
               {REGISTRATION_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </label>
         </div>
+        <span id="registration-cycle-error" className="student-field-error">{result.fieldErrors?.participation}</span>
+        <span id="registration-status-error" className="student-field-error">{result.fieldErrors?.registrationStatus}</span>
         {draft.cycleId && !linkedCycles.includes(draft.cycleId) &&
           <p className="student-note">The {student.batchYear} cohort is not yet associated with this cycle; saving associates it.</p>}
         <div className="student-row-actions"><button type="button" onClick={() => {
           const checked = validateParticipation(draft);
           if (!checked.data) { setResult({ fieldErrors: checked.fieldErrors }); return; }
           const code = options.cycles.find(c => c.cycleId === checked.data!.cycleId)?.code ?? "the cycle";
-          save(() => setStudentParticipation(student.rollNumber, checked.data!, expected), `Registered ${checked.data!.registrationStatus} for ${code}.`);
+          save(() => setStudentParticipation(level, student.rollNumber, checked.data!, expected), `Registered ${checked.data!.registrationStatus} for ${code}.`);
         }}>Add registration</button></div>
       </> : <p className="student-note">{options.cycles.length
         ? "The student already has a registration for every existing cycle."
@@ -597,6 +729,6 @@ function RegistrationEditor({ student, options, onClose }: {
     </fieldset>
     {problem && <p role="alert">{problem}</p>}
     {notice && <p role="status">{notice}</p>}
-    <div className="student-row-actions"><button type="button" onClick={onClose} disabled={pending}>Close</button></div>
+    <div className="student-row-actions"><button type="button" data-modal-close onClick={onClose} disabled={pending}>Close</button></div>
   </div>;
 }

@@ -11,11 +11,15 @@ type DatePickerProps = {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
   onChange: (value: string) => void;
 };
 
 /** A date control backed by the browser's localized date picker. */
 export function DatePicker({
+  ariaDescribedBy,
+  ariaInvalid,
   className = "",
   disabled,
   id,
@@ -47,6 +51,8 @@ export function DatePicker({
       max={max}
       required={required}
       disabled={disabled}
+      aria-invalid={ariaInvalid || undefined}
+      aria-describedby={ariaDescribedBy}
       onChange={(event) => onChange(event.target.value)}
     />
     <button type="button" className="date-picker-trigger" onClick={openPicker} disabled={disabled} aria-label="Choose date" title="Choose date">

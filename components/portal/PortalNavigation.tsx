@@ -27,7 +27,7 @@ const trailingItems = [
 ] as const;
 
 const adminTrailingItems = [
-  { href: "/students", label: "Student records", icon: GraduationCap },
+  { href: "/students/ug", label: "Student records", icon: GraduationCap },
 ] as const;
 
 export default function PortalNavigation({ role }: { role: PortalRole }) {
@@ -45,7 +45,7 @@ export default function PortalNavigation({ role }: { role: PortalRole }) {
       {items.map((item) => (
         <NavButton
           key={item.href}
-          active={pathname === item.href}
+          active={pathname === item.href || (item.href === "/students/ug" && pathname.startsWith("/students/"))}
           onClick={() => router.push(item.href)}
           icon={item.icon}
         >

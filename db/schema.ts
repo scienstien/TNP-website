@@ -18,8 +18,9 @@ import {
 
 /**
  * Institute-wide historical placement target schema; see db/README.md.
- * Existing migrations, queries, actions and seeds still use the legacy model.
- * Updating this file does not migrate a database or integrate the calendar UI.
+ * Runtime queries, actions and the institute demo seed use this target model. Preserved
+ * legacy rows and their dedicated importer remain isolated pending the reviewed data
+ * migration. Updating this file does not migrate a database or integrate the calendar UI.
  *
  * Future transactional writes/custom SQL must additionally enforce:
  * - PG programmes have a specialization and enrollment rolls are immutable.

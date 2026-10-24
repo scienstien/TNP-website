@@ -1,5 +1,7 @@
 import type { OfferTypeValue, RegistrationStatusValue } from "@/lib/placements/types";
-import type { StudentListFilters } from "./list-params";
+import type { DriveOption } from "@/lib/drives/types";
+
+export type StudentDegreeLevel = "UG" | "PG";
 
 /** One explicit placement-cycle participation (student_cycles row) of the enrollment. */
 export interface StudentParticipation {
@@ -14,19 +16,23 @@ export interface StudentOffer {
   cycleCode: string;
   companyId: string;
   companyName: string;
+  driveId: string | null;
+  driveReference: string | null;
+  roleId: string | null;
   jobRole: string | null;
+  roleDomain: string | null;
   packageLpa: string | null;
   offerType: OfferTypeValue | null;
   offerDate: string | null;
 }
-/** One undergraduate enrollment, identified by its roll number, with stable IDs for every link. */
+/** One enrollment in the selected degree-level view, identified by its roll number. */
 export interface StudentRecord {
   studentId: string;
   enrollmentId: string;
   rollNumber: number;
   name: string;
-  /** Lower-case code of the student's department, e.g. "civil". */
-  departmentCode: string;
+  genderCode: string | null;
+  reservationCategoryCode: string | null;
   programmeId: string;
   /** Degree code, plus the specialization when there is one, e.g. "B.Tech". */
   programmeLabel: string;
@@ -47,7 +53,7 @@ export interface CycleOption {
   cycleId: string;
   code: string;
 }
-/** The department's undergraduate cohorts and the placement cycles each is associated with. */
+/** The department's cohorts for the selected degree level and their associated placement cycles. */
 export interface CohortOption {
   cohortId: string;
   programmeId: string;
@@ -59,42 +65,28 @@ export interface CompanyOption {
   name: string;
   domain: string | null;
 }
-/** What the paged records list shows around its current page of students. */
-export interface StudentListMeta {
-  filters: StudentListFilters;
-  /** Current page (clamped to the last page) and rows per page. */
-  page: number;
-  pageSize: number;
-  /** Students matching the search and filters, across all pages. */
-  matching: number;
-  /** Everyone in the department scope, whatever the search and filters. */
-  recorded: number;
-  placed: number;
-  unplaced: number;
-  /** Choices for the filters, from the whole scope. */
-  batches: number[];
-  companies: string[];
-  departmentCodes: string[];
-}
+export interface ControlledOption { code: string; label: string }
 export interface StudentData {
-  /** Only the current page of the list. */
+  /** Explicit route/write context. Never inferred from a cohort or graduation year. */
+  level: StudentDegreeLevel;
   students: StudentRecord[];
-  /** True for the cross-department view (a super admin on All departments): records only, no editing. */
-  readOnly?: boolean;
-  /** The department's undergraduate programmes. */
+  /** The department's programmes for `level` only. */
   programmes: ProgrammeOption[];
   /** Every existing placement cycle (none is created or inferred here), newest code first. */
   cycles: CycleOption[];
   cohorts: CohortOption[];
   companies: CompanyOption[];
-  /** Paging, filters and totals for the list. */
-  list: StudentListMeta;
+  /** Existing institute-wide drives and roles; writes select identities, never create them. */
+  drives: DriveOption[];
+  genderTypes: ControlledOption[];
+  reservationCategories: ControlledOption[];
 }
 /** Offer edits. cycleId names the student-cycle a new offer belongs to. */
 export type OfferChanges = {
   cycleId?: string;
   companyId?: string;
-  jobRole?: string | null;
+  driveId?: string | null;
+  roleId?: string | null;
   packageLpa?: string | null;
   offerType?: OfferTypeValue | null;
   offerDate?: string | null;
@@ -106,6 +98,8 @@ export interface ParticipationInput {
 }
 export type StudentChanges = {
   name?: string;
+  genderCode?: string | null;
+  reservationCategoryCode?: string | null;
   admissionYear?: number | null;
   /** Cohort identity: accepted only when unchanged on an existing student (moves are rejected). */
   programmeId?: string;
