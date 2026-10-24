@@ -385,6 +385,7 @@
   min-height: 390px;
   position: relative;
   overflow: hidden;
+  border-radius: 12px;
 }
 .home-hero:after {
   content: "";
@@ -451,6 +452,7 @@
 }
 .home-card {
   border: 0;
+  border-radius: 10px;
   text-align: left;
   padding: 27px 25px;
   min-height: 245px;
@@ -574,6 +576,50 @@
 }
 * {
   box-sizing: border-box;
+}
+
+/* Disable text selection across the entire website */
+html,
+body,
+*,
+*::before,
+*::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Also ensure no default selection highlight appears on non-editable elements */
+::selection {
+  background: transparent;
+}
+::-moz-selection {
+  background: transparent;
+}
+
+/* Allow text selection inside editable inputs and textareas */
+:is(input, textarea, [contenteditable="true"], .selectable) {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+
+:is(input, textarea, [contenteditable="true"], .selectable)::selection {
+  background: #2563eb;
+  color: #ffffff;
+}
+:is(input, textarea, [contenteditable="true"], .selectable)::-moz-selection {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* Prevent accidental image dragging */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 body {
   margin: 0;
@@ -860,6 +906,7 @@ nav em {
 .panel {
   background: #f8f6f1;
   border: 1px solid var(--line);
+  border-radius: 10px;
   padding: 23px 24px;
 }
 .chart {
@@ -1657,6 +1704,7 @@ nav em {
   background: #3067dc;
 }
 .home-hero {
+  border-radius: 12px;
   background:
     linear-gradient(105deg, rgba(13, 17, 24, 0.96), rgba(18, 34, 70, 0.88)),
     repeating-linear-gradient(
@@ -1703,6 +1751,7 @@ nav em {
 .calendar-card,
 .drive-card {
   border: 1px solid var(--line);
+  border-radius: 10px;
   background: rgba(19, 28, 43, 0.72);
   color: #e8eefc;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);

@@ -29,7 +29,7 @@
   min-width: 0;
   padding: 22px 24px 0;
   border: 1px solid var(--psf-border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--psf-bg);
   color: var(--psf-text);
   font-family: var(--psf-sans);
@@ -111,7 +111,7 @@
   min-width: 0;
   padding: 12px 14px;
   border: 1px solid var(--psf-tile-border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--psf-tile-bg);
 }
 .psf-figure.is-lead {

@@ -1,4 +1,4 @@
-.card { display:grid; gap:14px; min-width:0; align-content:start; }
+.card { display:grid; gap:14px; min-width:0; align-content:start; border-radius:10px; }
 .header h2 { margin:0; }
 .header p { margin:6px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
 .state, .note { margin:0; color:var(--muted); font-size:13px; }

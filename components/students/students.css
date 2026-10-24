@@ -14,10 +14,10 @@
 .student-breadcrumb { margin: 0; color: #9aa7be; font-size: 13px; }
 .student-records .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .student-modal-backdrop { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 24px; background: #0b111d; }
-.student-modal { width: min(920px, 100%); max-height: calc(100dvh - 48px); overflow: auto; }
+.student-modal { width: min(920px, 100%); max-height: calc(100dvh - 48px); overflow: auto; border-radius: 10px; }
 .student-modal:focus { outline: none; }
 .student-modal :focus-visible { outline: 2px solid #9eb9ff; outline-offset: 2px; }
-.student-records .student-editor { padding: 24px; margin: 0; background: #131c2b; }
+.student-records .student-editor { padding: 24px; margin: 0; background: #131c2b; border-radius: 10px; }
 .student-editor-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .student-editor-heading h2 { margin-top: 0; }
 .student-editor-close { flex: 0 0 auto; width: 32px; height: 32px; border: 1px solid #687181; border-radius: 50%; color: inherit; background: transparent; font-size: 24px; line-height: 1; }

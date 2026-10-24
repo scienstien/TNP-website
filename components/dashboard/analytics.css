@@ -44,6 +44,7 @@
 /* Filters */
 .mme-filters {
   padding: 18px 20px;
+  border-radius: 10px;
 }
 .mme-filter-grid {
   display: grid;
@@ -214,6 +215,7 @@
   min-width: 0;
   padding: 16px 18px;
   border: 1px solid var(--line);
+  border-radius: 10px;
   background: rgba(19, 28, 43, 0.72);
 }
 .mme-kpi p {
@@ -352,6 +354,7 @@
   flex-direction: column;
   min-width: 0;
   padding: 20px 22px;
+  border-radius: 10px;
 }
 .mme-card-head {
   display: flex;
