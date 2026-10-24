@@ -29,24 +29,6 @@ export default function HomeView({
         </div>
         <PlacementProgress placementRecords={placementRecords} />
       </div>
-      <div className="home-grid">
-        <button className="home-card coral-card" onClick={onDashboard}>
-          <span>01</span>
-          <strong>
-            Placement
-            <br />
-            dashboard
-          </strong>
-        </button>
-        <button className="home-card dark-card" onClick={onCalendar}>
-          <span>02</span>
-          <strong>
-            Drive
-            <br />
-            calendar
-          </strong>
-        </button>
-      </div>
     </section>
   );
 }

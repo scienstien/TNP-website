@@ -4,12 +4,12 @@
 .outreach-view .section-heading > div { min-width:0; }
 .outreach-view h1 { margin:6px 0; }
 .outreach-message { color:#82d8b5; font-size:13px; }
-.outreach-panel { padding:0; overflow:hidden; }
+.outreach-panel { padding:0; overflow:hidden; border-radius:10px; }
 .outreach-tools { display:grid; grid-template-columns:auto minmax(180px,420px) 1fr; align-items:center; gap:12px; padding:18px 20px; border-bottom:1px solid var(--line); color:var(--muted); font-size:12px; }
 .outreach-tools input { min-width:0; padding:10px 12px; border:1px solid #354d76; border-radius:5px; background:#101b2d; color:#e6efff; }
 .outreach-tools span { justify-self:end; }
 .outreach-list { display:grid; gap:12px; padding:18px; }
-.outreach-card { padding:18px; border:1px solid rgba(112,160,255,.2); border-radius:8px; background:rgba(13,22,38,.72); }
+.outreach-card { padding:18px; border:1px solid rgba(112,160,255,.2); border-radius:10px; background:rgba(13,22,38,.72); }
 .outreach-card-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
 .outreach-card h2 { margin:8px 0 0; font-size:20px; }
 .outreach-pvr { display:inline-flex; border:1px solid; border-radius:999px; padding:4px 8px; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
