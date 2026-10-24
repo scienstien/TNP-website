@@ -19,17 +19,24 @@ interface Props {
 }
 
 /** Top bar for choosing the department the whole dashboard is showing. */
-export default function DepartmentNavbar({ current, departments, canSwitch }: Props) {
+export default function DepartmentNavbar({
+  current,
+  departments,
+  canSwitch,
+}: Props) {
   const [pending, startSwitch] = useTransition();
   const pathname = usePathname();
   const router = useRouter();
   const choose = (code: string) => startSwitch(() => selectDepartmentAction(code));
   const programme = pathname?.includes("/dashboard/pg") ? "PG" : "UG";
 
-  const options = [{ code: "all", name: "All departments", short: "All" }, ...departments.map((department) => ({
-    ...department,
-    short: department.code.toUpperCase(),
-  }))];
+  const options = [
+    { code: "all", name: "All departments", short: "All" },
+    ...departments.map((department) => ({
+      ...department,
+      short: department.code.toUpperCase(),
+    })),
+  ];
 
   return (
     <nav className="dept-navbar" aria-label="Department" aria-busy={pending}>
@@ -54,7 +61,11 @@ export default function DepartmentNavbar({ current, departments, canSwitch }: Pr
           onChange={(event) => choose(event.target.value)}
           aria-label="Department"
         >
-          {options.map((option) => <option key={option.code} value={option.code}>{option.short}</option>)}
+          {options.map((option) => (
+            <option key={option.code} value={option.code}>
+              {option.short}
+            </option>
+          ))}
         </select>
       </label>
       <span className="dept-navbar-current" aria-live="polite">

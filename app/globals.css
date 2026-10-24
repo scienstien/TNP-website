@@ -1840,7 +1840,7 @@ nav em {
   display: none;
   content: none;
 }
-.portal-shell nav button {
+.portal-shell .sidebar nav button {
   position: relative;
   display: flex;
   align-items: center;
@@ -2831,4 +2831,285 @@ body:has(.home-view) {
 }
 .portal-shell :is(button, select):disabled {
   cursor: not-allowed;
+}
+
+
+/* =========================================================================
+   Sidebar Collapse, Toggle Button (3 Horizontal Lines), and Compressing Transition
+   ========================================================================= */
+
+/* Ensure .sidebar has smooth compression transition */
+.portal-shell .sidebar {
+  width: 238px;
+  min-width: 238px;
+  background: rgba(8, 13, 22, 0.94);
+  border-right: 1px solid var(--line);
+  color: #e8eefc;
+  padding: 22px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  backdrop-filter: blur(14px);
+  will-change: width, min-width, padding;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sidebar header: Logo, branding, and 3-lines toggle button */
+.portal-shell .sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 46px;
+  margin-bottom: 22px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-shell .sidebar-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-shell .sidebar-logo {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border-radius: 50%;
+  background: rgba(5, 12, 25, 0.86);
+  flex-shrink: 0;
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.portal-shell .sidebar-brandDivider {
+  width: 1px;
+  height: 28px;
+  background: rgba(180, 204, 255, 0.3);
+  flex-shrink: 0;
+  transition: opacity 0.2s ease, width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-shell .sidebar-lockup {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-geist-sans), sans-serif;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s ease;
+}
+
+/* Three Horizontal Lines Toggle Button */
+.sidebar-toggle-btn {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3.5px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 6px;
+  background: rgba(110, 160, 255, 0.08);
+  border: 1px solid rgba(110, 160, 255, 0.2);
+  color: #c0d3fa;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(110, 160, 255, 0.18);
+  border-color: rgba(110, 160, 255, 0.4);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(94, 158, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.sidebar-toggle-btn:active {
+  transform: translateY(0);
+}
+
+.sidebar-toggle-btn:focus-visible {
+  outline: 2px solid #70a0ff;
+  outline-offset: 2px;
+}
+
+.sidebar-toggle-btn .hamburger-line {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background-color: currentColor;
+  border-radius: 2px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Navigation label and smooth compression */
+.portal-shell nav button {
+  width: 100%;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease, padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), justify-content 0.3s ease;
+  overflow: hidden;
+}
+
+.portal-shell .sidebar nav button .nav-label {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s ease;
+}
+
+/* User profile details */
+.portal-shell .profile {
+  margin-top: auto;
+  padding: 16px 4px 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-shell .profile-details {
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+  color: #dbe6fa;
+  max-width: 120px;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s ease;
+}
+
+.portal-shell .profile-signout-form {
+  margin-left: auto;
+  transition: margin 0.3s ease;
+}
+
+/* -------------------------------------------------------------
+   COLLAPSED / COMPRESSED STATE (rail mode)
+   ------------------------------------------------------------- */
+.portal-shell .sidebar.sidebar--collapsed {
+  width: 68px !important;
+  min-width: 68px !important;
+  padding: 18px 8px 16px !important;
+}
+
+.portal-shell .sidebar.sidebar--collapsed .sidebar-header {
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.portal-shell .sidebar.sidebar--collapsed .sidebar-logo-wrap {
+  justify-content: center;
+  gap: 0;
+}
+
+.portal-shell .sidebar.sidebar--collapsed .sidebar-logo {
+  width: 36px;
+  height: 36px;
+}
+
+.portal-shell .sidebar.sidebar--collapsed .sidebar-brandDivider {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.portal-shell .sidebar.sidebar--collapsed .sidebar-lockup {
+  opacity: 0;
+  max-width: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+.portal-shell .sidebar.sidebar--collapsed nav button {
+  justify-content: center;
+  padding: 10px 0;
+  gap: 0;
+}
+
+.portal-shell .sidebar.sidebar--collapsed nav button .nav-label {
+  opacity: 0;
+  max-width: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+.portal-shell .sidebar.sidebar--collapsed .profile {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0 0;
+  gap: 8px;
+}
+
+.portal-shell .sidebar.sidebar--collapsed .profile-details {
+  opacity: 0;
+  max-width: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+.portal-shell .sidebar.sidebar--collapsed .profile-signout-form {
+  margin-left: 0;
+}
+
+.portal-shell .sidebar.sidebar--collapsed .signout-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 6px;
+}
+
+/* Smooth transition on content-area */
+.portal-shell .content-area {
+  flex: 1;
+  min-width: 0;
+  transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 800px) {
+  .portal-shell .sidebar.sidebar--collapsed {
+    width: 100% !important;
+    min-width: 100% !important;
+    padding: 8px 12px !important;
+  }
+}
+
+/* Pinned state for the toggle button */
+.sidebar-toggle-btn--pinned {
+  background: rgba(94, 158, 255, 0.22);
+  border-color: #5e9eff;
+  color: #79a6ff;
+  box-shadow: 0 0 10px rgba(94, 158, 255, 0.35);
+}
+
+/* Subtle glow / elevation when expanded */
+.portal-shell .sidebar.sidebar--expanded {
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35);
 }

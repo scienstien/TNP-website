@@ -117,16 +117,51 @@ export interface DemoCohort { cohortId: string; dept: DeptCode; level: "ug" | "p
 export interface DemoRole { roleId: string; driveId: string; companyId: string; hires: DeptCode[]; offerType: "PPO" | "FTE" | "FTE+6month"; pptDate: string; range: [number, number] }
 
 /** Students, enrollments, per-cycle registration and final offers for the given cohorts. */
-export function generateStudents(cohortList: DemoCohort[], cycleIds: Map<number, string>, rolesByCycle: Map<number, DemoRole[]>, rng: Rng) {
+export function generateStudents(
+  cohortList: DemoCohort[],
+  cycleIds: Map<number, string>,
+  rolesByCycle: Map<number, DemoRole[]>,
+  rng: Rng,
+  targetTotalStudents?: number,
+) {
   const { random, pick, between } = rng;
   const byCode = new Map<string, (typeof DEPARTMENTS)[number]>(DEPARTMENTS.map((dept) => [dept.code, dept]));
   const studentRows: (typeof students.$inferInsert)[] = [];
   const enrollmentRows: (typeof enrollments.$inferInsert)[] = [];
   const cycleRows: (typeof studentCycles.$inferInsert)[] = [];
   const offerRows: (typeof placementOffers.$inferInsert)[] = [];
-  for (const cohort of cohortList) {
+
+  const rawCounts = cohortList.map((cohort) => {
     const dept = byCode.get(cohort.dept)!;
-    const count = cohort.level === "ug" ? dept.size - 6 + (cohort.year % 7) : between(7, 12);
+    return cohort.level === "ug" ? dept.size - 6 + (cohort.year % 7) : between(7, 12);
+  });
+
+  let counts = rawCounts;
+  if (targetTotalStudents && targetTotalStudents > 0) {
+    const totalRaw = rawCounts.reduce((sum, c) => sum + c, 0);
+    const floored = rawCounts.map((c) => Math.max(1, Math.floor((c / totalRaw) * targetTotalStudents)));
+    const allocated = floored.reduce((sum, c) => sum + c, 0);
+    const diff = targetTotalStudents - allocated;
+    if (diff > 0) {
+      const remainders = rawCounts
+        .map((c, idx) => ({ idx, rem: (c / totalRaw) * targetTotalStudents - floored[idx] }))
+        .sort((a, b) => b.rem - a.rem);
+      for (let i = 0; i < diff; i++) {
+        floored[remainders[i % remainders.length].idx]++;
+      }
+    } else if (diff < 0) {
+      for (let i = 0; i < -diff; i++) {
+        const canDecrement = floored.findIndex((c) => c > 1);
+        if (canDecrement !== -1) floored[canDecrement]--;
+      }
+    }
+    counts = floored;
+  }
+
+  for (let cohortIndex = 0; cohortIndex < cohortList.length; cohortIndex++) {
+    const cohort = cohortList[cohortIndex];
+    const dept = byCode.get(cohort.dept)!;
+    const count = counts[cohortIndex];
     const cycleId = cycleIds.get(cohort.year)!;
     const roles = (rolesByCycle.get(cohort.year) ?? []).filter((role) => role.hires.includes(cohort.dept));
     const placedChance = Math.min(0.92, dept.placed * (0.82 + ((cohort.year - FIRST_YEAR) % 5) * 0.05)) * (cohort.level === "pg" ? 0.8 : 1);
