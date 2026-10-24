@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   BriefcaseBusiness,
@@ -22,13 +22,14 @@ import {
   setStudentParticipation,
 } from "@/lib/students/actions";
 import { validateCompany } from "@/lib/students/company-validation";
+import { EMPTY_STUDENT_FILTERS, studentListQuery, STUDENT_STATUSES, type StudentListFilters, type StudentStatusFilter } from "@/lib/students/list-params";
 import { validateParticipation, validateStudent } from "@/lib/students/validation";
 import { OFFER_TYPES, REGISTRATION_STATUSES } from "@/lib/placements/types";
 import type { CompanyOption, StudentData, StudentRecord, StudentResult } from "@/lib/students/types";
 import { DatePicker } from "@/components/ui/date-picker";
 import "./students.css";
 
-type Options = Omit<StudentData, "students">;
+type Options = Omit<StudentData, "students" | "list" | "readOnly">;
 type Status = "Placed" | "Unplaced" | "Not registered";
 
 /** Derived, never stored: an offer means placed; REGISTERED without an offer means unplaced. */
@@ -64,40 +65,38 @@ export async function sendRemoval(student: StudentRecord, send: (roll: number, e
 }
 
 export default function StudentRecords({ data }: { data: StudentData }) {
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [batchFilter, setBatchFilter] = useState("All");
-  const [companyFilter, setCompanyFilter] = useState("All");
+  const { students, readOnly = false, list, ...options } = data;
+  const { filters } = list;
   const [editing, setEditing] = useState<StudentRecord | "new" | null>(null);
   const [registrationsRoll, setRegistrationsRoll] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [searchText, setSearchText] = useState(filters.q);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(searchTimer.current), []);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const { students, ...options } = data;
   const busy = pending || editing !== null || registrationsRoll !== null;
-  const batches = [...new Set(students.map(s => s.batchYear))]
-    .sort((a, b) => b - a);
-  const companies = [...new Set(students.flatMap(s => s.offer ? [s.offer.companyName] : []))]
-    .sort((a, b) => a.localeCompare(b));
-  const placedCount = students.filter((student) => statusOf(student) === "Placed").length;
-  const unplacedCount = students.filter((student) => statusOf(student) === "Unplaced").length;
-  const visible = students.filter(s =>
-    `${s.rollNumber} ${s.name} ${s.programmeLabel} ${s.batchYear} ${s.participations.map(p => p.cycleCode).join(" ")} ${s.offer?.companyName ?? ""}`
-      .toLowerCase().includes(query.toLowerCase()) &&
-    (batchFilter === "All" || s.batchYear === Number(batchFilter)) &&
-    (companyFilter === "All" || s.offer?.companyName === companyFilter) &&
-    (statusFilter === "All" || statusOf(s) === statusFilter || s.offer?.offerType === statusFilter));
-  const clearFilters = () => {
-    setQuery("");
-    setBatchFilter("All");
-    setCompanyFilter("All");
-    setStatusFilter("All");
+  /** Search, filters and paging run on the server: each change loads the matching page (page 1 unless the page itself changes). */
+  const go = (change: Partial<StudentListFilters>) =>
+    startTransition(() => router.replace(`/students${studentListQuery({ ...filters, page: 1, ...change })}`));
+  const search = (text: string) => {
+    setSearchText(text);
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => go({ q: text.trim() }), 300);
   };
+  const clearFilters = () => {
+    clearTimeout(searchTimer.current);
+    setSearchText("");
+    go({ ...EMPTY_STUDENT_FILTERS });
+  };
+  const pages = Math.max(1, Math.ceil(list.matching / list.pageSize));
+  const firstShown = students.length ? (list.page - 1) * list.pageSize + 1 : 0;
   const activeFilters = [
-    query && { label: `Search: ${query}`, clear: () => setQuery("") },
-    batchFilter !== "All" && { label: `Batch: ${batchFilter}`, clear: () => setBatchFilter("All") },
-    companyFilter !== "All" && { label: `Company: ${companyFilter}`, clear: () => setCompanyFilter("All") },
-    statusFilter !== "All" && { label: `Status: ${statusFilter}`, clear: () => setStatusFilter("All") },
+    filters.q && { label: `Search: ${filters.q}`, clear: () => { setSearchText(""); go({ q: "" }); } },
+    filters.department && { label: `Department: ${filters.department.toUpperCase()}`, clear: () => go({ department: null }) },
+    filters.batch !== null && { label: `Batch: ${filters.batch}`, clear: () => go({ batch: null }) },
+    filters.company && { label: `Company: ${filters.company}`, clear: () => go({ company: null }) },
+    filters.status && { label: `Status: ${filters.status}`, clear: () => go({ status: null }) },
   ].filter(Boolean) as { label: string; clear: () => void }[];
   function remove(student: StudentRecord, offer: boolean) {
     if (!window.confirm(removalConfirmation(student, offer))) return;
@@ -112,8 +111,9 @@ export default function StudentRecords({ data }: { data: StudentData }) {
       <div className="section-heading">
         <div><p className="student-breadcrumb">Dashboard / Student records</p><h1>Student records</h1>
           <p>Saved students, placement-cycle registrations and offers from the database. Save each edit to update dashboard statistics.</p></div>
+        {!readOnly && (
         <button className="dark-button" disabled={busy}
-          onClick={() => { setEditing("new"); setFeedback(null); }}>Add student</button>
+          onClick={() => { setEditing("new"); setFeedback(null); }}>Add student</button>)}
       </div>
       {feedback?.alert && <p role="alert">{feedback.text}</p>}
       {feedback && !feedback.alert && <p role="status">{feedback.text}</p>}
@@ -136,9 +136,9 @@ export default function StudentRecords({ data }: { data: StudentData }) {
             <p>Search, filter, and update each student&apos;s registrations and recorded offer.</p>
           </div>
           <div className="student-table-stats" aria-label="Student record summary">
-            <Stat label="Recorded" value={students.length} icon={UsersRound} />
-            <Stat label="Placed" value={placedCount} icon={BriefcaseBusiness} tone="placed" />
-            <Stat label="Unplaced" value={unplacedCount} icon={CircleSlash2} tone="unplaced" />
+            <Stat label="Recorded" value={list.recorded} icon={UsersRound} />
+            <Stat label="Placed" value={list.placed} icon={BriefcaseBusiness} tone="placed" />
+            <Stat label="Unplaced" value={list.unplaced} icon={CircleSlash2} tone="unplaced" />
           </div>
         </div>
         <div className="student-toolbar">
@@ -146,19 +146,23 @@ export default function StudentRecords({ data }: { data: StudentData }) {
             <label className="student-search">
               <Search size={17} aria-hidden="true" />
               <span className="sr-only">Search students</span>
-              <input value={query} placeholder="Search name, roll number, cycle or company"
-                onChange={e => setQuery(e.target.value)} />
+              <input value={searchText} placeholder="Search name, roll number, cycle or company"
+                onChange={e => search(e.target.value)} />
             </label>
-            <FilterSelect label="Batch" value={batchFilter} onChange={setBatchFilter}>
+            {readOnly && <FilterSelect label="Department" value={filters.department ?? "All"} onChange={value => go({ department: value === "All" ? null : value })}>
+              <option value="All">All departments</option>
+              {list.departmentCodes.map(code => <option key={code} value={code}>{code.toUpperCase()}</option>)}
+            </FilterSelect>}
+            <FilterSelect label="Batch" value={filters.batch === null ? "All" : String(filters.batch)} onChange={value => go({ batch: value === "All" ? null : Number(value) })}>
               <option value="All">All batches</option>
-              {batches.map(batch => <option key={batch} value={batch}>{batch}</option>)}
+              {list.batches.map(batch => <option key={batch} value={batch}>{batch}</option>)}
             </FilterSelect>
-            <FilterSelect label="Company" value={companyFilter} onChange={setCompanyFilter}>
+            <FilterSelect label="Company" value={filters.company ?? "All"} onChange={value => go({ company: value === "All" ? null : value })}>
               <option value="All">All companies</option>
-              {companies.map(company => <option key={company} value={company}>{company}</option>)}
+              {list.companies.map(company => <option key={company} value={company}>{company}</option>)}
             </FilterSelect>
-            <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter}>
-              {["All", "Placed", "Unplaced", "Not registered", ...OFFER_TYPES].map(status => <option key={status}>{status}</option>)}
+            <FilterSelect label="Status" value={filters.status ?? "All"} onChange={value => go({ status: value === "All" ? null : value as StudentStatusFilter })}>
+              {["All", ...STUDENT_STATUSES].map(status => <option key={status}>{status}</option>)}
             </FilterSelect>
           </div>
           <div className="student-toolbar-summary">
@@ -169,17 +173,18 @@ export default function StudentRecords({ data }: { data: StudentData }) {
               {activeFilters.length > 0 && <button type="button" className="student-clear-filters" onClick={clearFilters}>Clear all</button>}
             </div>
             <span className="student-result-count" role="status">
-              {visible.length ? `Showing 1–${visible.length} of ${students.length}` : `Showing 0 of ${students.length}`}
+              {students.length ? `Showing ${firstShown}–${firstShown + students.length - 1} of ${list.matching}` : `Showing 0 of ${list.matching}`}
             </span>
           </div>
         </div>
-        {!visible.length && <p className="table-hint" role="status">{students.length
+        {!students.length && <p className="table-hint" role="status">{list.recorded
           ? "No students match the current filters." : "No student records loaded."}</p>}
         <div className="student-table-scroll">
           <table className="student-db-table">
-            <thead><tr>{["Roll number", "Name", "Programme", "Batch", "Cycles", "Status", "Company", "Sector", "Job role", "Offer type", "CTC (LPA)", "Offer date", "Actions"]
+            <thead><tr>{[...(readOnly ? ["Department"] : []), "Roll number", "Name", "Programme", "Batch", "Cycles", "Status", "Company", "Sector", "Job role", "Offer type", "CTC (LPA)", "Offer date", ...(readOnly ? [] : ["Actions"])]
               .map(h => <th key={h}>{h}</th>)}</tr></thead>
-            <tbody>{visible.map(s => <tr key={s.rollNumber}>
+            <tbody>{students.map(s => <tr key={s.rollNumber}>
+              {readOnly && <td>{s.departmentCode.toUpperCase()}</td>}
               <td>{s.rollNumber}</td><td>{s.name}</td><td>{s.programmeLabel}</td><td>{s.batchYear}</td>
               <td>{s.participations.length ? <span className="student-cycles">{s.participations.map(p =>
                 <span key={p.cycleId} title={p.registrationStatus}
@@ -191,7 +196,7 @@ export default function StudentRecords({ data }: { data: StudentData }) {
               <td>{options.companies.find(c => c.companyId === s.offer?.companyId)?.domain ?? "—"}</td>
               <td>{s.offer?.jobRole ?? "—"}</td><td>{s.offer?.offerType ?? "—"}</td>
               <td>{s.offer?.packageLpa ?? "—"}</td><td>{s.offer?.offerDate ?? "—"}</td>
-              <td><div className="student-row-actions">
+              {!readOnly && <td><div className="student-row-actions">
                 <button className="student-icon-button" type="button" title={`Edit ${s.name}`} aria-label={`Edit ${s.name}`}
                   disabled={busy} onClick={() => { setEditing(s); setFeedback(null); }}><Pencil size={15} /></button>
                 <button className="student-icon-button" type="button" title={`${s.name}'s placement-cycle registrations`}
@@ -200,10 +205,15 @@ export default function StudentRecords({ data }: { data: StudentData }) {
                 {s.offer && <button className="student-icon-button student-icon-button--warning" type="button" title={`Remove ${s.name}'s offer`} aria-label={`Remove ${s.name}'s offer`}
                   disabled={busy} onClick={() => remove(s, true)}><BriefcaseBusiness size={15} /></button>}
                 <DeleteAction student={s} disabled={busy} onDelete={() => remove(s, false)} />
-              </div></td>
+              </div></td>}
             </tr>)}</tbody>
           </table>
         </div>
+        {pages > 1 && <nav className="student-pagination" aria-label="Student records pages">
+          <button type="button" disabled={list.page <= 1} onClick={() => go({ page: list.page - 1 })}>Previous</button>
+          <span>Page {list.page} of {pages}</span>
+          <button type="button" disabled={list.page >= pages} onClick={() => go({ page: list.page + 1 })}>Next</button>
+        </nav>}
       </section>
     </section>
   );

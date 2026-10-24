@@ -32,6 +32,17 @@ const utcMillis = (isoDate: string) => {
   return Date.UTC(y, m - 1, d);
 };
 
+/** The date `days` days after `isoDate` (negative goes back), as YYYY-MM-DD. */
+export function addDays(isoDate: string, days: number): string {
+  const date = new Date(utcMillis(isoDate) + days * 86_400_000);
+  return toIsoDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+/** "24 Oct" style label for a YYYY-MM-DD date. */
+export function shortDate(isoDate: string): string {
+  return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
+}
+
 /** Whole days from `from` to `to` (both YYYY-MM-DD); negative when `to` is earlier. */
 export function daysBetween(from: string, to: string): number {
   return Math.round((utcMillis(to) - utcMillis(from)) / 86_400_000);

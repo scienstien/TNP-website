@@ -197,9 +197,15 @@ server-maintained `updated_at` are otherwise unchanged. Signed-in professors may
 read their department's list; only administrators may create, edit or delete its
 entries.
 
-The placeholder `mme` department created by migration 0005 exists only so
-existing accounts and contacts are valid; replace or rename it when the real
-department list is imported. `npm run db:seed:departments` removes it.
+Migration 0005 creates an `mme` department so existing accounts and contacts stay
+valid. `npm run db:seed:departments` keeps it as the real Metallurgical and Materials
+Engineering department: the demo seed covers the nine B.Tech departments (chem,
+civil, cse, ece, eee, ice, mech, mme, prod), each with fictional B.Tech and M.Tech data.
+Shared demo definitions live in `db/demo-data.ts`. On a database the full seed refuses
+(for example one holding legacy rows), the add-only
+`DEMO_TOPUP_DATABASE=<name> npx tsx db/seed-departments-topup.ts` adds just the
+departments that are missing or have no programmes, joining existing cycles and DEMO
+company drives; it never deletes or updates rows and never touches `legacy_*` tables.
 
 ## Local database and future migration workflow
 

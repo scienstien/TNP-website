@@ -3,6 +3,6 @@ import type { CalendarEvent, CalendarWindow } from "@/lib/calendar/types";
 import type { DriveOption } from "@/lib/drives/types";
 import DriveCalendar from "./DriveCalendar";
 
-export default function CalendarView(props: { today: string; canEdit: boolean; scope: string; window: CalendarWindow; events: CalendarEvent[]; drives: DriveOption[] }) {
-  return <><PageHeading eyebrow="DRIVE STAGES" title="Process calendar" subtitle="Scheduled and undated historical drive stages, shared through the database." /><DriveCalendar key={`${props.window.startsOn}:${props.scope}`} {...props} /></>;
+export default function CalendarView(props: { today: string; initialDay: string | null; canEdit: boolean; scope: string; window: CalendarWindow; events: CalendarEvent[]; upcoming: CalendarEvent[]; drives: DriveOption[] }) {
+  return <><PageHeading eyebrow="DRIVE STAGES" title="Process calendar" subtitle="Drive stages and upcoming company visits." /><DriveCalendar key={`${props.window.startsOn}:${props.scope}:${props.initialDay ?? ""}`} {...props} /></>;
 }

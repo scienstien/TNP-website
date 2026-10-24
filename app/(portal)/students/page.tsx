@@ -1,12 +1,14 @@
 import { Suspense } from "react";
-import ChooseDepartment from "@/components/portal/ChooseDepartment";
 import StudentRecords from "@/components/students/StudentRecords";
+import { parseStudentListParams } from "@/lib/students/list-params";
 import { getStudentData } from "@/lib/students/queries";
 
-export default function StudentsPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default function StudentsPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <Suspense fallback={<section className="panel" role="status" aria-busy="true"><p>Loading student records…</p></section>}>
-      <StudentData />
+      <StudentData searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -15,7 +17,7 @@ export default function StudentsPage() {
  * Per-request and uncached: getStudentData() runs the ADMIN check before it reads the department
  * cookie or the database, so authorization still happens on every request.
  */
-async function StudentData() {
-  const studentData = await getStudentData();
-  return studentData ? <StudentRecords data={studentData} /> : <ChooseDepartment />;
+async function StudentData({ searchParams }: { searchParams: SearchParams }) {
+  const data = await getStudentData(parseStudentListParams(await searchParams));
+  return <StudentRecords data={data} />;
 }

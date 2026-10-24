@@ -26,10 +26,14 @@ readCalendarEvents is internal/auth-free for authorized page/action use; it quer
 events then role links separately. getCalendarData is the authenticated public query.
 The form picks an existing drive ID; no cycle/company/role is inferred or created.
 
-Browser data under mme-process-calendar-events:<scope> remains untouched, read-only
-in a separate panel. Its original parsing rules are preserved; Download JSON exports
-the raw stored value (including unrecognized entries) without transfer/import/deletion.
-Refresh events fetches changes saved in other browsers; no realtime subscription.
+Old browser-only data under mme-process-calendar-events:<scope> is no longer read or
+shown (the read-only panel was removed); it stays untouched in browser storage. Saves
+refresh the page data; there is no manual refresh button or realtime subscription.
+
+The side panel's Upcoming companies section (lib/calendar/upcoming.ts) lists companies
+with a dated stage from today through the next 5–30 days (toggle, remembered per
+browser), ordered by first stage; the page loads today..today+30 separately from the
+shown month. Undated stages never count. Unscheduled stages sit below it, collapsed.
 
 Pure rule/label/local-parser tests pass. Isolated PostgreSQL rollback/concurrency and
 two-browser behavior still require manual/integration verification; see MIG-008 handoff.

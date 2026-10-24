@@ -7,6 +7,7 @@ import { createCompany, updateCompany } from "@/lib/companies/actions";
 import { validateCompanyCreate, validateCompanyUpdate } from "@/lib/companies/validation";
 import type { CompanyListRecord, CompanyRecord, CompanyResult, PvrStatus } from "@/lib/companies/types";
 import { validateNewCompanyDrives } from "@/lib/drives/rules";
+import { applyVolumeMode, type VolumeMode } from "@/lib/companies/volume";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { CompanyDrivesEditor, DriveDraftList, confirmDraftsWithoutStages, driveDraftInput, driveDraftProblem, newDriveDraft, useRoleDomains, type DriveDraft } from "./CompanyDriveFields";
@@ -15,8 +16,9 @@ import "./companies.css";
 type Draft = Omit<CompanyRecord, "companyId" | "name" | "pvrStatus" | "visitDate"> & { pvrStatus: PvrStatus };
 type Cycle = { cycleId: string; code: string };
 const PAGE_SIZE = 8;
+const formatLpa = (value: number) => value.toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
-export default function CompanyDirectory({ data, isAdmin, cycle, cycles, selectedCompanyId, onSelect, drivesForId, onCloseDrives, onDrivesChanged, details }: { data: CompanyListRecord[]; isAdmin: boolean; cycle: Cycle | null; cycles: Cycle[]; selectedCompanyId: string | null; onSelect: (id: string | null) => void; drivesForId: string | null; onCloseDrives: () => void; onDrivesChanged: () => void; details: React.ReactNode }) {
+export default function CompanyDirectory({ data, volumeMode, isAdmin, cycle, cycles, selectedCompanyId, onSelect, drivesForId, onCloseDrives, onDrivesChanged, details }: { data: CompanyListRecord[]; volumeMode: VolumeMode; isAdmin: boolean; cycle: Cycle | null; cycles: Cycle[]; selectedCompanyId: string | null; onSelect: (id: string | null) => void; drivesForId: string | null; onCloseDrives: () => void; onDrivesChanged: () => void; details: React.ReactNode }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -25,9 +27,11 @@ export default function CompanyDirectory({ data, isAdmin, cycle, cycles, selecte
   const drivesFor = data.find(company => company.companyId === drivesForId) ?? null;
   const defaultCycleId = cycle?.cycleId ?? cycles[0]?.cycleId ?? "";
   const [message, setMessage] = useState("");
-  const visible = data.filter((company) =>
+  const matching = data.filter((company) =>
     `${company.name} ${company.hrName ?? ""} ${company.email ?? ""}`.toLowerCase().includes(query.toLowerCase()),
   );
+  // Data arrives A–Z; the header's Volume control (median package × students) orders or cuts it.
+  const visible = applyVolumeMode(matching, volumeMode);
   const contactCount = data.filter((company) => company.hrName || company.email || company.phoneNumber).length;
   const scheduledVisitCount = data.filter((company) => company.visitDate).length;
   const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
@@ -63,6 +67,7 @@ export default function CompanyDirectory({ data, isAdmin, cycle, cycles, selecte
                 <span className="company-record-facts">
                   <span><b>Description</b>{company.domain ?? "Not recorded"}</span>
                   <span title={cycle ? `Final offers reported in ${cycle.code}` : "Final offers reported in every cycle"}><Briefcase size={14} aria-hidden="true" />{company.offerCount} {company.offerCount === 1 ? "offer" : "offers"} made</span>
+                  <span title={company.volume === null ? "No recorded package, so no volume" : `Median package ${formatLpa(company.medianLpa!)} LPA × ${company.offerCount} ${company.offerCount === 1 ? "student" : "students"}`}><b>Volume</b>{company.volume === null ? "Not available" : `${formatLpa(company.volume)} LPA`}</span>
                 </span>
                 <span className="company-record-action">{expanded ? "Hide analytics" : "View analytics"}<ChevronDown size={17} aria-hidden="true" /></span>
               </button>

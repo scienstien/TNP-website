@@ -10,6 +10,7 @@ import CompanyProcessTable from "./CompanyProcessTable";
 import CompanyContactsTable from "./CompanyContactsTable";
 import { useCompanyPanel } from "./use-company-panel";
 import type { CompanyListRecord } from "@/lib/companies/types";
+import type { VolumeMode } from "@/lib/companies/volume";
 
 export interface CompanyPanelProps {
   data: CompanyListRecord[]; isAdmin: boolean;
@@ -17,7 +18,7 @@ export interface CompanyPanelProps {
   scopeKey: string; scopeLabel: string;
 }
 
-export default function CompanyPanelController({ data, isAdmin, cycles, cycle, scopeKey, scopeLabel }: CompanyPanelProps) {
+export default function CompanyPanelController({ data, isAdmin, cycles, cycle, scopeKey, scopeLabel, volumeMode }: CompanyPanelProps & { volumeMode: VolumeMode }) {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [selectionVersion, setSelectionVersion] = useState(0);
   const [typeRoleId, setTypeRoleId] = useState<string | null>(null);
@@ -51,5 +52,5 @@ export default function CompanyPanelController({ data, isAdmin, cycles, cycle, s
     </div>;
   // Drive edits change the open company's drives, roles and contacts: reload its panels.
   const reloadSelected = () => { if (companyId) chooseCompany(companyId); };
-  return <CompanyDirectory data={data} isAdmin={isAdmin} cycle={cycle} cycles={cycles} selectedCompanyId={company?.companyId ?? null} onSelect={chooseCompany} drivesForId={drivesForId} onCloseDrives={() => setDrivesForId(null)} onDrivesChanged={reloadSelected} details={details} />;
+  return <CompanyDirectory data={data} volumeMode={volumeMode} isAdmin={isAdmin} cycle={cycle} cycles={cycles} selectedCompanyId={company?.companyId ?? null} onSelect={chooseCompany} drivesForId={drivesForId} onCloseDrives={() => setDrivesForId(null)} onDrivesChanged={reloadSelected} details={details} />;
 }

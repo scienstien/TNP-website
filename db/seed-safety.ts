@@ -84,3 +84,18 @@ export function planDemoSeed(snapshot: SeedSnapshot, environment: SeedEnvironmen
 export function canRemoveRetiredDepartment(references: { users: number; outreachContacts: number; programmes: number }): boolean {
   return references.users === 0 && references.outreachContacts === 0 && references.programmes === 0;
 }
+
+/** Environment variable that must equal current_database() for the add-only top-up to run. */
+export const TOPUP_DATABASE_ENV = "DEMO_TOPUP_DATABASE";
+
+/**
+ * The add-only top-up never deletes or updates rows, and legacy rows are allowed (it never touches
+ * them); it still needs the database named explicitly and never runs in production.
+ */
+export function planDemoTopUp(database: string, environment: { topUpDatabase?: string; nodeEnv?: string }): { refuse?: string } {
+  if (environment.nodeEnv === "production") return { refuse: "The demo top-up never runs with NODE_ENV=production." };
+  const confirmed = environment.topUpDatabase?.trim();
+  if (!confirmed) return { refuse: `Refusing to add demo departments to "${database}": set ${TOPUP_DATABASE_ENV}=${database} to confirm.` };
+  if (confirmed !== database) return { refuse: `${TOPUP_DATABASE_ENV} names "${confirmed}" but the connection is to "${database}". Nothing was changed.` };
+  return {};
+}

@@ -95,3 +95,8 @@
   .student-modal { max-height: calc(100dvh - 24px); }
   .student-records .student-editor { padding: 18px; }
 }
+
+.student-pagination { display:flex; align-items:center; justify-content:center; gap:14px; padding:14px 18px 18px; color:#9aa7be; font-size:12px; }
+.student-pagination button { min-height:34px; padding:7px 13px; border:1px solid #536786; border-radius:6px; color:#cfe0ff; background:#14213a; cursor:pointer; }
+.student-pagination button:hover:not(:disabled) { border-color:#76a4ff; background:#1e3154; }
+.student-pagination button:disabled { opacity:.42; cursor:not-allowed; }

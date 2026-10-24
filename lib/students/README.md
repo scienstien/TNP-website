@@ -76,3 +76,16 @@ node -e "process.geteuid=()=>0; require('tsx/cjs/api').register(); require('./li
 
 Then run `npx tsc --noEmit`, `npm run lint` and `npm run build`. Database-level
 verification is recorded in `docs/handoffs/LANE-A-CHANGELOG.md`.
+
+## Paged records list
+
+The Students page never sends every student to the browser. `getStudentData(filters)` returns
+one page (50 rows) from `readStudentList`, plus totals and filter choices counted in SQL:
+`matching` (current search/filters), `recorded`/`placed`/`unplaced` (whole scope) and the batch,
+company and department choices. Search (roll, name, programme, batch, cycle code, company),
+department (All departments view only), batch, company and status filters, and the page number
+come from the URL (`?q=&dept=&batch=&company=&status=&page=`), validated by
+`parseStudentListParams` in `list-params.ts`; a department user's own department is applied
+whatever the URL says. Status is derived in SQL (offer = Placed; REGISTERED without offer =
+Unplaced; otherwise Not registered), never stored. Out-of-range pages clamp to the last page,
+and LIKE wildcards in the search text are escaped. The "All departments" view is read-only.

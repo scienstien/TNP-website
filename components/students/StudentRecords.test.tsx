@@ -18,7 +18,7 @@ const { DeleteAction, deleteBlockedReason, removalConfirmation, sendRemoval } = 
 
 const student: StudentRecord = {
   studentId: "10000000-0000-4000-8000-000000000001", enrollmentId: "20000000-0000-4000-8000-000000000001",
-  rollNumber: 123456789, name: "Test Student", programmeId: "30000000-0000-4000-8000-000000000001", programmeLabel: "B.Tech",
+  rollNumber: 123456789, name: "Test Student", departmentCode: "civil", programmeId: "30000000-0000-4000-8000-000000000001", programmeLabel: "B.Tech",
   cohortId: "40000000-0000-4000-8000-000000000001", batchYear: 2027, admissionYear: null,
   participations: [{ cycleId: "50000000-0000-4000-8000-000000000001", cycleCode: "26-27", registrationStatus: "REGISTERED" }], offer: null,
 };

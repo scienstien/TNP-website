@@ -1,4 +1,5 @@
 import type { OfferTypeValue, RegistrationStatusValue } from "@/lib/placements/types";
+import type { StudentListFilters } from "./list-params";
 
 /** One explicit placement-cycle participation (student_cycles row) of the enrollment. */
 export interface StudentParticipation {
@@ -24,6 +25,8 @@ export interface StudentRecord {
   enrollmentId: string;
   rollNumber: number;
   name: string;
+  /** Lower-case code of the student's department, e.g. "civil". */
+  departmentCode: string;
   programmeId: string;
   /** Degree code, plus the specialization when there is one, e.g. "B.Tech". */
   programmeLabel: string;
@@ -56,14 +59,36 @@ export interface CompanyOption {
   name: string;
   domain: string | null;
 }
+/** What the paged records list shows around its current page of students. */
+export interface StudentListMeta {
+  filters: StudentListFilters;
+  /** Current page (clamped to the last page) and rows per page. */
+  page: number;
+  pageSize: number;
+  /** Students matching the search and filters, across all pages. */
+  matching: number;
+  /** Everyone in the department scope, whatever the search and filters. */
+  recorded: number;
+  placed: number;
+  unplaced: number;
+  /** Choices for the filters, from the whole scope. */
+  batches: number[];
+  companies: string[];
+  departmentCodes: string[];
+}
 export interface StudentData {
+  /** Only the current page of the list. */
   students: StudentRecord[];
+  /** True for the cross-department view (a super admin on All departments): records only, no editing. */
+  readOnly?: boolean;
   /** The department's undergraduate programmes. */
   programmes: ProgrammeOption[];
   /** Every existing placement cycle (none is created or inferred here), newest code first. */
   cycles: CycleOption[];
   cohorts: CohortOption[];
   companies: CompanyOption[];
+  /** Paging, filters and totals for the list. */
+  list: StudentListMeta;
 }
 /** Offer edits. cycleId names the student-cycle a new offer belongs to. */
 export type OfferChanges = {

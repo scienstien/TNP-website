@@ -49,9 +49,8 @@ is ported to it.
 - Analytics, the student editor, company directory, outreach tracker and the
   dormant calendar query/action files now read and write the target tables, scoped
   by department. Recheck cross-table rules below before relying on them.
-- Calendar UI persistence remains browser local storage (kept per department). Target
-  event tables do not mean the calendar UI is connected to PostgreSQL; the company
-  directory's visit date is the earliest dated PPT drive event of the current cycle.
+- The calendar UI persists drive stages in PostgreSQL (drive_events/event_roles); the
+  company directory's visit date is the earliest dated PPT drive event of the current cycle.
 - db/seed.ts and db/seed-dashboard-demo.ts (legacy fictional seeds) were removed;
   npm run db:seed:departments fills the target schema with fictional data.
   db/seed-mme-2027-roster.ts still targets the preserved legacy_students table
@@ -164,7 +163,10 @@ Departments and access (user-requested multi-department extension):
   lib/auth/dal.ts: department users are pinned to their own department whatever the
   client sends. A SUPERADMIN chooses a department in the dashboard's department
   navbar (a cookie, re-checked against the database) or "All departments", which
-  is read-only. Mutations that need one department reject "all".
+  is read-only: it is stored as an explicit cookie value ("all", so the local auth
+  bypass's first-department default cannot override it) and every page shows all
+  departments' data (the Students page lists every department's records with a Department
+  column and filter, without edit controls). Mutations that need one department reject "all".
 - Dashboard analytics and the student editor use undergraduate (UG, B.Tech)
   cohorts only: the batch is cohort.graduation_year. PG cohorts exist in the schema
   and demo data but are not shown yet.
@@ -175,9 +177,11 @@ Departments and access (user-requested multi-department extension):
   admin123<department code>@nitt.edu / test1234 (ADMIN, e.g.
   admin123civil@nitt.edu). Sign-in accepts a bare username and appends the first
   allowed domain. Sign-up asks for a department and creates PROFESSOR accounts only.
-- Migration 0005 creates a placeholder 'mme' department so existing users and
-  outreach contacts stay valid; replace or rename it when the real department list
-  is imported. The demo seed removes it.
+- Migration 0005 creates an 'mme' department so existing users and outreach contacts
+  stay valid. The demo seed keeps it as Metallurgical and Materials Engineering and seeds
+  the nine B.Tech departments: chem, civil, cse, ece, eee, ice, mech, mme, prod (no B.Arch).
+  db/seed-departments-topup.ts adds missing departments without deleting anything (it is
+  the path for databases holding legacy rows, where the full seed refuses).
 
 Users and historical data:
 - `users`: UUID id PK, nullable name, required unique email, nullable password_hash,
@@ -402,15 +406,13 @@ Ported analytics and student/company integration:
   dimension. The dashboard's domain filter also uses the role domain, never
   companies.domain.
 
-Process calendar (temporary client-only mode):
-- The dashboard calendar does not call lib/calendar/queries.ts or
-  lib/calendar/actions.ts. Admins add/edit/remove process entries in browser
-  local storage, kept separately per department; entries are not shared between
-  browsers or stored in PostgreSQL.
-- Professors remain read-only. The dormant company visit-date query/action files
-  were ported to the PPT drive events but remain unconnected to the UI.
-- Target drive_events/event_roles describe the future persistence contract,
-  not an already connected calendar feature.
+Process calendar (PostgreSQL; see lib/calendar/README.md):
+- The calendar reads and writes drive_events/event_roles through lib/calendar/queries.ts
+  and lib/calendar/actions.ts; ADMIN/SUPERADMIN with a chosen department edit,
+  professors and All departments are read-only.
+- The side panel shows the selected day, Upcoming companies (dated stages from today
+  through the next 5–30 days) and a collapsed Unscheduled list. Old browser-only
+  entries are no longer read or shown; they remain untouched in browser storage.
 
 Outreach contact tracker (see lib/outreach/):
 - Each department has its own checklist (outreach_contacts.department_id).

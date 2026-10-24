@@ -55,3 +55,17 @@ signature and earliest non-null PPT-per-company meaning. No migrations or seeds 
   cycle from the same drive read as the process card; the legacy global contact is not shown.
 
 See ../../docs/handoffs/COMPANIES-MODEL1.md for coverage and remaining live-session checks.
+
+## Volume sort
+
+The page header's Volume control (below Placement cycle) orders and filters the directory by "volume": the median recorded package (LPA) across all roles' final
+offers × the number of offers (students) the company made, in the selected cycle or in every
+cycle, for the authorized department scope (same population as the offer count). Computed in SQL
+by `offerStatsByCompany` (offer-counts.ts) and `companyVolume` (volume.ts). Offers without a
+recorded package are excluded from the median but still count as students. A company with no
+recorded package has no volume (null): it shows "Not available" and sorts last; an actual 0 LPA
+median is a real volume of 0. Ties sort by name. The default order stays Name (A–Z).
+
+Volume modes (`VOLUME_MODES`, `applyVolumeMode` in volume.ts): Any volume (A–Z, default),
+High to low, Low to high, and Top 10 by volume (a filter: companies without a volume are
+left out). The choice lives in the Companies wrapper and resets the page and open card.
