@@ -2,18 +2,29 @@
 import type { CompanyRolePackageRow, CompensationSummary } from "@/lib/companies/offer-summaries";
 import styles from "./CompanySummary.module.css";
 
-function Summary({ value, total, unit }: { value: CompensationSummary; total: number; unit: string }) {
+function Summary({ value, total, unit, label }: { value: CompensationSummary; total: number; unit: string; label: string }) {
   const display = (amount: number) => amount.toLocaleString("en-IN", { maximumFractionDigits: 2 });
-  return <>{value.median === null ? "Not recorded" : <>Median {display(value.median)} {unit}; range {display(value.minimum!)}–{display(value.maximum!)} {unit}</>}
-    <small> ({value.knownCount} of {total} known)</small></>;
+  const coverage = total === 0 ? 0 : Math.round(value.knownCount / total * 100);
+  return <div className={styles.metric}>
+    <span className={styles.metricLabel}>{label}</span>
+    <strong>{value.median === null ? "Not recorded" : <>{display(value.median)} <small>{unit}</small></>}</strong>
+    <span>{value.median === null ? "No recorded amount" : `Range ${display(value.minimum!)}–${display(value.maximum!)} ${unit}`}</span>
+    <span className={styles.coverage}>{value.knownCount} of {total} known · {coverage}% coverage</span>
+  </div>;
 }
 
 export default function CompanyRolePackages({ rows, active, loading, error, onRetry }: {
   rows: CompanyRolePackageRow[]; active: boolean; loading: boolean; error: string | null; onRetry: () => void;
 }) {
-  return <section className={styles.card}><h2>Actual offers by role</h2><p>Final reported offers. Annual package and monthly stipend are summarized separately; missing amounts are excluded.</p>
-    {loading ? <p role="status">Loading compensation summaries…</p> : error ? <p role="alert">{error} <button onClick={onRetry}>Retry</button></p> : !active ? <p>Select a company and placement cycle.</p> :
-      <div className={styles.scroll} tabIndex={0} role="region" aria-label="Actual offer compensation by role"><table><thead><tr><th>Role / drive</th><th>Offers</th><th>Annual package (₹ LPA)</th><th>Monthly stipend (₹/month)</th></tr></thead><tbody>{rows.map(row =>
-        <tr key={row.roleId ?? "missing"}><td>{row.roleId ? <>{row.jobTitle ?? "Unspecified title"}<small>{row.driveReference ?? "No reference"} · Drive {row.driveId} · Role {row.roleId}</small></> : "No role recorded"}</td><td>{row.offerCount}</td><td><Summary value={row.package} total={row.offerCount} unit="LPA" /></td><td><Summary value={row.stipend} total={row.offerCount} unit="INR/month" /></td></tr>)}</tbody></table></div>}
+  const offeredRows = rows.filter(row => row.offerCount > 0);
+  return <section className={styles.card}><header className={styles.cardHeader}><div><p className={styles.kicker}>COMPENSATION</p><h2>Actual offers by role</h2><p>Median and recorded range for final offers. Missing amounts are excluded.</p></div></header>
+    {loading ? <p role="status" className={styles.state}>Loading compensation summaries…</p> : error ? <p role="alert" className={styles.error}>{error} <button onClick={onRetry}>Retry</button></p> : !active ? <p className={styles.state}>Select a company and placement cycle.</p> :
+      !offeredRows.length ? <p className={styles.state}>No final offers are recorded for this company and cycle.</p> : <div className={styles.roleCards} role="list" aria-label="Actual offer compensation by role">{offeredRows.map(row => {
+        const identity = row.roleId ? `${row.driveReference ?? "No drive reference"} · ${row.roleId.slice(0, 8)}` : "Offers without a recorded role";
+        return <article className={styles.roleCard} role="listitem" key={row.roleId ?? "missing"}>
+          <header><div><h3>{row.roleId ? row.jobTitle ?? "Unspecified title" : "No role recorded"}</h3><p>{identity}</p></div><span className={styles.offerCount}><strong>{row.offerCount}</strong>{row.offerCount === 1 ? "offer" : "offers"}</span></header>
+          <div className={styles.metrics}><Summary label="Annual package median" value={row.package} total={row.offerCount} unit="LPA" /><Summary label="Monthly stipend median" value={row.stipend} total={row.offerCount} unit="₹/month" /></div>
+        </article>;
+      })}</div>}
   </section>;
 }

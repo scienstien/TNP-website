@@ -35,16 +35,20 @@ export default function CompanyPanelController({ data, isAdmin, cycle, scopeKey,
   const summaries = useCompanyPanel(selected, () => loadCompanySummaries(company!.companyId, cycle!.cycleId));
   const offerTypes = useCompanyPanel(selected && `${selected}:type:${typeRoleId ?? "all"}`, () => loadCompanySummaries(company!.companyId, cycle!.cycleId, typeRoleId));
   const process = useCompanyPanel(selected && driveId ? `${selected}:${driveId}` : null, () => loadCompanyProcess(company!.companyId, cycle!.cycleId, driveId!));
-  const chooseCompany = (id: string) => { setCompanyId(id); setSelectionVersion(value => value + 1); setRoleId(null); setDriveId(null); setTypeRoleId(null); };
-  return <>
-    <CompanyDirectory data={data} isAdmin={isAdmin} cycle={cycle} selectedCompanyId={company?.companyId ?? null} onSelect={chooseCompany} />
-    <div className="company-panel-grid">
+  const chooseCompany = (id: string | null) => {
+    setCompanyId(id);
+    setSelectionVersion(value => value + 1);
+    setRoleId(null);
+    setDriveId(null);
+    setTypeRoleId(null);
+  };
+  const details = <div className="company-panel-grid">
       <CompanyOfferHistoryChart company={company} scopeLabel={scopeLabel} rows={history.data?.rows ?? []} loading={history.loading} error={history.error} onRetry={history.retry} />
       <CompanyOfferDistribution company={company} cycle={cycle} scopeLabel={scopeLabel} dimension={dimension} selectedRoleId={distribution.data ? distribution.data.selectedRoleId : roleId} roleOptions={distribution.data?.roleOptions ?? []} buckets={distribution.data?.buckets ?? []} totalOffers={distribution.data?.totalOffers ?? 0} missingRoleCount={distribution.data?.missingRoleCount ?? 0} loading={distribution.loading} error={distribution.error} onDimensionChange={setDimension} onRoleChange={setRoleId} onRetry={distribution.retry} />
       <CompanyProcessTable company={company} cycle={cycle} drives={drives.data ?? []} selectedDriveId={driveId} events={process.data ?? []} loading={drives.loading || process.loading} error={drives.error ?? process.error} onDriveChange={setDriveId} onRefresh={() => { drives.retry(); process.retry(); }} />
       <CompanyContactsTable company={company} loading={false} error={null} onRetry={() => router.refresh()} />
       <CompanyRolePackages rows={summaries.data?.rows ?? []} active={!!selected} loading={summaries.loading} error={summaries.error} onRetry={summaries.retry} />
       <CompanyOfferTypes types={offerTypes.data?.types ?? []} total={offerTypes.data?.typeTotal ?? 0} active={!!selected} loading={offerTypes.loading} error={offerTypes.error} onRetry={offerTypes.retry} roles={summaries.data?.rows ?? []} roleId={offerTypes.data ? offerTypes.data.selectedRoleId : typeRoleId} onRoleChange={setTypeRoleId} />
-    </div>
-  </>;
+    </div>;
+  return <CompanyDirectory data={data} isAdmin={isAdmin} cycle={cycle} selectedCompanyId={company?.companyId ?? null} onSelect={chooseCompany} details={details} />;
 }

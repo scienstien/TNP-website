@@ -2,20 +2,21 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CalendarCheck2, ContactRound, Pencil, Search } from "lucide-react";
+import { Building2, CalendarCheck2, ChevronDown, ContactRound, Mail, Pencil, Phone, Search } from "lucide-react";
 import { createCompany, updateCompany } from "@/lib/companies/actions";
 import { validateCompanyCreate, validateCompanyUpdate } from "@/lib/companies/validation";
 import type { CompanyRecord, CompanyResult, PvrStatus } from "@/lib/companies/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import "./companies.css";
 
 type Draft = Omit<CompanyRecord, "companyId" | "name" | "pvrStatus" | "visitDate"> & { pvrStatus: PvrStatus };
+const PAGE_SIZE = 8;
 
-export default function CompanyDirectory({ data, isAdmin, cycle, selectedCompanyId, onSelect }: { data: CompanyRecord[]; isAdmin: boolean; cycle: { cycleId: string; code: string } | null; selectedCompanyId: string | null; onSelect: (id: string) => void }) {
+export default function CompanyDirectory({ data, isAdmin, cycle, selectedCompanyId, onSelect, details }: { data: CompanyRecord[]; isAdmin: boolean; cycle: { cycleId: string; code: string } | null; selectedCompanyId: string | null; onSelect: (id: string | null) => void; details: React.ReactNode }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<CompanyRecord | "new" | null>(null);
   const [message, setMessage] = useState("");
   const visible = data.filter((company) =>
@@ -23,6 +24,9 @@ export default function CompanyDirectory({ data, isAdmin, cycle, selectedCompany
   );
   const contactCount = data.filter((company) => company.hrName || company.email || company.phoneNumber).length;
   const scheduledVisitCount = data.filter((company) => company.visitDate).length;
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pageCompanies = visible.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   return <section className="companies-view">
     <div className="section-heading">
       <div><p className="eyebrow">DIRECTORY</p><h2>Company directory</h2>
@@ -47,20 +51,36 @@ export default function CompanyDirectory({ data, isAdmin, cycle, selectedCompany
         </div>
       </div>
       <div className="company-tools">
-        <label className="company-search"><Search size={16} aria-hidden="true" /><span className="sr-only">Search companies</span><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, sector or contact" /></label>
+        <label className="company-search"><Search size={16} aria-hidden="true" /><span className="sr-only">Search companies</span><Input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); onSelect(null); }} placeholder="Search name, sector or contact" /></label>
         <span role="status">{visible.length} {visible.length === 1 ? "company" : "companies"}</span>
       </div>
       {!visible.length ? <p className="table-hint">{data.length ? "No companies match your search." : "No companies recorded."}</p> :
-        <div className="company-table-scroll"><Table className="company-table"><TableHeader><TableRow>
-          <TableHead>Company</TableHead><TableHead>Sector</TableHead><TableHead>HR name</TableHead><TableHead>Email</TableHead><TableHead>Phone</TableHead><TableHead>Remarks</TableHead><TableHead>PVR</TableHead>{cycle && <TableHead>Earliest scheduled PPT ({cycle.code})</TableHead>}
-        </TableRow></TableHeader><TableBody>{visible.map((company) => <TableRow key={company.companyId}>
-          <TableCell><div className="company-name-cell"><button type="button" className="dark-button" aria-pressed={company.companyId === selectedCompanyId} onClick={() => onSelect(company.companyId)}>{company.name}</button>
-            {isAdmin && <button type="button" className="company-icon-button" title={`Edit ${company.name}`} aria-label={`Edit ${company.name}`} disabled={editing !== null} onClick={() => { setEditing(company); setMessage(""); }}><Pencil size={15} /></button>}
-          </div></TableCell><TableCell>{company.domain ?? "—"}</TableCell><TableCell>{company.hrName ?? "—"}</TableCell>
-          <TableCell>{company.email ? <a href={`mailto:${company.email}`}>{company.email}</a> : "—"}</TableCell><TableCell>{company.phoneNumber ?? "—"}</TableCell><TableCell>{company.remarks ?? "—"}</TableCell>
-          <TableCell><Badge className={`pvr pvr-${company.pvrStatus}`}>{company.pvrStatus === "unknown" ? "Unknown" : company.pvrStatus === "yes" ? "Yes" : "No"}</Badge></TableCell>
-          {cycle && <TableCell>{company.visitDate ?? "Not scheduled"}</TableCell>}
-        </TableRow>)}</TableBody></Table></div>}
+        <div className="company-card-list">{pageCompanies.map((company) => {
+          const expanded = company.companyId === selectedCompanyId;
+          const panelId = `company-details-${company.companyId}`;
+          return <article key={company.companyId} className={`company-record-card${expanded ? " company-record-card--expanded" : ""}`}>
+            <div className="company-record-summary">
+              <button type="button" className="company-record-toggle" aria-expanded={expanded} aria-controls={panelId} onClick={() => onSelect(expanded ? null : company.companyId)}>
+                <span className="company-record-heading"><span className="company-record-name">{company.name}</span><Badge className={`pvr pvr-${company.pvrStatus}`}>{company.pvrStatus === "unknown" ? "PVR unknown" : company.pvrStatus === "yes" ? "PVR yes" : "PVR no"}</Badge></span>
+                <span className="company-record-facts">
+                  <span><b>Sector</b>{company.domain ?? "Not recorded"}</span>
+                  <span><b>HR contact</b>{company.hrName ?? "Not recorded"}</span>
+                  <span><Mail size={14} aria-hidden="true" />{company.email ?? "Email not recorded"}</span>
+                  <span><Phone size={14} aria-hidden="true" />{company.phoneNumber ?? "Phone not recorded"}</span>
+                  {cycle && <span><CalendarCheck2 size={14} aria-hidden="true" />PPT: {company.visitDate ?? "Not scheduled"}</span>}
+                </span>
+                <span className="company-record-action">{expanded ? "Hide analytics" : "View analytics"}<ChevronDown size={17} aria-hidden="true" /></span>
+              </button>
+              {isAdmin && <button type="button" className="company-icon-button company-record-edit" title={`Edit ${company.name}`} aria-label={`Edit ${company.name}`} disabled={editing !== null} onClick={() => { setEditing(company); setMessage(""); }}><Pencil size={15} /></button>}
+            </div>
+            {expanded && <div id={panelId} className="company-record-details">{company.remarks && <p className="company-record-remarks"><b>Remarks:</b> {company.remarks}</p>}{details}</div>}
+          </article>;
+        })}</div>}
+      {visible.length > PAGE_SIZE && <nav className="company-pagination" aria-label="Company directory pages">
+        <button type="button" disabled={safePage === 1} onClick={() => { setPage(value => Math.max(1, value - 1)); onSelect(null); }}>Previous</button>
+        <span>Page {safePage} of {pageCount}</span>
+        <button type="button" disabled={safePage === pageCount} onClick={() => { setPage(value => Math.min(pageCount, value + 1)); onSelect(null); }}>Next</button>
+      </nav>}
     </section>
   </section>;
 }

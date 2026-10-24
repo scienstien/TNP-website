@@ -14,8 +14,8 @@ async function CompanyData({ searchParams }: { searchParams: Promise<{ cycle?: s
   if (user.role !== "SUPERADMIN" && !department) notFound();
   const params = await searchParams;
   const cycles = await getCompanyCycles();
-  if (params.cycle !== undefined && (typeof params.cycle !== "string" || !cycles.some(option => option.cycleId === params.cycle))) notFound();
-  const cycle = cycles.find(option => option.cycleId === params.cycle) ?? null;
+  if (params.cycle !== undefined && (typeof params.cycle !== "string" || (params.cycle !== "all" && !cycles.some(option => option.cycleId === params.cycle)))) notFound();
+  const cycle = params.cycle === "all" ? null : params.cycle === undefined ? cycles[0] ?? null : cycles.find(option => option.cycleId === params.cycle) ?? null;
   const companies = await getCompanies(cycle?.cycleId ?? null);
   return <Companies data={companies} isAdmin={department !== null} canManageDrives={user.role === "SUPERADMIN"} cycles={cycles} cycle={cycle} scopeKey={department?.departmentId ?? "all"} scopeLabel={department?.name ?? "All departments"} />;
 }
