@@ -103,7 +103,7 @@ export default function PortalShell({
         <DepartmentNavbar
           current={user.department}
           departments={departments}
-          canSwitch={isSuper}
+          canSwitch={role === "Admin"}
         />
         {children}
       </section>

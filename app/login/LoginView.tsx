@@ -12,7 +12,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import LoginLogo from "@/components/login/LoginLogo";
 import TnpTitle from "@/components/login/TnpTitle";
 import orionBackground from "@/components/login-form-background/orionimage.png";
-import AuthForms, { type DepartmentChoice } from "./AuthForms";
+import AuthForms from "./AuthForms";
 import "./login.css";
 
 const heroSerif = Playfair_Display({
@@ -40,7 +40,7 @@ const heroCinzel = Cinzel({
 type WordmarkFont = "cinzel" | "condensed" | "plex" | "geometric";
 const subscribeToSearch = () => () => {};
 
-export default function LoginView({ departments }: { departments: DepartmentChoice[] }) {
+export default function LoginView() {
   const glintLetterRef = useRef<HTMLSpanElement>(null);
   const search = useSyncExternalStore(
     subscribeToSearch,
@@ -124,7 +124,7 @@ export default function LoginView({ departments }: { departments: DepartmentChoi
               className="login-brandTitle"
             />
           </div>
-          <AuthForms callbackUrl={callbackUrl} departments={departments} />
+          <AuthForms callbackUrl={callbackUrl} />
         </div>
       </section>
 

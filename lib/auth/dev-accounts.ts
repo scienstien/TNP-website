@@ -5,9 +5,8 @@
  *   admin123<dept>@nitt.edu / test1234 ADMIN of that one department (e.g. admin123mme@nitt.edu)
  *
  * "superadmin" is a bare username: sign-in appends the first allowed domain (see loginEmail).
- * Created automatically in development. In production they are created only when
- * SEED_TRIAL_ADMIN=true is set explicitly: a known password must never appear on a live
- * deployment by accident. Existing accounts are never overwritten. A department added later gets
+ * Created automatically in development only. Existing accounts are never overwritten.
+ * A department added later gets
  * its admin the next time the server starts.
  */
 import "server-only";
@@ -26,10 +25,7 @@ export const departmentAdminEmail = (code: string) =>
   `admin123${code}@${allowedSignupDomains()[0] ?? "nitt.edu"}`;
 
 export async function ensureDevAccounts(db: Database) {
-  const enabled =
-    process.env.NODE_ENV !== "production" ||
-    process.env.SEED_TRIAL_ADMIN === "true";
-  if (!enabled) return;
+  if (process.env.NODE_ENV === "production") return;
 
   const domain = allowedSignupDomains()[0] ?? "nitt.edu";
   const departmentRows = await db.select().from(departments);

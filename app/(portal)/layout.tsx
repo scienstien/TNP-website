@@ -6,7 +6,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const user = await requireUser();
   const [department, departments] = await Promise.all([
     resolveDepartment(user),
-    user.role === "SUPERADMIN" ? listDepartments() : [],
+    user.role !== "PROFESSOR" ? listDepartments() : [],
   ]);
   const portalUser: DashboardUser = {
     name: user.name,

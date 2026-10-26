@@ -19,8 +19,8 @@ There are three application roles, all scoped by department (see "Departments an
 access" below):
 - SUPERADMIN: Belongs to no department. Has every ADMIN power in every department,
   working in one department at a time, or reading all of them.
-- ADMIN: Belongs to one department. Manages that department's historical placement
-  data and authorized administrative actions there only.
+- ADMIN: Retains an assigned department but may temporarily read all departments
+  or select any one department to manage its historical placement data.
 - PROFESSOR: Belongs to one department. Has read-only dashboard access to it unless
   the project owner changes it.
 The users table exists only for authentication and role-based access control.
@@ -157,16 +157,15 @@ Enforcement boundaries:
   Authorization must always be enforced separately on the server.
 
 Departments and access (user-requested multi-department extension):
-- Every department user sees only their own department. A department is reached
+- PROFESSOR users see only their own department. A department is reached
   through programme -> cohort -> enrollment; no placement table has its own
   department column. users.department_id and outreach_contacts.department_id are
   the only department columns outside the academic hierarchy.
 - Every protected query and Server Action scopes with resolveDepartment() in
-  lib/auth/dal.ts: department users are pinned to their own department whatever the
-  client sends. A SUPERADMIN chooses a department in the dashboard's department
-  navbar (a cookie, re-checked against the database) or "All departments", which
-  is read-only: it is stored as an explicit cookie value ("all", so the local auth
-  bypass's first-department default cannot override it), so dashboards, companies,
+  lib/auth/dal.ts: PROFESSOR users are pinned to their assigned department.
+  ADMIN and SUPERADMIN choose a department in the dashboard's department navbar
+  (a cookie re-checked against the database) or "All departments", which
+  is read-only and stored as an explicit cookie value ("all"). Dashboards, companies,
   outreach and the calendar show every department. Student Records still needs one
   department chosen (it asks to choose one on "All"). Mutations that need one department
   reject "all".
@@ -179,11 +178,12 @@ Departments and access (user-requested multi-department extension):
   duplicate degree selector in its page heading.
 - Because the target schema has no role-target links, drives and company contacts are
   institute-wide, not per department.
-- Development accounts (created on the first sign-in request; in production only
-  with SEED_TRIAL_ADMIN=true): superadmin / test123 (SUPERADMIN) and
+- Development-only accounts (created on the first database request):
+  superadmin / test123 (SUPERADMIN) and
   admin123<department code>@nitt.edu / test1234 (ADMIN, e.g.
   admin123civil@nitt.edu). Sign-in accepts a bare username and appends the first
-  allowed domain. Sign-up asks for a department and creates PROFESSOR accounts only.
+  configured domain. Public sign-up is closed; operators create real accounts
+  with `npm run auth:account -- create`.
 - Migration 0005 creates an 'mme' department so existing users and outreach contacts
   stay valid. The demo seed keeps it as Metallurgical and Materials Engineering and seeds
   the nine B.Tech departments: chem, civil, cse, ece, eee, ice, mech, mme, prod (no B.Arch).
@@ -195,8 +195,8 @@ Users and historical data:
   required ADMIN/PROFESSOR/SUPERADMIN role defaulting to PROFESSOR, and a nullable
   department_id FK to departments (NULL only for SUPERADMIN; enforced in the
   application, not by a constraint). Never store plaintext passwords, student
-  relationships or is_active here. The department is the user's access scope, not
-  placement data.
+  relationships or is_active here. ADMIN's assigned department remains recorded
+  for a later policy change; current access uses the validated selection.
 - All twenty years and departments share these tables; never create per-year or
   per-department placement tables. Preserve nullable historical details and
   inspect actual source files before implementing imports.
@@ -320,7 +320,7 @@ exact company/cycle/drive without a date window. Companies.tsx is composition on
 the controller loads cards independently. All cycles includes every company master;
 cycle mode includes companies with explicit drives, even zero offers. Contacts and
 drive metadata are institute-wide. Offer aggregates include REGISTERED UG and PG
-enrollments in the authenticated department (SUPERADMIN can read all), without
+enrollments in the selected department (ADMIN/SUPERADMIN can read all), without
 student detail payloads. Separate role compensation and offer-type cards complement
 the three-dimension demographic donut. Live database/browser integration acceptance
 is still pending; see docs/handoffs/COMPANIES-MODEL1.md. Cancellation status remains
@@ -369,12 +369,12 @@ Authentication (implemented; see lib/auth/README.md):
   tables are needed for this strategy.
 - Passwords are hashed with scrypt (lib/auth/password.ts); plaintext is
   never stored or logged.
-- Self-service sign-up creates PROFESSOR accounts only, and only for email
-  domains listed in ALLOWED_SIGNUP_DOMAINS (default nitt.edu). ADMIN
-  accounts cannot be created through the UI.
+- Public sign-up is closed. Operators create ADMIN, PROFESSOR and SUPERADMIN
+  accounts and reset passwords with `npm run auth:account`; passwords are entered
+  privately in an interactive terminal.
 - Development accounts (superadmin, admin123<dept>@nitt.edu; see "Departments and
   access") are created automatically on the first sign-in request in
-  development; production creates them only with SEED_TRIAL_ADMIN=true. Seeds do
+  development only. Production requires an operator-provisioned account. Seeds do
   not create users.
 - Authorization: proxy.ts redirects visitors without a session to /login
   (optimistic check). Every page, Server Action and route handler that
@@ -432,8 +432,8 @@ Process calendar (PostgreSQL; see lib/calendar/README.md):
 Outreach contact tracker (see lib/outreach/):
 - Each department has its own checklist (outreach_contacts.department_id).
   Signed-in PROFESSOR users have read-only access to their department's records.
-  ADMIN users can create, edit and delete their department's standalone records; a
-  SUPERADMIN can read all departments and edit the chosen one.
+  ADMIN and SUPERADMIN users can read all departments and edit the chosen one's
+  standalone records.
 - There is no FK or synchronization with companies, students, offers, analytics
   or the process calendar.
 - PVR defaults to No; updated_at is maintained by the server on edits.

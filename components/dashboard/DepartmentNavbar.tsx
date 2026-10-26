@@ -13,9 +13,9 @@ export interface DepartmentOption {
 }
 
 interface Props {
-  /** The department being shown; null means every department (super admin only). */
+  /** The department being shown; null means every department (administrators only). */
   current: DepartmentOption | null;
-  /** Every department. Only a super admin can switch; others see their own department as a label. */
+  /** Every department. Administrators can switch; professors see their own department. */
   departments: DepartmentOption[];
   canSwitch: boolean;
 }

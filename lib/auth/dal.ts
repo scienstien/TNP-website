@@ -14,7 +14,6 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { auth } from "@/auth";
 import { departments, users } from "@/db/schema";
-import { isLocalAuthBypassEnabled } from "@/lib/auth/dev-bypass";
 import { getDb } from "@/lib/db";
 
 export type Role = "ADMIN" | "PROFESSOR" | "SUPERADMIN";
@@ -31,7 +30,7 @@ export interface CurrentUser {
   name: string | null;
   email: string;
   role: Role;
-  /** The user's own department; null for a SUPERADMIN, who belongs to none. */
+  /** Assigned department; ADMINs may temporarily select any department to work in. */
   department: DepartmentRef | null;
 }
 
@@ -45,16 +44,6 @@ const getSession = cache(() => auth());
 
 /** The signed-in user, verified against the database, or null. Memoised per request. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
-  if (isLocalAuthBypassEnabled()) {
-    return {
-      id: "00000000-0000-4000-8000-000000000000",
-      name: "Local superadmin",
-      email: "local-superadmin@nitt.edu",
-      role: "SUPERADMIN",
-      department: null,
-    };
-  }
-
   const session = await getSession();
   const id = session?.user?.id;
   if (!id || !UUID.test(id)) return null;
@@ -74,7 +63,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     .leftJoin(departments, eq(departments.departmentId, users.departmentId))
     .where(eq(users.id, id))
     .limit(1);
-  if (!user) return null;
+  if (!user || (user.role === "SUPERADMIN" ? user.departmentId !== null : !user.departmentId)) return null;
   return {
     id: user.id,
     name: user.name,
@@ -112,35 +101,23 @@ export async function requireRole(role: Role): Promise<CurrentUser> {
   return user;
 }
 
-/** Cookie holding the department a SUPERADMIN is currently working in, or ALL_DEPARTMENTS. */
+/** Cookie holding the department an administrator is currently working in, or ALL_DEPARTMENTS. */
 export const DEPARTMENT_COOKIE = "tnp-department";
 /** Cookie value for the explicitly chosen cross-department view (no department has this code). */
 export const ALL_DEPARTMENTS = "all";
 
 /**
- * The department a request acts on. Everyone except a SUPERADMIN is pinned to their own
- * department. A SUPERADMIN works in the department named by the DEPARTMENT_COOKIE, or in
- * every department at once (null) when none is chosen; the cookie is only a preference and is
- * checked against the database here, never trusted. Mutations that need one department must
- * reject null.
+ * Professors are pinned to their assigned department. Administrators may select any
+ * existing department, or read all departments (null). Mutations that need one
+ * department must reject null. Invalid department cookies are never trusted.
  */
 export async function resolveDepartment(user: CurrentUser): Promise<DepartmentRef | null> {
-  if (user.role !== "SUPERADMIN") return user.department;
+  if (user.role === "PROFESSOR") return user.department;
+  if (user.role === "ADMIN" && !user.department) throw new Error("ADMIN requires an assigned department.");
   const code = (await cookies()).get(DEPARTMENT_COOKIE)?.value;
   if (code?.trim().toLowerCase() === ALL_DEPARTMENTS) return null;
+  if (!code) return null;
   const db = await getDb();
-  // No choice yet: all departments, except that the local auth bypass starts in the first one.
-  if (!code) {
-    if (!isLocalAuthBypassEnabled()) return null;
-    const [firstDepartment] = await db
-      .select()
-      .from(departments)
-      .orderBy(departments.code)
-      .limit(1);
-    if (!firstDepartment)
-      throw new Error("AUTH_BYPASS requires at least one department.");
-    return firstDepartment;
-  }
   const [row] = await db
     .select()
     .from(departments)
@@ -149,7 +126,7 @@ export async function resolveDepartment(user: CurrentUser): Promise<DepartmentRe
   return row ?? null;
 }
 
-/** Every department, for the SUPERADMIN switcher and the sign-up form. */
+/** Every department, for the administrator switcher and operator provisioning. */
 export async function listDepartments(): Promise<DepartmentRef[]> {
   const db = await getDb();
   return db.select().from(departments).orderBy(departments.code);

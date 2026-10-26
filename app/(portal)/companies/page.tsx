@@ -11,7 +11,6 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
 async function CompanyData({ searchParams }: { searchParams: Promise<{ cycle?: string | string[] }> }) {
   const user = await requireRole("ADMIN");
   const department = await resolveDepartment(user);
-  if (user.role !== "SUPERADMIN" && !department) notFound();
   const params = await searchParams;
   const cycles = await getCompanyCycles();
   if (params.cycle !== undefined && (typeof params.cycle !== "string" || (params.cycle !== "all" && !cycles.some(option => option.cycleId === params.cycle)))) notFound();

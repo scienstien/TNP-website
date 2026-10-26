@@ -5,7 +5,6 @@
  * lib/auth/dal.ts.
  */
 import type { NextAuthConfig } from "next-auth";
-import { isLocalAuthBypassEnabled } from "@/lib/auth/dev-bypass";
 
 /** Pages reachable without signing in. Everything else requires a session. */
 const PUBLIC_PATHS = ["/login", "/auth/session-expired"];
@@ -16,9 +15,6 @@ export const authConfig = {
   providers: [], // added in auth.ts (needs the database)
   callbacks: {
     authorized({ auth, request }) {
-      // Local troubleshooting only. Server-side data access supplies a read-only
-      // preview identity as well; production can never enable this switch.
-      if (isLocalAuthBypassEnabled()) return true;
       const { pathname } = request.nextUrl;
       const signedIn = Boolean(auth?.user?.id);
       const isPublic = PUBLIC_PATHS.some(

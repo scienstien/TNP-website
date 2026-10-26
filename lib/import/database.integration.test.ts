@@ -232,13 +232,12 @@ test("one final offer per enrollment holds across cycles and valid drive/role FK
   assert.equal(stored.role_id, role.role_id);
 });
 
-test("service rejects professors, unknown users, forged role and mismatched department", async () => {
+test("service rejects professors, unknown users, forged role and invalid department identity", async () => {
   const contents = csv("companies", [[`Unauthorized QA ${run}`, "", ""]]);
   const [professor] = await sql`insert into users(email,role,department_id) values(${`db-prof-${run}@nitt.edu`},'PROFESSOR',${scope.departmentId}) returning id`;
   for (const [user, department] of [
     [{ ...actor, id: professor.id, role: "ADMIN" as const }, scope],
     [{ ...actor, id: randomUUID() }, scope],
-    [actor, civil],
     [actor, { ...scope, departmentId: civil.departmentId }],
   ] as [CurrentUser, DepartmentRef][]) {
     const report = await preview("companies", contents, user, department);
@@ -246,6 +245,9 @@ test("service rejects professors, unknown users, forged role and mismatched depa
     assert.equal(report.committed, false);
   }
   assert.equal((await sql`select company_id from companies where name=${`Unauthorized QA ${run}`}`).length, 0);
+  const crossDepartment = await preview("companies", csv("companies", [[`Cross Department QA ${run}`, "", ""]]), actor, civil);
+  assert.deepEqual(crossDepartment.errors, []);
+  assert.equal(crossDepartment.committed, false);
 });
 
 test("role revoked after preview rejects confirmation using authoritative database role", async () => {

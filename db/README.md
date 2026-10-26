@@ -185,9 +185,10 @@ enrollment/student table or an Auth.js adapter schema. Auth.js Credentials/JWT
 authentication is implemented; see `lib/auth/README.md`.
 
 Department scoping is enforced on the server by `resolveDepartment()` in
-`lib/auth/dal.ts`: department users are pinned to their own department; a super
-admin works in the department named by a cookie that is re-checked against the
-database, or in all departments (read-only). Placement tables have no department
+`lib/auth/dal.ts`: PROFESSOR users are pinned to their own department; ADMIN and
+SUPERADMIN users select a department using a cookie re-checked against the database,
+or read all departments. Writes requiring a department are unavailable in the
+all-departments view. Placement tables have no department
 column: a department is reached through programme, cohort and enrollment.
 The top Programme selector changes the UG/PG route for Dashboard and Student
 Records and retains that navigation preference in browser storage; it does not

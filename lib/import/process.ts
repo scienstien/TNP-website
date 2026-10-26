@@ -202,7 +202,7 @@ export type ImportOptions = { expectedPlan?: string; fileSha256?: string };
 export async function processImport(kind: ImportKind, csv: string, user: CurrentUser, scope: DepartmentRef, confirm: boolean, options: ImportOptions = {}): Promise<ImportPreview> {
   const sha256 = options.fileSha256 ?? createHash("sha256").update(csv).digest("hex");
   const report: ImportPreview = { kind, sha256, inserted: 0, updated: 0, skipped: 0, errors: [], rows: [], committed: false };
-  if (!user || !scope || !mayImport(user.role, scope.departmentId) || (user.role === "ADMIN" && user.department?.departmentId !== scope.departmentId)) {
+  if (!user || !scope || !mayImport(user.role, scope.departmentId) || (user.role === "ADMIN" && !user.department)) {
     report.errors.push("Administrator access to the selected department is required.");
     return report;
   }
@@ -218,7 +218,7 @@ export async function processImport(kind: ImportKind, csv: string, user: Current
       const [actor] = await tx.select().from(users).where(eq(users.id, user.id)).limit(1).for("share");
       const [department] = await tx.select().from(departments).where(eq(departments.departmentId, scope.departmentId)).limit(1).for("share");
       if (!actor || !department || department.code !== scope.code || !mayImport(actor.role, department.departmentId) ||
-          (actor.role === "ADMIN" && actor.departmentId !== department.departmentId) ||
+          (actor.role === "ADMIN" && actor.departmentId === null) ||
           (actor.role === "SUPERADMIN" && actor.departmentId !== null)) {
         report.errors.push("Administrator authorization changed or the selected department is invalid. Sign in and preview again.");
         throw new PreviewRollback(report);

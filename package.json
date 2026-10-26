@@ -14,7 +14,8 @@
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f postgres",
-    "db:seed:departments": "tsx db/seed-departments-demo.ts"
+    "db:seed:departments": "tsx db/seed-departments-demo.ts",
+    "auth:account": "tsx scripts/auth-accounts.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

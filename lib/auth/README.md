@@ -1,85 +1,42 @@
-# Authentication
+# Authentication and access
 
-Email + password sign-in and professor sign-up with Auth.js (NextAuth v5), backed by the `users` table in `db/schema.ts`.
+Auth.js Credentials sign-in uses `users` in PostgreSQL and encrypted JWT session cookies. Public sign-up is closed. The login form accepts a full email or a bare username under the first `ALLOWED_SIGNUP_DOMAINS` domain (default `nitt.edu`). Sessions last eight hours and refresh hourly.
 
-## Who can do what
+| Role | Reads | Writes |
+| --- | --- | --- |
+| PROFESSOR | Assigned department's dashboard, calendar and outreach views | None |
+| ADMIN | All-department summaries or any selected department | Selected department only |
+| SUPERADMIN | All-department summaries or any selected department | Selected department only |
 
-| | Signed out | PROFESSOR | ADMIN | SUPERADMIN |
-| --- | --- | --- | --- | --- |
-| `/login` (sign in / sign up) | yes | redirected to `/` | redirected to `/` | redirected to `/` |
-| Dashboard (`/`): home, overview, drive calendar | redirected to `/login` | own department, read-only | own department | any department, or all (read-only) |
-| Student records editing, companies, outreach | — | — | own department | the department chosen in the department navbar |
-| Create an account | professor accounts only (`@nitt.edu`), with a department | — | — | — |
+The company directory and drive stages are institute-wide records. Department selection scopes offer aggregates and department-owned records. Student Records requires one selected department even for reading. “All departments” is read-only for actions that require a department. ADMIN's assigned `users.department_id` remains recorded but does not limit its temporary cross-department access. A missing assigned department makes an ADMIN or PROFESSOR account invalid; it must never become an all-department read. The selected department cookie is validated against the database on every request and cleared at sign-out.
 
-Admin and super admin accounts cannot be created through the UI. The role and department always come from the database: the sign-up form ignores any `role` field, and the dashboard receives both from the server. Everyone except a SUPERADMIN is pinned to their own department by `resolveDepartment()` in `lib/auth/dal.ts`; a SUPERADMIN's department choice is a cookie that is re-checked against the database on every request.
+`proxy.ts` checks for a signed cookie. Every protected page, Server Action and route handler must independently use `requireUser()`, `requireRole()`, or `getCurrentUser()` in `lib/auth/dal.ts`; role and department must come from the database, never the client. Import preview tokens bind the user and selected department. A changed role or deleted user takes effect on the next request; stale sessions are cleared through `/auth/session-expired`.
 
-## Files
+The proxy returns HTTP 404 for `/students` requests whose session role is PROFESSOR, before rendering the page. The Student Records query still checks the current database role with `requireRole("ADMIN")` before reading data, so a stale session role never grants access.
 
-- `auth.config.ts`: settings that need no database (pages, session, callbacks). Shared with the proxy.
-- `auth.ts`: the Credentials provider. It validates input, rate-limits, looks the user up, and verifies the scrypt hash.
-- `proxy.ts`: sends visitors without a session to `/login`, and signed-in users from `/login` to `/`.
-- `lib/auth/dal.ts`: **use this for every protected read or write.**
-  - `getCurrentUser()` returns the signed-in user, re-read from the database.
-  - `requireUser()` redirects to `/login` when no one is signed in.
-  - `requireRole('ADMIN')` returns a 404 for non-admins (a SUPERADMIN passes too).
-  - `resolveDepartment(user)` is the department a request acts on; use it for every department-scoped read or write.
-- `lib/auth/actions.ts`: the `signInAction`, `signUpAction` and `signOutAction` Server Actions.
-- `lib/auth/password.ts`: scrypt hashing and verification, with a constant-time check for unknown emails.
-- `lib/auth/rate-limit.ts`: in-memory attempt limits.
-- `lib/auth/validation.ts`: email, password and sign-up domain rules.
-- `lib/auth/dev-accounts.ts`: the development super admin and department admins.
-- `lib/auth/department-actions.ts`: the super admin's department switcher.
-- `app/login/AuthForms.tsx`: the Sign in / Sign up tabs.
+## Local development
 
-## Protecting new code
+Set `DATABASE_URL` and a unique `AUTH_SECRET` in untracked `.env`, run migrations, then start the app. Development automatically creates `superadmin / test123` and `admin123<department code> / test1234` accounts if absent. This never happens in production. Do not point a development server at a production or shared database. `AUTH_BYPASS` and production trial-account creation are removed.
 
-```ts
-// Admin-only Server Action
-'use server';
-import { requireRole } from '@/lib/auth/dal';
+## First deployment and operator accounts
 
-export async function updatePlacement(formData: FormData) {
-  await requireRole('ADMIN'); // throws before anything changes
-  // ...
-}
+Apply migrations and configure `DATABASE_URL` and a strong `AUTH_SECRET` before starting the production app. Create the first real SUPERADMIN using an interactive terminal:
+
+```sh
+npm run auth:account -- create --email admin@nitt.edu --role SUPERADMIN --name "TNP Administrator"
 ```
 
-In a route handler, call `getCurrentUser()` and return `401` or `403` yourself.
+Create department accounts with `--role ADMIN` or `--role PROFESSOR` and `--department <code>`. The department must exist. Passwords are prompted twice without terminal echo, checked against the app's 8–128 character rule, and stored only as scrypt hashes. Existing emails are refused. To replace a forgotten password:
 
-## Safety measures
+```sh
+npm run auth:account -- reset-password --email admin@nitt.edu
+```
 
-- **Passwords:** scrypt with N=2¹⁵, r=8, p=1, a 16-byte salt and a 64-byte key. Passwords must be 8–128 characters with letters and digits. The upper limit caps the hashing cost per request.
-- **Sessions:** encrypted (JWE) cookies, httpOnly and SameSite=Lax, Secure over HTTPS. They last 8 hours and refresh hourly.
-- **Account enumeration:** a wrong password and an unknown email give the same message and take the same time. Sign-up does say when an email is already registered; that is a deliberate usability trade-off.
-- **Brute force:**
-  - Sign-in: 5 failed attempts per account and 30 per IP address, per 15 minutes.
-  - Sign-up: 5 per IP address per hour.
+Password reset does not revoke already-issued JWT sessions; deleting the user or changing its role takes effect on the next request. Operate the command only from a trusted terminal with access to the intended database. Do not place passwords in command arguments, scripts, logs or environment files.
 
-  The limits are per server process. With several instances, move them to a shared store.
-- **Open redirect:** `callbackUrl` is restricted to same-site paths.
-- **CSRF:** Server Actions are protected by Next.js origin checks, and the Auth.js endpoints by their CSRF token.
-- **Role changes:** a deleted user or a changed role takes effect on the next request, because the role is read from the database rather than trusted from the cookie.
+## Safety checks
 
-## Configuration
-
-See `.env.example`. Auth needs `AUTH_SECRET` (generate it with `npx auth secret`) and the same `DATABASE_URL` the rest of the app uses. `ALLOWED_SIGNUP_DOMAINS` defaults to `nitt.edu`.
-
-**Local development:**
-1. Copy `.env.example` to `.env` and fill in `AUTH_SECRET`.
-2. Start PostgreSQL and apply the migrations, as described in `db/README.md`:
-   ```sh
-   npm run db:up
-   npm run db:migrate
-   ```
-3. Run `npm run dev`.
-
-The first sign-in request creates the trial admin if it doesn't exist yet.
-
-Development logins (created by `lib/auth/dev-accounts.ts`, for departments in the database; the usernames need no domain):
-
-| Login | Password | Role |
-| --- | --- | --- |
-| `superadmin` | `test123` | SUPERADMIN, all departments |
-| `admin123civil`, `admin123cse`, `admin123ece`, `admin123mech` (or the full `@nitt.edu` address) | `test1234` | ADMIN of that department |
-
-They are created only in development, or in production only if `SEED_TRIAL_ADMIN=true`. Change or remove them before any real deployment. Load the demo departments first with `npm run db:seed:departments`.
+- Unknown email and wrong password share a generic sign-in message; sign-in attempts are limited per account and IP per server process.
+- The proxy is an optimistic filter. Server data access always re-reads the account, role and department assignment.
+- The selected department is server-validated. ADMIN and SUPERADMIN actions requiring one department reject “All departments.” PROFESSOR actions reject writes even if invoked directly.
+- Use fictional accounts and an isolated database for browser and import tests.

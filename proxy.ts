@@ -11,6 +11,9 @@ import { authConfig } from "./auth.config";
 const { auth } = NextAuth(authConfig);
 
 export default auth((request) => {
+  if (request.nextUrl.pathname === "/students" || request.nextUrl.pathname.startsWith("/students/")) {
+    if (request.auth?.user?.role === "PROFESSOR") return new NextResponse("Not Found", { status: 404 });
+  }
   // Keep the dashboard alias redirect out of the Server Component render. A
   // redirect() from that page aborts RSC prerender timing in Next dev/Turbopack
   // and can trigger a negative Performance.measure timestamp in the dev client.
