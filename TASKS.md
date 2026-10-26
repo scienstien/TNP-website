@@ -53,6 +53,32 @@ use of the affected writes with full institute data, not application startup.
 
 ## P1 — Important, non-blocking
 
+### [IMPORT-001] Strict official CSV/Excel templates and confirmed imports
+
+- Status: VALIDATION
+- Owner: Codex integrator; independent database and browser tester agents.
+- Requested by: Project owner on 2026-10-25.
+- Scope: existing `lib/import`, import API, Admin Data Management, template downloads,
+  import history, documentation and focused unit/database/browser tests.
+- Requirements: exact schema-backed templates, CSV/XLSX structural and reference
+  validation, administrator/department authorization, preview bound to confirmation,
+  transactional imports preserving all historical rows, and official preparation guide.
+- Validation gate: both testers must agree after real SQL verification and browser CSV
+  upload/visibility checks against an isolated synthetic database. Never reset the
+  existing database. Existing uncommitted import scaffold is the starting point.
+- Current handoff: Exact five-dataset CSV/XLSX templates, reference workbook, admin
+  preview/confirmation, import history migration and T&P preparation guide are in
+  the worktree. An isolated PostgreSQL database passed all 18 integration tests;
+  focused unit tests, lint, TypeScript, `db:check` and a webpack production build
+  passed. Turbopack build is blocked in this environment by a helper-process port
+  permission error. The isolated Chromium browser script passed CSV/XLSX uploads,
+  preview/confirm, historical Student Records, dashboard comparison and access
+  checks. Read-only SQL independently reconciled the exact browser fixture: four
+  participations, two offers, one company and eight import-history entries. See
+  `docs/handoffs/IMPORT-BROWSER-TEST.md`. The original independent tester signoff
+  and reviewed Git handoff remain before this task is marked DONE.
+
+
 ### [PLACEMENTS-001] Expand placement analytics data contract
 
 - Status: DONE

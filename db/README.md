@@ -1,5 +1,7 @@
 # Historical placement schema
 
+Official CSV template format, ordered upload workflow, validation rules and import history are documented in [the import guide](../docs/IMPORT-TEMPLATES.md). The import history table was added by migration 0008; normal imports never delete omitted historical records.
+
 `schema.ts` defines the approved PostgreSQL/Drizzle target for twenty years of
 placement data across all departments at NIT Tiruchirappalli. `index.ts` exports
 the shared typed `db` instance and underlying `postgresClient`; development

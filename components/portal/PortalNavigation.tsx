@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Home as HomeIcon,
   LayoutDashboard,
+  Database,
   type LucideIcon,
 } from "lucide-react";
 import type { PortalRole } from "./types";
@@ -15,6 +16,7 @@ import { useProgrammeLevel } from "./useProgrammeLevel";
 
 const adminItems = [
   { href: "/companies", label: "Companies", icon: Building2 },
+  { href: "/admin/data-management", label: "Data management", icon: Database },
 ] as const;
 
 const trailingItems = [

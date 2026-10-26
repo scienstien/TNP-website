@@ -1,0 +1,28 @@
+.manager { max-width: 1200px; margin: 24px auto; padding: 24px; line-height: 1.6; min-width: 0; }
+.manager h1 { font-size: 1.8rem; font-weight: 700; }
+.manager h2 { font-size: 1.2rem; font-weight: 650; margin-top: 24px; margin-bottom: 12px; }
+.manager p { margin: 10px 0; }
+.manager a { text-decoration: underline; text-underline-offset: 3px; }
+.manager table { width: 100%; border-collapse: collapse; text-align: left; font-size: .88rem; }
+.manager th, .manager td { padding: 12px; border-bottom: 1px solid #8885; vertical-align: top; }
+.manager th { font-weight: 650; }
+.scroll { overflow: auto; max-height: 560px; }
+.downloads a { display: block; white-space: nowrap; margin-bottom: 5px; }
+.links { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin: 16px 0; }
+.controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+.controls label { display: grid; gap: 6px; max-width: 100%; }
+.manager select, .manager input, .manager button { border: 1px solid #8888; border-radius: 6px; padding: 9px 12px; font: inherit; max-width: 100%; }
+.manager select { color: #1e293b; background: #fff; }
+.manager button { background: #233d68; color: #fff; cursor: pointer; }
+.manager button:disabled { opacity: .5; cursor: not-allowed; }
+.manager :focus-visible { outline: 3px solid #6495ed; outline-offset: 3px; }
+.report { margin-top: 24px; border: 1px solid #8886; border-radius: 8px; padding: 16px; }
+.error { color: #b91c1c; background: #fff1f2; padding: 12px; border-radius: 6px; }
+.errorList { max-height: 240px; overflow: auto; list-style: disc inside; }
+.confirm { margin-top: 16px; }
+.values { min-width: 300px; margin-top: 10px; }
+.values div { padding: 6px 0; border-bottom: 1px solid #8883; }
+.values dt { font-weight: 600; }
+.values dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.manager summary { cursor: pointer; text-decoration: underline; margin-top: 8px; }
+@media (max-width: 600px) { .manager { padding: 16px; margin: 12px 0; } .controls { align-items: stretch; flex-direction: column; } }

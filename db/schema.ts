@@ -378,3 +378,16 @@ export const users = pgTable("users", {
     onDelete: "restrict",
   }),
 });
+
+/** Successful confirmed CSV imports only. Failed previews and rolled-back writes leave no history row. */
+export const importHistory = pgTable("import_history", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: uuid("actor_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  departmentId: uuid("department_id").notNull().references(() => departments.departmentId, { onDelete: "restrict" }),
+  dataset: text("dataset").notNull(),
+  fileSha256: text("file_sha256").notNull(),
+  inserted: integer("inserted").notNull(),
+  updated: integer("updated").notNull(),
+  skipped: integer("skipped").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+});
