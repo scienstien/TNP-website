@@ -29,7 +29,7 @@ export default function CompanyContactsTable({ company, cycle, drives, loading, 
   return <section className={`panel ${styles.card}`} aria-labelledby={headingId} aria-busy={loading}>
     <header className={styles.header}>
       <h2 id={headingId}>HR contacts</h2>
-      <p>The HR contact recorded for each drive{cycle ? ` in ${cycle.code}` : ""}.</p>
+      {cycle && <p>{cycle.code}</p>}
     </header>
     {loading ? <p role="status" className={styles.state}>Loading HR contacts…</p>
       : error !== null ? <div role="alert" className={styles.error}>

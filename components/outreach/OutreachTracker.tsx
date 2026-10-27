@@ -20,9 +20,11 @@ type Editing = OutreachRecord | "new" | null;
 export default function OutreachTracker({
   data,
   isAdmin,
+  canManage,
 }: {
   data: OutreachRecord[];
   isAdmin: boolean;
+  canManage: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Editing>(null);
@@ -34,6 +36,20 @@ export default function OutreachTracker({
       .toLowerCase()
       .includes(query.trim().toLowerCase()),
   );
+
+  const chooseDepartment = () => {
+    setMessage("Select a department above to manage contacts.");
+    const selector = document.querySelector<HTMLSelectElement>(
+      '.dept-navbar select[aria-label="Department"]',
+    );
+    selector?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    selector?.focus();
+    try {
+      selector?.showPicker();
+    } catch {
+      // Focus and the inline message still point to the department selector.
+    }
+  };
 
   const remove = (entry: OutreachRecord) => {
     if (!window.confirm(`Delete the outreach entry for ${entry.companyName}?`)) {
@@ -50,15 +66,18 @@ export default function OutreachTracker({
     <section className="outreach-view">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">CONTACT CHECKLIST</p>
           <h1>Outreach</h1>
-          <p>Track prospective company contacts independently from placement records.</p>
+          {!isAdmin && <p id="outreach-access-note" className="outreach-access-note">
+            {canManage ? "Select a department to edit contacts." : "Read only."}
+          </p>}
         </div>
-        {isAdmin && (
+        {canManage && (
           <button
             className="dark-button"
             disabled={pending || editing !== null}
+            aria-describedby={!isAdmin ? "outreach-access-note" : undefined}
             onClick={() => {
+              if (!isAdmin) return chooseDepartment();
               setEditing("new");
               setMessage("");
             }}
@@ -107,10 +126,10 @@ export default function OutreachTracker({
                     </span>
                     <h2>{entry.companyName}</h2>
                   </div>
-                  {isAdmin && (
+                  {canManage && (
                     <div className="outreach-actions">
-                      <button disabled={pending || editing !== null} onClick={() => setEditing(entry)}>Edit</button>
-                      <button disabled={pending || editing !== null} onClick={() => remove(entry)}>Delete</button>
+                      <button disabled={pending || editing !== null} aria-describedby={!isAdmin ? "outreach-access-note" : undefined} onClick={() => isAdmin ? setEditing(entry) : chooseDepartment()}>Edit</button>
+                      <button disabled={pending || editing !== null} aria-describedby={!isAdmin ? "outreach-access-note" : undefined} onClick={() => isAdmin ? remove(entry) : chooseDepartment()}>Delete</button>
                     </div>
                   )}
                 </div>

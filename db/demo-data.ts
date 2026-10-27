@@ -3,6 +3,7 @@
  * db/seed-departments-topup.ts (add-only). Every company, student and roll number is invented.
  */
 import { randomUUID } from "node:crypto";
+import { PG_BRANCHES } from "../lib/placements/pg-catalog";
 
 import type { db } from "./index";
 import type { enrollments, placementOffers, studentCycles, students } from "./schema";
@@ -21,14 +22,21 @@ export const DEPARTMENTS = [
   { code: "prod", name: "Production Engineering", index: 9, size: 56, placed: 0.73 },
 ] as const;
 export type DeptCode = (typeof DEPARTMENTS)[number]["code"];
-const ALL_DEPTS = DEPARTMENTS.map((dept) => dept.code) as DeptCode[];
+export type DemoDeptCode = (typeof PG_BRANCHES)[number]["code"];
+export const PG_ONLY_DEPARTMENTS = PG_BRANCHES.filter(
+  (branch) => !DEPARTMENTS.some((dept) => dept.code === branch.code),
+).map((branch, index) => ({ code: branch.code, name: branch.name, index: index + 10, size: 10, placed: 0.72 }));
+export const ALL_DEPARTMENTS: ReadonlyArray<{ code: DemoDeptCode; name: string; index: number; size: number; placed: number }> = [
+  ...DEPARTMENTS, ...PG_ONLY_DEPARTMENTS,
+];
+const ALL_DEPTS = ALL_DEPARTMENTS.map((dept) => dept.code);
 
 export const FIRST_YEAR = 2008;
 export const LAST_YEAR = 2027;
 export const MTECH_FIRST_YEAR = FIRST_YEAR;
 
 // [name, sector, departments it hires from, package range in LPA]
-export const COMPANIES: [string, string, DeptCode[], [number, number]][] = [
+export const COMPANIES: [string, string, DemoDeptCode[], [number, number]][] = [
   ["DEMO Ferrous Works", "Core: steel", ["civil", "mech", "mme", "prod"], [8, 13]],
   ["DEMO Rolling Mills", "Core: steel", ["civil", "mech", "mme", "prod"], [7, 11]],
   ["DEMO Alloy Smelters", "Core: non-ferrous", ["civil", "mme", "chem"], [9, 15]],
@@ -68,6 +76,16 @@ export const MTECH_SPECIALIZATION: Record<DeptCode, string> = {
   mme: "Materials Science and Engineering",
   prod: "Manufacturing Technology",
 };
+
+/** Degree labels for the fictional PG cohorts, following the published programme catalogue. */
+export function demoPgDegreeCode(dept: DemoDeptCode, specialization: string) {
+  if (dept === "architecture") return specialization === "Urban Planning" ? "M.Plan" : "M.Arch";
+  if (dept === "ca") return specialization === "Computer Applications" ? "MCA" : specialization === "Computer Science" ? "M.Sc" : "M.Tech";
+  if (["physics", "chemistry", "maths"].includes(dept)) return specialization === "Non-Destructive Testing" ? "M.Tech" : "M.Sc";
+  if (dept === "humanities") return "MA";
+  if (dept === "management") return "MBA";
+  return "M.Tech";
+}
 
 export const ROLE_TITLES = ["Graduate Engineer", "Software Engineer", "Design Engineer", "Analyst", "Process Engineer"];
 // Fictional role domains (drive_roles.domain) used by the domain-wise analytics.
@@ -112,9 +130,22 @@ export async function insertAll<T extends Parameters<Tx["insert"]>[0]>(tx: Tx, t
   }
 }
 
-export interface DemoCohort { cohortId: string; dept: DeptCode; level: "ug" | "pg"; year: number }
+export interface DemoCohort { cohortId: string; dept: DemoDeptCode; level: "ug" | "pg"; year: number; specialization?: string }
+export function fullDemoCohorts(years: readonly number[]): DemoCohort[] {
+  const cohorts: DemoCohort[] = [];
+  for (const year of years) {
+    for (const dept of DEPARTMENTS) cohorts.push({ cohortId: randomUUID(), dept: dept.code, level: "ug", year });
+    if (year < MTECH_FIRST_YEAR) continue;
+    for (const branch of PG_BRANCHES) {
+      for (const specialization of branch.specializations) {
+        cohorts.push({ cohortId: randomUUID(), dept: branch.code, level: "pg", year, specialization });
+      }
+    }
+  }
+  return cohorts;
+}
 /** A role a cohort's students can receive an offer for in that cohort's cycle. */
-export interface DemoRole { roleId: string; driveId: string; companyId: string; hires: DeptCode[]; offerType: "PPO" | "FTE" | "FTE+6month"; pptDate: string; range: [number, number] }
+export interface DemoRole { roleId: string; driveId: string; companyId: string; hires: DemoDeptCode[]; offerType: "PPO" | "FTE" | "FTE+6month"; pptDate: string; range: [number, number] }
 
 /** Exactly 10,000 enrollments across 2008-2027, with modest yearly growth and department-sized cohorts. */
 export function tenThousandStudentCounts(cohortList: DemoCohort[]): Map<string, number> {
@@ -150,11 +181,12 @@ export function generateStudents(
   requestedCounts?: Map<string, number> | number,
 ) {
   const { random, pick, between } = rng;
-  const byCode = new Map<string, (typeof DEPARTMENTS)[number]>(DEPARTMENTS.map((dept) => [dept.code, dept]));
+  const byCode = new Map(ALL_DEPARTMENTS.map((dept) => [dept.code, dept]));
   const studentRows: (typeof students.$inferInsert)[] = [];
   const enrollmentRows: (typeof enrollments.$inferInsert)[] = [];
   const cycleRows: (typeof studentCycles.$inferInsert)[] = [];
   const offerRows: (typeof placementOffers.$inferInsert)[] = [];
+  const rollSerials = new Map<string, number>();
 
   const rawCounts = cohortList.map((cohort) => {
     const dept = byCode.get(cohort.dept)!;
@@ -192,6 +224,10 @@ export function generateStudents(
     const roles = (rolesByCycle.get(cohort.year) ?? []).filter((role) => role.hires.includes(cohort.dept));
     const placedChance = Math.min(0.92, dept.placed * (0.82 + ((cohort.year - FIRST_YEAR) % 5) * 0.05)) * (cohort.level === "pg" ? 0.8 : 1);
     for (let index = 0; index < count; index++) {
+      const rollGroup = `${cohort.dept}:${cohort.year}:${cohort.level}`;
+      const serial = (rollSerials.get(rollGroup) ?? 0) + 1;
+      rollSerials.set(rollGroup, serial);
+      if (serial > (dept.index < 10 ? 9999 : 999)) throw new Error(`Too many demo enrollments for ${rollGroup}.`);
       const studentId = randomUUID();
       const enrollmentId = randomUUID();
       const genderRoll = random();
@@ -203,8 +239,11 @@ export function generateStudents(
       enrollmentRows.push({
         enrollmentId,
         studentId,
-        // 9 · department · yy · level · 4-digit serial: nine digits, all in the demo range.
-        rollNumber: Number(`9${dept.index}${String(cohort.year % 100).padStart(2, "0")}${cohort.level === "ug" ? 1 : 2}${String(index + 1).padStart(4, "0")}`),
+        // Existing nine departments retain their demo roll format. PG-only departments use
+        // a two-digit department slot and three-digit serial; both formats are nine digits.
+        rollNumber: Number(dept.index < 10
+          ? `9${dept.index}${String(cohort.year % 100).padStart(2, "0")}${cohort.level === "ug" ? 1 : 2}${String(serial).padStart(4, "0")}`
+          : `9${dept.index}${String(cohort.year % 100).padStart(2, "0")}2${String(serial).padStart(3, "0")}`),
         cohortId: cohort.cohortId,
         admissionYear: cohort.year - (cohort.level === "ug" ? 4 : 2),
         reservationCategoryCode: pick(["GEN", "GEN", "OBC", "OBC", "SC", "ST", "EWS"]),

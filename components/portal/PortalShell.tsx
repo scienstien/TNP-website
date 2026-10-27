@@ -6,6 +6,7 @@ import DepartmentNavbar, {
 } from "@/components/dashboard/DepartmentNavbar";
 import PortalSidebar from "./PortalSidebar";
 import type { DashboardUser, PortalRole } from "./types";
+import "./portal-theme.css";
 
 export default function PortalShell({
   user,

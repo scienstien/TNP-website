@@ -40,7 +40,7 @@ export default function CompanyProcessTable({ company, cycle, drives, selectedDr
     <header className={styles.header}>
       <div>
         <h2>Drive process</h2>
-        <p>Scheduled stages for one exact drive, read from the shared process calendar. A scheduled date does not confirm that a stage took place.</p>
+        <p>Scheduled dates do not confirm completion.</p>
       </div>
       <div className={styles.actions}>
         {company && onEditDrives && <button type="button" className={`${styles.button} ${styles.primary}`} onClick={onEditDrives}>Edit drives</button>}

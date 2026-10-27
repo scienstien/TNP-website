@@ -3,33 +3,33 @@
  * the app. Change the look through the custom properties on .psf.
  */
 .psf {
-  --psf-bg: #121a2a;
-  --psf-border: rgba(112, 160, 255, 0.22);
-  --psf-tile-bg: rgba(13, 21, 36, 0.6);
-  --psf-tile-border: rgba(112, 160, 255, 0.16);
-  --psf-lead-bg: rgba(36, 84, 197, 0.14);
-  --psf-lead-border: rgba(76, 127, 228, 0.55);
-  --psf-input-bg: #121d30;
-  --psf-input-border: #354d76;
-  --psf-accent: #4c7fe4;
-  --psf-focus: #70a0ff;
-  --psf-text: #f1f5ff;
-  --psf-text-dim: #b9c6dc;
-  --psf-muted: #8f9bb0;
-  --psf-good: #75c7a6;
-  --psf-bad: #ff4d4f;
-  --psf-flat: #c4d0e4;
+  --psf-bg: #1b2228;
+  --psf-border: #354046;
+  --psf-tile-bg: #1b2228;
+  --psf-tile-border: #354046;
+  --psf-lead-bg: #222c2c;
+  --psf-lead-border: #8b826d;
+  --psf-input-bg: #151b20;
+  --psf-input-border: #4b595a;
+  --psf-accent: #c5a46a;
+  --psf-focus: #d4b77f;
+  --psf-text: #f0eee8;
+  --psf-text-dim: #d1d8d3;
+  --psf-muted: #a3aeae;
+  --psf-good: #90c6ac;
+  --psf-bad: #e6a294;
+  --psf-flat: #a3aeae;
   --psf-sans:
     "Geist", "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 18px;
   min-width: 0;
-  padding: 18px 20px 0;
+  padding: 30px;
   border: 1px solid var(--psf-border);
-  border-radius: 10px;
+  border-radius: 4px;
   background: var(--psf-bg);
   color: var(--psf-text);
   font-family: var(--psf-sans);
@@ -40,94 +40,96 @@
   box-sizing: inherit;
 }
 
+.psf-heading {
+  padding-bottom: 17px;
+  border-bottom: 1px solid var(--psf-border);
+}
+.psf-heading p { margin: 7px 0 0; color: var(--psf-muted); font-size: 13px; line-height: 1.5; }
+.psf-heading .psf-kicker {
+  margin: 0 0 9px;
+  color: var(--psf-accent);
+  font: 500 10px "DM Mono", monospace;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
 .psf .psf-title {
   margin: 0;
   color: var(--psf-text);
-  font: 700 22px/1.05 "Playfair Display", Georgia, serif;
-  letter-spacing: -0.045em;
-}
-.psf-comparison-heading {
-  color: var(--psf-text-dim);
-  font-size: 13px;
-  font-weight: 600;
+  font: 600 26px/1.1 var(--psf-sans);
+  letter-spacing: -.035em;
 }
 
-/* Date picker */
+/* Cycle controls */
 .psf-picker {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 .psf-picker label {
   color: var(--psf-muted);
   font-size: 13px;
 }
-.psf-picker select,
-.psf-picker input {
+.psf-picker select {
   height: 34px;
   padding: 0 10px;
   border: 1px solid var(--psf-input-border);
-  border-radius: 6px;
+  border-radius: 3px;
   background: var(--psf-input-bg);
   color: var(--psf-text);
   font: inherit;
   font-size: 13px;
-  color-scheme: dark;
+  color-scheme: light;
 }
-.psf-picker select:hover,
-.psf-picker input:hover,
-.psf-today:hover {
+.psf-picker select:hover {
   border-color: var(--psf-accent);
 }
-.psf-today {
-  height: 34px;
-  padding: 0 12px;
-  border: 1px solid var(--psf-input-border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--psf-text-dim);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.psf-picker select:focus-visible,
-.psf-picker input:focus-visible,
-.psf-today:focus-visible {
+.psf-picker select:focus-visible {
   outline: 2px solid var(--psf-focus);
   outline-offset: 2px;
 }
 
-/* The two year tiles and the change line */
+.psf-results {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(250px, .75fr);
+  align-items: stretch;
+  gap: 16px;
+}
+.psf-comparison { display: grid; align-content: start; gap:12px; min-width: 0; }
+
+/* The two cycle figures and their change. */
 .psf-figures {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 0;
+  border: 1px solid var(--psf-tile-border);
 }
 .psf-figure {
   display: grid;
   align-content: start;
-  gap: 2px;
+  gap: 5px;
   min-width: 0;
-  padding: 8px 12px;
-  border: 1px solid var(--psf-tile-border);
-  border-radius: 8px;
+  padding: 18px 20px;
+  border: 0;
+  border-radius: 0;
   background: var(--psf-tile-bg);
 }
 .psf-figure.is-lead {
-  border-color: var(--psf-lead-border);
+  border-right: 1px solid var(--psf-lead-border);
   background: var(--psf-lead-bg);
 }
 .psf .psf-figure span {
   color: var(--psf-muted);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
 .psf .psf-figure strong {
   margin: 0;
   color: var(--psf-text-dim);
   font:
-    600 22px/1.1 var(--psf-sans);
+    600 32px/1.1 var(--psf-sans);
   letter-spacing: -0.02em;
 }
 .psf .psf-figure.is-lead strong {
@@ -136,130 +138,107 @@
 .psf .psf-change {
   grid-column: 1 / -1;
   margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--psf-tile-border);
   color: var(--psf-flat);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.3;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
 }
+.psf .psf-change--good,
+.psf .psf-change--bad { border-left: 3px solid currentColor; }
 .psf .psf-change--good {
   color: var(--psf-good);
+  background: #e5f2ea;
 }
 .psf .psf-change--bad {
   color: var(--psf-bad);
+  background: #fae8e6;
 }
-.psf .psf-note {
+.psf-empty {
+  display: grid;
+  align-content: end;
+  gap: 10px;
+  flex: 1;
+  min-height: 190px;
+  padding: 24px;
+  border: 1px solid var(--psf-border);
+  background: #20292b;
+}
+.psf-empty span {
+  color: var(--psf-accent);
+  font: 500 11px "DM Mono", monospace;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.psf-empty p {
+  max-width: 38ch;
   margin: 0;
-  color: var(--psf-muted);
-  font-size: 13px;
+  color: var(--psf-text-dim);
+  font-size: 15px;
   line-height: 1.5;
 }
 
-/* Current-batch placement mix */
+/* Placement rate for the selected cycle. */
 .psf-placement {
   display: grid;
-  justify-items: center;
-  align-content: end;
-  gap: 4px;
+  align-content: space-between;
+  gap: 10px;
   min-width: 0;
-  margin: auto -20px 0;
+  padding: 18px;
+  border: 1px solid var(--psf-tile-border);
+  background: var(--psf-tile-bg);
+}
+.psf-placement-heading {
+  display: block;
+}
+.psf-placement-heading > div { display: grid; gap: 3px; }
+.psf-placement-heading strong { color: var(--psf-text); font-size: 14px; }
+.psf-placement-heading small { color: var(--psf-muted); font-size: 11px; }
+.psf-donut-wrap { position: relative; width: min(300px, 100%); margin: 0 auto; }
+.psf-donut {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.psf-donut-track,
+.psf-donut-fill {
+  fill: none;
+  stroke-width: 24;
+  stroke-linecap: round;
+}
+.psf-donut-track { stroke: var(--psf-lead-border); }
+.psf-donut-fill { stroke: var(--psf-accent); }
+.psf .psf-donut-value {
+  position: absolute;
+  inset: auto 0 9px;
+  color: var(--psf-text);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.04em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 .psf-placement-summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 4px 12px;
-  padding: 0 12px;
+  gap: 6px 12px;
   color: var(--psf-text-dim);
   font-size: 12px;
-}
-.psf-placement-summary strong {
-  width: 100%;
-  color: var(--psf-text);
-  font-size: 13px;
-  text-align: center;
 }
 .psf-placement-summary span {
   display: inline-flex;
   align-items: center;
   gap: 7px;
 }
-.psf-donut-wrap {
-  position: relative;
-  width: min(200px, 100%);
-  aspect-ratio: 320 / 176;
-}
-.psf-donut {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-.psf-donut-track,
-.psf-donut-fill {
-  fill: none;
-  stroke-width: 24;
-  stroke-linecap: butt;
-}
-.psf-donut-track { stroke: #788496; }
-.psf-donut-fill {
-  stroke: #4c7fe4;
-  stroke-dasharray: var(--psf-filled-arc) 100;
-  animation: psf-water-rise 3.5s cubic-bezier(.15, .85, .2, 1) both;
-}
-.psf-donut-value {
-  position: absolute;
-  right: 0;
-  bottom: 18%;
-  left: 0;
-  display: grid;
-  gap: 1px;
-  justify-items: center;
-}
-.psf-donut-value strong {
-  color: var(--psf-text);
-  font-size: 22px;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-.psf-slot-number {
-  display: inline-flex;
-  justify-content: center;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.psf-slot-window {
-  display: inline-block;
-  width: .64em;
-  height: 1em;
-  overflow: hidden;
-  text-align: center;
-}
-.psf-slot-reel {
-  display: block;
-  transform: translateY(var(--psf-slot-end));
-  animation-name: psf-slot-spin;
-  animation-timing-function: cubic-bezier(.15, .85, .2, 1);
-  animation-fill-mode: both;
-}
-.psf-slot-reel > span { display: block; height: 1em; line-height: 1; }
-.psf-slot-punctuation { display: inline-block; }
-.psf-placement-summary i { width: 10px; height: 10px; border-radius: 50%; }
-.psf-legend-placed { background: #4c7fe4; }
-.psf-legend-unplaced { background: #788496; }
-@keyframes psf-water-rise {
-  from { clip-path: polygon(0 100%, 25% 100%, 50% 100%, 75% 100%, 100% 100%, 100% 100%, 0 100%); }
-  to { clip-path: polygon(0 0, 25% 0, 50% 0, 75% 0, 100% 0, 100% 100%, 0 100%); }
-}
-@keyframes psf-slot-spin {
-  from { transform: translateY(0); }
-  to { transform: translateY(var(--psf-slot-end)); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .psf-donut-fill { animation: none; }
-  .psf-slot-reel { animation: none; }
-}
+.psf-placement-summary i { width: 9px; height: 9px; border-radius: 50%; }
+.psf-legend-placed { background: var(--psf-accent); }
+.psf-legend-unplaced { background: var(--psf-lead-border); }
 
-/* Companies that had come (made a dated offer) by the cutoff, under each tile's count */
+/* Distinct companies attached to final offers in each cycle. */
 .psf .psf-figure-caption {
   color: var(--psf-muted);
   font-size: 12px;
@@ -277,20 +256,39 @@
   font-weight: 600;
 }
 
-/* Companies came: plain figure on each tile, one button that opens the comparison */
+.psf-company-diff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--psf-tile-border);
+  background: var(--psf-tile-bg);
+}
+.psf-company-diff > span {
+  padding: 6px 9px;
+  border: 1px solid var(--psf-tile-border);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* One detail view for the two company sets. */
 .psf .psf-companies-open {
-  grid-column: 1 / -1;
-  justify-self: start;
+  margin-left: auto;
   height: 34px;
   padding: 0 14px;
   border: 1px solid var(--psf-input-border);
-  border-radius: 6px;
+  border-radius: 3px;
   background: transparent;
   color: var(--psf-text-dim);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .psf-results { grid-template-columns: 1fr; }
 }
 .psf .psf-companies-open:hover {
   border-color: var(--psf-accent);
@@ -317,7 +315,7 @@
   padding: 22px 24px;
   overflow: hidden;
   border: 1px solid var(--psf-border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--psf-bg);
   color: var(--psf-text);
   font-family: var(--psf-sans);
@@ -329,8 +327,7 @@
   gap: 14px;
 }
 .psf-dialog::backdrop {
-  background: rgba(5, 9, 18, 0.72);
-  backdrop-filter: blur(2px);
+  background: rgba(7, 12, 13, 0.75);
 }
 .psf-dialog-head {
   display: flex;
@@ -340,8 +337,8 @@
 }
 .psf-dialog-head h3 {
   margin: 0;
-  font: 700 24px/1 "Playfair Display", Georgia, serif;
-  letter-spacing: -0.03em;
+  font: 600 24px/1.15 var(--psf-sans);
+  letter-spacing: -.035em;
 }
 .psf-dialog-head p {
   margin: 6px 0 0;
@@ -353,7 +350,7 @@
   width: 32px;
   height: 32px;
   border: 1px solid var(--psf-input-border);
-  border-radius: 6px;
+  border-radius: 3px;
   background: transparent;
   color: var(--psf-text-dim);
   font-size: 20px;
@@ -372,7 +369,7 @@
   height: 30px;
   padding: 0 12px;
   border: 1px solid var(--psf-input-border);
-  border-radius: 999px;
+  border-radius: 3px;
   background: transparent;
   color: var(--psf-text-dim);
   font: inherit;
@@ -393,12 +390,12 @@
   color: var(--psf-text);
 }
 .psf-tab--primary.is-active {
-  border-color: var(--psf-good);
-  color: var(--psf-good);
+  border-color: var(--psf-lead-border);
+  color: var(--psf-text);
 }
 .psf-tab--comparison.is-active {
-  border-color: var(--psf-bad);
-  color: var(--psf-bad);
+  border-color: var(--psf-lead-border);
+  color: var(--psf-text);
 }
 .psf-dialog-legend,
 .psf-company {
@@ -428,8 +425,7 @@
 .psf-company {
   padding: 8px 12px;
   border: 1px solid var(--psf-tile-border);
-  border-left-width: 3px;
-  border-radius: 6px;
+  border-radius: 3px;
   background: var(--psf-tile-bg);
 }
 .psf-company-name {
@@ -450,9 +446,8 @@
   font-size: 15px;
 }
 .psf-company--primary {
-  border-color: rgba(117, 199, 166, 0.45);
-  border-left-color: var(--psf-good);
-  background: rgba(117, 199, 166, 0.09);
+  border-color: #59766a;
+  background: #23312e;
 }
 .psf-company--primary .psf-company-name,
 .psf-company--primary .psf-company-name small,
@@ -460,9 +455,8 @@
   color: var(--psf-good);
 }
 .psf-company--comparison {
-  border-color: rgba(255, 77, 79, 0.5);
-  border-left-color: var(--psf-bad);
-  background: rgba(255, 77, 79, 0.1);
+  border-color: #786b62;
+  background: #302a27;
 }
 .psf-company--comparison .psf-company-name,
 .psf-company--comparison .psf-company-name small,
@@ -483,72 +477,4 @@
 .psf .psf-picker .psf-vs {
   color: var(--psf-muted);
   font-size: 12px;
-}
-
-/* Last-20-batches pop-up */
-.psf-trend-legend,
-.psf-trend-row {
-  display: grid;
-  grid-template-columns: 76px 1fr 72px;
-  align-items: center;
-  gap: 10px;
-}
-.psf-trend-legend {
-  padding: 0 12px;
-  margin-bottom: -8px;
-  color: var(--psf-muted);
-  font-size: 11px;
-  font-weight: 600;
-}
-.psf-trend-legend span:last-child,
-.psf-trend-companies {
-  text-align: center;
-}
-.psf-trend-row {
-  padding: 7px 12px;
-  border: 1px solid var(--psf-tile-border);
-  border-left-width: 3px;
-  border-radius: 6px;
-  background: var(--psf-tile-bg);
-}
-.psf-trend-row--main {
-  border-color: var(--psf-lead-border);
-  background: var(--psf-lead-bg);
-}
-.psf-trend-row--compare {
-  border-color: var(--psf-lead-border);
-  border-left-color: var(--psf-accent);
-}
-.psf-trend-year {
-  display: grid;
-  font-size: 14px;
-  font-weight: 600;
-}
-.psf-trend-year small {
-  color: var(--psf-muted);
-  font-size: 10px;
-  font-weight: 500;
-}
-.psf-trend-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 22px;
-  border-radius: 4px;
-  background: rgba(112, 160, 255, 0.07);
-}
-.psf-trend-bar i {
-  height: 100%;
-  border-radius: 4px;
-  background: var(--psf-accent);
-}
-.psf-trend-bar b {
-  position: absolute;
-  left: 8px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.psf-trend-companies {
-  color: var(--psf-text-dim);
-  font-size: 13px;
 }

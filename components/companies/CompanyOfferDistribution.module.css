@@ -437,3 +437,10 @@
   }
 }
 
+:global(.portal-shell) .card { background: var(--theme-panel) !important; border-color: var(--theme-line) !important; color: var(--theme-ink) !important; }
+:global(.portal-shell) .card * { color: var(--theme-ink) !important; }
+:global(.portal-shell) .card :is(.toolbar, .dimensionGroup, .stateBox, .errorBox, .tooltip) { background: var(--theme-support) !important; border-color: var(--theme-line) !important; }
+:global(.portal-shell) .card :is(.roleSelect, .dimensionButton, .retryButton, .legendItem) { background: var(--theme-page) !important; border-color: var(--theme-line) !important; }
+:global(.portal-shell) .card .dimensionActive { background: var(--theme-accent) !important; border-color: var(--theme-line) !important; box-shadow: none !important; }
+:global(.portal-shell) .card .roleSelect option { background: var(--theme-page) !important; color: var(--theme-ink) !important; }
+

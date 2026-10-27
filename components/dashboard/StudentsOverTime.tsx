@@ -30,11 +30,11 @@ import { ACCENT, AXIS_TEXT, GRID, LABEL_TEXT, axisTick } from "./chartTheme";
 import { plural } from "./format";
 
 /** One accent, one secondary (last year) and gray for everything muted. */
-const SECONDARY = "#22a08c";
-const MUTED = "#4a5d7e";
-/** Week view: a flat cyan weekly line and an electric-blue average (no glow). */
-const RAW_LINE = "#38f2ff";
-const NEON_BLUE = "#5b8cff";
+const SECONDARY = "#8cc0eb";
+const MUTED = "#94aec1";
+/** Daily and weekly views distinguish observations from their moving average. */
+const RAW_LINE = "#579bc9";
+const AVERAGE_LINE = "#243746";
 const CHART_HEIGHT = 320;
 
 interface ViewOption { id: TimeView; label: string; titles: { total: string; change: string; peak: string } }
@@ -201,8 +201,8 @@ function Legend({ view, series }: { view: TimeView; series: TimeSeries }) {
       : view === "month"
         ? [{ label: String(series.currentYear), style: "solid", color: ACCENT }, { label: String(series.previousYear), style: "dashed", color: SECONDARY }]
         : view === "day"
-          ? [{ label: "Daily count", style: "thin", color: RAW_LINE }, { label: `${MOVING_AVERAGE_DAYS}-day average`, style: "thick", color: NEON_BLUE }]
-          : [{ label: "Weekly count", style: "thin", color: RAW_LINE }, { label: `${MOVING_AVERAGE_WEEKS}-week average`, style: "thick", color: NEON_BLUE }];
+        ? [{ label: "Daily count", style: "thin", color: RAW_LINE }, { label: `${MOVING_AVERAGE_DAYS}-day average`, style: "thick", color: AVERAGE_LINE }]
+        : [{ label: "Weekly count", style: "thin", color: RAW_LINE }, { label: `${MOVING_AVERAGE_WEEKS}-week average`, style: "thick", color: AVERAGE_LINE }];
   return (
     <ul className="mme-time-legend" aria-label="Chart legend">
       {items.map((item) => (
@@ -297,8 +297,8 @@ function TimeChart({ view, series }: { view: TimeView; series: TimeSeries }) {
                   );
                 }}
               />
-              <Line type="monotone" dataKey="count" name="Daily count" stroke={RAW_LINE} strokeWidth={1.6} dot={{ r: 2.5, fill: RAW_LINE, strokeWidth: 0 }} activeDot={{ r: 4.5, fill: RAW_LINE, stroke: "#dffcff", strokeWidth: 1.5 }} isAnimationActive={false} />
-              <Line type="monotone" dataKey="average" name={`${MOVING_AVERAGE_DAYS}-day average`} stroke={NEON_BLUE} strokeWidth={3} dot={false} activeDot={{ r: 5.5, fill: NEON_BLUE, stroke: "#dbe6ff", strokeWidth: 1.5 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="count" name="Daily count" stroke={RAW_LINE} strokeWidth={1.6} dot={{ r: 2.5, fill: RAW_LINE, strokeWidth: 0 }} activeDot={{ r: 4.5, fill: RAW_LINE, stroke: "#fff9d2", strokeWidth: 1.5 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="average" name={`${MOVING_AVERAGE_DAYS}-day average`} stroke={AVERAGE_LINE} strokeWidth={3} dot={false} activeDot={{ r: 5.5, fill: AVERAGE_LINE, stroke: "#fff9d2", strokeWidth: 1.5 }} isAnimationActive={false} />
             </LineChart>
           ) : (
             <LineChart data={series.weeks} margin={margins}>
@@ -318,8 +318,8 @@ function TimeChart({ view, series }: { view: TimeView; series: TimeSeries }) {
                   );
                 }}
               />
-              <Line type="monotone" dataKey="count" name="Weekly count" stroke={RAW_LINE} strokeWidth={1.6} dot={false} activeDot={{ r: 4, fill: RAW_LINE, stroke: "#dffcff", strokeWidth: 1.5 }} isAnimationActive={false} />
-              <Line type="monotone" dataKey="average" name={`${MOVING_AVERAGE_WEEKS}-week average`} stroke={NEON_BLUE} strokeWidth={3} dot={false} activeDot={{ r: 5.5, fill: NEON_BLUE, stroke: "#dbe6ff", strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="count" name="Weekly count" stroke={RAW_LINE} strokeWidth={1.6} dot={false} activeDot={{ r: 4, fill: RAW_LINE, stroke: "#fff9d2", strokeWidth: 1.5 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="average" name={`${MOVING_AVERAGE_WEEKS}-week average`} stroke={AVERAGE_LINE} strokeWidth={3} dot={false} activeDot={{ r: 5.5, fill: AVERAGE_LINE, stroke: "#fff9d2", strokeWidth: 1.5 }} connectNulls={false} isAnimationActive={false} />
             </LineChart>
           )}
         </ResponsiveContainer>

@@ -41,10 +41,10 @@ export interface CompanyOfferHistoryChartProps {
   onRetry: () => void;
 }
 
-const BAR_COLOR = "#3a72e6";
-const GRID_COLOR = "rgba(110, 160, 255, 0.12)";
-const AXIS_TEXT = "#8f9bb0";
-const LABEL_TEXT = "#dbe7fc";
+const BAR_COLOR = "#579bc9";
+const GRID_COLOR = "rgba(36, 55, 70, 0.2)";
+const AXIS_TEXT = "#526675";
+const LABEL_TEXT = "#243746";
 const COUNT_ERROR = "These figures don't add up; please refresh or report this.";
 
 /** Accept legacy string counts only when they are whole, nonnegative integers. */
@@ -257,7 +257,6 @@ export default function CompanyOfferHistoryChart({
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerInfo}>
-          <p className={styles.kicker}>HISTORY TREND</p>
           <h2 id={titleId} className={styles.title}>
             Offer history by cycle
           </h2>

@@ -21,7 +21,7 @@ export default function CompanyRolePackages({ rows, active, loading, error, onRe
   // Domain and drive reference; repeated combinations of the same title get "(1)", "(2)".
   const details = offeredRows.map(row => `${row.domain?.trim() || "Domain not recorded"} · ${row.driveReference?.trim() || "No drive reference"}`);
   const identities = numberDuplicates(details, offeredRows.map((row, index) => `${row.jobTitle ?? ""} · ${details[index]}`));
-  return <section className={styles.card}><header className={styles.cardHeader}><div><p className={styles.kicker}>COMPENSATION</p><h2>Actual offers by role</h2><p>Median and recorded range for final offers. Missing amounts are excluded.</p></div></header>
+  return <section className={styles.card}><header className={styles.cardHeader}><div><h2>Offers by role</h2><p>Recorded CTC only · median and range</p></div></header>
     {loading ? <p role="status" className={styles.state}>Loading compensation summaries…</p> : error ? <p role="alert" className={styles.error}>{error} <button onClick={onRetry}>Retry</button></p> : !active ? <p className={styles.state}>Select a company and placement cycle.</p> :
       !offeredRows.length ? <p className={styles.state}>No final offers are recorded for this company and cycle.</p> : <div className={styles.roleCards} role="list" aria-label="Actual offer compensation by role">{offeredRows.map((row, index) => {
         const identity = row.roleId ? identities[index] : "Offers without a recorded role";

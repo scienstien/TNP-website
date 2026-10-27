@@ -18,3 +18,7 @@
 .item a { color:var(--blue); text-decoration:underline; text-underline-offset:2px; }
 .missing { color:var(--muted); font-style:italic; }
 @media (max-width:700px) { .card { padding:18px; } }
+
+:global(.portal-shell) .card .item { background: var(--theme-panel) !important; border-color: var(--theme-line) !important; }
+:global(.portal-shell) .card :is(.drive, .fields dt, .fields dd, .note, .state) { color: var(--theme-ink) !important; }
+:global(.portal-shell) .card a { color: #245d89 !important; }

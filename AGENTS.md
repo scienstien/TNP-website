@@ -231,6 +231,11 @@ Users and historical data:
    other agents' work without approval.
 10. No duplicate implementations. Search for an existing component,
     query, utility, or service before creating another version.
+
+Font build note: `app/layout.tsx` uses the bundled `geist` fonts and the login
+page uses local `@fontsource` files through `next/font/local`. Preserve the
+existing CSS variables. `next/font/google` can fail Turbopack builds when Google
+returns extensionless font URLs (vercel/next.js#99114).
 5. Multi-agent collaboration protocol
 Different agents may work from different laptops. The shared Git
 repository is the coordination mechanism.
@@ -405,11 +410,12 @@ Ported analytics and student/company integration:
 - Dashboard KPI deltas compare a user-selected primary cycle with a different
   user-selected comparison cycle under the same batch and offer filters. Never
   infer a previous cycle from its code or optional dates.
-- The home placement wheel and comparison use full-cycle summaries for two
-  different cycles explicitly selected by the user. They exclude UNREGISTERED
-  participation and do not infer cycle identity or boundaries from dates or
-  graduating batches. Their company figure means distinct companies attached to
-  final offers; it is not a company-visit metric.
+- Home shows UG placement highlights, a half-donut placement rate for an
+  explicitly selected cycle, and a comparison with a different selected cycle.
+  The full-cycle summaries exclude UNREGISTERED participation. Registered
+  participations may count the same enrollment in more than one cycle; companies
+  with offers are distinct companies attached to final offers, not visits. The
+  home company difference lists companies unique to each cycle and shared by both.
 - Student editors remain ADMIN-only (SUPERADMIN included) with role and department
   rechecks on every mutation, explicit offer removal, draft Save/Cancel and
   no-overwrite company creation. Offer editing selects exact existing drive and role

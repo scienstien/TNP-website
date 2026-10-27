@@ -55,7 +55,7 @@ export default function DriveCalendar({ today, initialDay, canEdit, window: visi
   const undated = events.filter(event => event.scheduledDate === null);
   return <div className="cal-container">
     {message && <p className="cal-feedback" role="status">{message}</p>}
-    <section className="cal"><div className="cal-month panel"><div className="cal-toolbar"><div><h2>{monthLabel}</h2><p className="cal-local-note">Scheduled drive stages</p></div><div className="cal-nav"><button type="button" aria-label="Previous month" disabled={pending || editing !== null} onClick={() => changeMonth(-1)}>‹</button><button type="button" disabled={pending || editing !== null} onClick={() => router.push(`/calendar?month=${today.slice(0, 7)}`)}>Today</button><button type="button" aria-label="Next month" disabled={pending || editing !== null} onClick={() => changeMonth(1)}>›</button></div></div>
+    <section className="cal"><div className="cal-month panel"><div className="cal-toolbar"><h2>{monthLabel}</h2><div className="cal-nav"><button type="button" aria-label="Previous month" disabled={pending || editing !== null} onClick={() => changeMonth(-1)}>‹</button><button type="button" disabled={pending || editing !== null} onClick={() => router.push(`/calendar?month=${today.slice(0, 7)}`)}>Today</button><button type="button" aria-label="Next month" disabled={pending || editing !== null} onClick={() => changeMonth(1)}>›</button></div></div>
       <div className="cal-weekdays">{WEEKDAYS.map(day => <span key={day}>{day}</span>)}</div><div className="cal-days" aria-label={monthLabel}>
         {Array.from({ length: blanks }, (_, index) => <span className="cal-blank" key={`blank-${index}`} />)}
         {Array.from({ length: days }, (_, index) => { const date = toIsoDate(year, month - 1, index + 1); const dayEvents = events.filter(event => event.scheduledDate === date); return <button type="button" className={`cal-day${date === selected ? " cal-day--selected" : ""}${date === today ? " cal-day--today" : ""}`} key={date} aria-pressed={date === selected} aria-label={`${date}, ${dayEvents.length} events`} disabled={pending || editing !== null} onClick={() => setSelected(date)}><span className="cal-num">{index + 1}</span><span className="cal-chips">{dayEvents.slice(0, 2).map(event => <span className="cal-chip" key={event.eventId}>{event.companyName}, {PROCESS_LABELS[event.processType]}</span>)}{dayEvents.length > 2 && <span className="cal-more">+{dayEvents.length - 2} more</span>}</span>{dayEvents.length > 0 && <span className="cal-dot" aria-hidden="true" />}</button>; })}
@@ -66,9 +66,9 @@ export default function DriveCalendar({ today, initialDay, canEdit, window: visi
         <UpcomingCompanies events={upcoming} today={today} selected={selected} onSelectDate={date => { if (!pending && editing === null) goTo(date); }} />
         <details className="cal-collapsible cal-unscheduled">
           <summary><span>Unscheduled</span><span className="cal-count">{undated.length}</span></summary>
-          <p className="cal-hint">All undated events, across cycles.</p>{!undated.length && <p className="cal-empty">No unscheduled events.</p>}<ul className="cal-list">{undated.map(renderEvent)}</ul>
+          {!undated.length && <p className="cal-empty">No unscheduled events.</p>}<ul className="cal-list">{undated.map(renderEvent)}</ul>
         </details>
-        {!canEdit && <p className="cal-hint">Only administrators with a department chosen can edit institute-wide drive stages.</p>}
+        {!canEdit && <p className="cal-hint">Read only.</p>}
       </aside>
     </section>
   </div>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { HomeCycleSummary } from "@/lib/placements/home-cycle";
 import "./PlacedSoFar.css";
 
@@ -13,39 +13,6 @@ const plural = (count: number, one: string, many = `${one}s`) =>
   `${count} ${count === 1 ? one : many}`;
 
 const cycleLabel = (cycle: HomeCycleSummary) => `Cycle ${cycle.cycleCode}`;
-
-function rippleClipPath(time: number) {
-  const phase = time * 0.009;
-  const amplitude = 2.4 + 0.5 * Math.sin(time * 0.002);
-  const points = Array.from({ length: 17 }, (_, index) => {
-    const y = -16 + index * 2;
-    const x = amplitude * Math.sin(y * 0.26 - phase);
-    return `${x.toFixed(2)} ${y}`;
-  });
-  return `M-600 -600 L0 -600 L0 -16 L${points.join(" L")} L0 16 L0 600 L-600 600 Z`;
-}
-
-function RollingPercentage({ value }: { value: number }) {
-  const formatted = value.toFixed(1);
-  let reelIndex = 0;
-  return <strong className="psf-slot-number">
-    {[...formatted].map((character, position) => {
-      if (character === ".") return <span key={position} className="psf-slot-punctuation">.</span>;
-      const index = reelIndex++;
-      const finalStep = 30 + Number(character);
-      return <span key={position} className="psf-slot-window">
-        <span className="psf-slot-reel" style={{
-          "--psf-slot-end": `-${finalStep}em`,
-          animationDelay: `${index * 0.12}s`,
-          animationDuration: `${3.5 - index * 0.12}s`,
-        } as CSSProperties}>
-          {Array.from({ length: finalStep + 1 }, (_, step) => <span key={step}>{step % 10}</span>)}
-        </span>
-      </span>;
-    })}
-    <span className="psf-slot-punctuation">%</span>
-  </strong>;
-}
 
 type CompanyStatus = "both" | "primary" | "comparison";
 
@@ -158,8 +125,6 @@ function describeChange(primary: HomeCycleSummary, comparison: HomeCycleSummary)
 
 export default function PlacedSoFar({ cycles, className = "" }: PlacedSoFarProps) {
   const id = useId();
-  const rippleClipId = `psf-ripple-${id.replace(/[^a-zA-Z0-9_-]/g, "")}`;
-  const rippleClipRef = useRef<SVGPathElement>(null);
   const [primaryId, setPrimaryId] = useState("");
   const [comparisonId, setComparisonId] = useState("");
   const [companiesOpen, setCompaniesOpen] = useState(false);
@@ -168,42 +133,11 @@ export default function PlacedSoFar({ cycles, className = "" }: PlacedSoFarProps
   const comparison = cycles.find((cycle) => cycle.cycleId === comparisonId) ?? null;
   const total = primary ? primary.placed + primary.unplaced : 0;
   const placementPct = primary && total ? (primary.placed / total) * 100 : null;
-  const filledArc = placementPct ?? 0;
-  const arcAngle = (Math.PI * filledArc) / 100;
-  const rippleX = 160 - 140 * Math.cos(arcAngle);
-  const rippleY = 176 - 140 * Math.sin(arcAngle);
-  const rippleRotation = (180 * filledArc) / 100 - 90;
-  const hasRipple = filledArc > 0 && filledArc < 100;
-  const visibleArc = hasRipple ? Math.min(100, filledArc + 3) : filledArc;
-
-  useEffect(() => {
-    if (!hasRipple) return;
-    const clip = rippleClipRef.current;
-    if (!clip) return;
-    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let frame: number | null = null;
-    let lastFrame = 0;
-    const animate = (time: number) => {
-      if (time - lastFrame >= 30) {
-        clip.setAttribute("d", rippleClipPath(time));
-        lastFrame = time;
-      }
-      frame = window.requestAnimationFrame(animate);
-    };
-    const updateMotion = () => {
-      if (motionPreference.matches) {
-        if (frame !== null) window.cancelAnimationFrame(frame);
-        frame = null;
-        clip.setAttribute("d", rippleClipPath(0));
-      } else if (frame === null) frame = window.requestAnimationFrame(animate);
-    };
-    motionPreference.addEventListener("change", updateMotion);
-    updateMotion();
-    return () => {
-      motionPreference.removeEventListener("change", updateMotion);
-      if (frame !== null) window.cancelAnimationFrame(frame);
-    };
-  }, [hasRipple]);
+  const companyDiff = primary && comparison ? {
+    onlyPrimary: primary.companies.filter((name) => !comparison.companies.includes(name)).length,
+    onlyComparison: comparison.companies.filter((name) => !primary.companies.includes(name)).length,
+    shared: primary.companies.filter((name) => comparison.companies.includes(name)).length,
+  } : null;
 
   const selectPrimary = (cycleId: string) => {
     setPrimaryId(cycleId);
@@ -213,8 +147,9 @@ export default function PlacedSoFar({ cycles, className = "" }: PlacedSoFarProps
   const change = primary && comparison ? describeChange(primary, comparison) : null;
 
   return <section className={`psf ${className}`} aria-labelledby={`${id}-title`}>
-    <h2 id={`${id}-title`} className="psf-title">Placement cycle stats</h2>
-    <div className="psf-comparison-heading">Cycle comparison</div>
+    <div className="psf-heading">
+      <h2 id={`${id}-title`} className="psf-title">Cycle comparison</h2>
+    </div>
     <div className="psf-picker">
       <label htmlFor={`${id}-primary-cycle`}>Primary cycle</label>
       <select id={`${id}-primary-cycle`} value={primaryId} onChange={(event) => selectPrimary(event.target.value)}>
@@ -232,8 +167,11 @@ export default function PlacedSoFar({ cycles, className = "" }: PlacedSoFarProps
       </select>
     </div>
 
-    {!cycles.length && <p className="psf-note">No placement cycles are available.</p>}
-    {primary && <>
+    <div className="psf-results">
+      {!primary && <div className="psf-empty" role="status">
+        <p>{cycles.length ? "Select a cycle to view outcomes." : "No placement cycles recorded."}</p>
+      </div>}
+      {primary && <div className="psf-comparison">
       <div className="psf-figures" aria-live="polite">
         {[primary, comparison].map((cycle, index) => cycle ? (
           <div key={cycle.cycleId} className={index === 0 ? "psf-figure is-lead" : "psf-figure"}>
@@ -252,44 +190,46 @@ export default function PlacedSoFar({ cycles, className = "" }: PlacedSoFarProps
           </div>
         ))}
         <p className={`psf-change psf-change--${change?.tone ?? "flat"}`}>
-          {change?.text ?? "Select a comparison cycle to see the change."}
+          {change?.text ?? "Select another cycle to compare."}
         </p>
-        {comparison && <button type="button" className="psf-companies-open" onClick={() => setCompaniesOpen(true)}>
-          Compare companies with offers <span aria-hidden="true">›</span>
-        </button>}
       </div>
+
+      {companyDiff && comparison && <div className="psf-company-diff">
+        <span className="psf-company-diff--primary">{companyDiff.onlyPrimary} only in {primary.cycleCode}</span>
+        <span className="psf-company-diff--comparison">{companyDiff.onlyComparison} only in {comparison.cycleCode}</span>
+        <span className="psf-company-diff--shared">{companyDiff.shared} in both</span>
+        <button type="button" className="psf-companies-open" onClick={() => setCompaniesOpen(true)}>
+          View companies <span aria-hidden="true">›</span>
+        </button>
+      </div>}
 
       {companiesOpen && comparison && <CompaniesDialog
         primary={primary}
         comparison={comparison}
         onClose={() => setCompaniesOpen(false)}
       />}
+      </div>}
 
-      <div className="psf-placement" aria-label={`${cycleLabel(primary)} placement rate`}>
-        <div className="psf-placement-summary">
-          <strong>{cycleLabel(primary)} placement</strong>
-          <span><i className="psf-legend-placed" />{primary.placed} placed</span>
-          <span><i className="psf-legend-unplaced" />{primary.unplaced} unplaced</span>
-        </div>
-        <div className="psf-donut-wrap">
-          <svg className="psf-donut" viewBox="0 0 320 176" role="img"
-            aria-label={placementPct === null ? "No registered students" : `${placementPct.toFixed(1)} percent of registered students placed`}>
-            {hasRipple && <defs><clipPath id={rippleClipId} clipPathUnits="userSpaceOnUse">
-              <path ref={rippleClipRef} transform={`translate(${rippleX} ${rippleY}) rotate(${rippleRotation})`} d={rippleClipPath(0)} />
-            </clipPath></defs>}
-            <path className="psf-donut-track" d="M20 176 A140 140 0 0 1 300 176" pathLength="100" />
-            {filledArc > 0 && <g clipPath={hasRipple ? `url(#${rippleClipId})` : undefined}>
-              <path key={`${primary.cycleId}-${filledArc}`} className="psf-donut-fill"
-                d="M20 176 A140 140 0 0 1 300 176" pathLength="100"
-                style={{ "--psf-filled-arc": visibleArc } as CSSProperties} />
-            </g>}
-          </svg>
-          <div className="psf-donut-value" aria-hidden="true">
-            {placementPct === null ? <strong>—</strong> :
-              <RollingPercentage key={`${primary.cycleId}-${placementPct.toFixed(1)}`} value={placementPct} />}
+      <div className="psf-placement" aria-label={primary ? `${cycleLabel(primary)} placement rate` : "Placement rate"}>
+        <div className="psf-placement-heading">
+          <div>
+            <strong>Placement rate</strong>
+            {primary && <small>{cycleLabel(primary)}</small>}
+            <small>Placed ÷ registered students</small>
           </div>
         </div>
+        <div className="psf-donut-wrap">
+          <svg className="psf-donut" viewBox="0 0 320 180" role="img" aria-label={placementPct === null ? "Placement rate unavailable" : `${placementPct.toFixed(1)} percent of registered students placed`}>
+            <path className="psf-donut-track" d="M20 160 A140 140 0 0 1 300 160" pathLength="100" />
+            {placementPct !== null && placementPct > 0 && <path className="psf-donut-fill" d="M20 160 A140 140 0 0 1 300 160" pathLength="100" strokeDasharray={`${placementPct} 100`} />}
+          </svg>
+          <strong className="psf-donut-value">{placementPct === null ? "—" : `${placementPct.toFixed(1)}%`}</strong>
+        </div>
+        {primary && <div className="psf-placement-summary">
+          <span><i className="psf-legend-placed" />{primary.placed} placed</span>
+          <span><i className="psf-legend-unplaced" />{primary.unplaced} unplaced</span>
+        </div>}
       </div>
-    </>}
+    </div>
   </section>;
 }

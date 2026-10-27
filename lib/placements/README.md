@@ -26,21 +26,22 @@ The "Dashboard" view (`components/dashboard/`) is computed from placement data i
 
 The domain-wise chart and the domain filter use the domain of the offer's role (`drive_roles.domain`, e.g. Software or Production). Offers without a role, or whose role has no domain, appear as "Not recorded". `companies.domain` is only a company description and is not used in analytics. Unplaced students have no offer, so they belong to no domain; they are reported in the chart's footnote.
 
-## Home comparison
+## Home highlights
 
-Home uses `components/home/PlacedSoFar.tsx` with full-cycle summaries prepared by
-`lib/placements/home-cycle.ts`. The user explicitly selects a primary cycle and a
-different comparison cycle by their stored IDs/codes; neither selection is
-inferred from dates, cycle codes, or graduating batches.
+Home shows a greeting, UG placement highlights, a team carousel with placeholder
+years, and a cycle comparison. The carousel advances automatically and centers
+the active year; it pauses on interaction and for reduced-motion settings.
 
-Each summary counts only `REGISTERED` participation. An offer means placed;
-registered without an offer means unplaced. The placement wheel shows placed ÷
-registered for the primary cycle. The comparison shows the difference in placed
-students between the two selected cycles.
+Highlights and comparison use `lib/placements/home-cycle.ts`. Each summary counts only
+`REGISTERED` participation; an offer means placed. The participation total
+across cycles may count an enrollment more than once. Companies with offers are
+distinct company names on final offers, not campus visits. Team names and
+photographs remain placeholders until verified content is supplied.
 
-Company figures are explicitly labelled "companies with offers" because they are
-derived from final offers, not drive events or campus visits. The old batch/date
-picker and last-20-batches view are no longer part of the home page.
+The user selects a primary cycle and a different comparison cycle by stored ID.
+The half donut shows placed ÷ registered for the primary cycle, or an undefined
+state when no registered students exist. Company differences show names unique
+to each selected cycle and shared by both; the detail dialog lists those names.
 
 ## Degree levels and PG specialization
 

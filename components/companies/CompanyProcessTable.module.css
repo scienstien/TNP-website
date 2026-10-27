@@ -29,3 +29,7 @@
 .missing { color:var(--muted); font-style:italic; }
 .srOnly { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0, 0, 0, 0); white-space:nowrap; border:0; }
 @media (max-width:700px) { .card { padding:18px; } .header { flex-direction:column; } }
+
+:global(.portal-shell) .card :is(.button, .scope, .roles li) { background: var(--theme-support) !important; border-color: var(--theme-line) !important; color: var(--theme-ink) !important; }
+:global(.portal-shell) .card :is(.field select, .scroll, .table th) { background: var(--theme-page) !important; border-color: var(--theme-line) !important; color: var(--theme-ink) !important; }
+:global(.portal-shell) .card :is(.error, .state, .context, .label, .event strong) { color: var(--theme-ink) !important; }

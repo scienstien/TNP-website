@@ -144,9 +144,7 @@ export default function StudentRecords({ data }: { data: StudentData }) {
     <section className="student-records">
       <div className="section-heading">
         <div className="student-heading-copy">
-          <p className="student-eyebrow">{level} PLACEMENT ROSTER</p>
-          <h1>{level === "UG" ? "UG Student Directory" : "PG Student Directory"}</h1>
-          <p>Search, filter, and manage student registrations and recorded offers.</p>
+          <h1>{level} students</h1>
         </div>
         <div className="student-heading-actions">
           <button className="dark-button" disabled={busy}
@@ -525,10 +523,10 @@ function StudentEditor({ initial, options, level, onCancel, onSaved, onDirtyChan
       {field("admissionYear", "Admission year (optional)", { inputMode: "numeric", maxLength: 4 })}
     </div>
     {!options.programmes.length && <p className="student-note">This department has no {level} programme yet, so students cannot be added.</p>}
-    {initial && <p className="student-note">Programme and batch cannot be changed here: moving a student would discard registrations and offer details. Use the registrations button in the table to manage placement cycles.</p>}
+    {initial && <p className="student-note">Programme and batch are fixed to protect registration and offer history.</p>}
     {!initial && <fieldset disabled={pending} className="student-company-create">
       <legend>Placement-cycle registration (optional)</legend>
-      <p className="student-note">Choose an existing cycle and the student&apos;s status. Nothing is assumed when this is left blank.</p>
+      <p className="student-note">Choose a cycle and registration status.</p>
       <div className="student-fields">
         <div className="student-cycle-picker">
           {choice("cycleId", "Placement cycle", [["", "No registration yet"], ...cycles.map(c => [c.cycleId, c.code] as [string, string])],
@@ -580,7 +578,7 @@ function StudentEditor({ initial, options, level, onCancel, onSaved, onDirtyChan
         }}>Create new company</button>}
         {creatingCompany && <fieldset disabled={pending} className="student-company-create">
           <legend>Create new company</legend>
-          <p>The company is saved separately. Your student is saved when you click Save.</p>
+          <p>Company saved separately. Save the student to finish.</p>
           <label htmlFor="new-company-name">Company name</label>
           <input id="new-company-name" value={companyDraft.name}
             aria-invalid={!!companyResult.fieldErrors?.name} aria-describedby="new-company-name-error"
@@ -710,7 +708,7 @@ function RegistrationEditor({ student, options, level, onClose, onDirtyChange }:
     result.fieldErrors?.registrationStatus || result.fieldErrors?.rollNumber;
   return <div className="panel student-editor">
     {heading}
-    <p className="student-note">Each change is saved immediately. A cycle that holds the student&apos;s offer cannot become UNREGISTERED or be removed; remove the offer first.</p>
+    <p className="student-note">Changes save immediately. Remove an offer before unregistering its cycle.</p>
     {student.participations.length ? <ul className="student-registrations">
       {student.participations.map(p => {
         const holdsOffer = student.offer?.cycleId === p.cycleId;

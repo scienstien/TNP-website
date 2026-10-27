@@ -206,12 +206,15 @@ entries.
 
 Migration 0005 creates an `mme` department so existing accounts and contacts stay
 valid. `npm run db:seed:departments` keeps it as the real Metallurgical and Materials
-Engineering department: the demo seed covers the nine B.Tech departments (chem,
-civil, cse, ece, eee, ice, mech, mme, prod), each with fictional B.Tech and M.Tech data.
+Engineering department: the full demo seed covers the nine B.Tech departments (chem,
+civil, cse, ece, eee, ice, mech, mme, prod) and all 17 PG branches and their
+specializations in `lib/placements/pg-catalog.ts`. Fictional PG programmes use the
+published degree labels (M.Tech, M.Arch, M.Plan, M.Sc, MCA, MA and MBA).
 The full seed creates exactly 10,000 fictional students and one enrollment and
 student-cycle registration per student across graduating years 2008-2027. Both
 degree levels appear in every year. Year totals grow gradually from 430 to 570;
-department cohort sizes follow the demo department-size weights, and all final offers
+department cohort sizes follow the demo department-size weights, each catalogue
+specialization has a cohort in every year, and all final offers
 belong to registered participation. These are synthetic distributions, not institute
 statistics. The reset keeps user accounts and existing outreach contacts, and may add
 missing fictional outreach contacts. `TARGET_STUDENTS=<positive integer>` optionally
@@ -223,12 +226,13 @@ Shared demo definitions live in `db/demo-data.ts`. On a database the full seed r
 departments that are missing or have no programmes, joining existing cycles and DEMO
 company drives; it never deletes or updates rows and never touches `legacy_*` tables.
 
-Migration 0007 adds the eight PG-only departments missing from the nine-department
+Migration 0007 adds the eight PG-only departments missing from the original nine-department
 demo (Computer Applications, Energy and Environment, Physics, Architecture and
 Planning, Chemistry, Mathematics, Humanities and Social Sciences, and Management
 Studies). It preserves existing rows with a matching code or name and creates no
 programmes or placement records. The top department selector reads these persisted
-rows; `lib/placements/pg-catalog.ts` supplies only published programme labels.
+rows; `lib/placements/pg-catalog.ts` supplies published programme labels, which the
+full disposable demo seed now uses for fictional PG records.
 Real PG figures require matching degree, programme, cohort and registration rows.
 
 ## Local database and future migration workflow

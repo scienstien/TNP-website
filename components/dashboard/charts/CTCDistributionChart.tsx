@@ -34,7 +34,7 @@ export default function CTCDistributionChart({
   return (
     <ChartCard
       title="CTC distribution"
-      subtitle="Offers across CTC ranges (LPA) · select a bar to filter"
+      subtitle="LPA · select a bar to filter"
       isEmpty={offers === 0}
       fill
       emptyMessage={
@@ -47,7 +47,7 @@ export default function CTCDistributionChart({
           ? `${plural(excluded, "offer")} without a recorded CTC ${
               excluded === 1 ? "is" : "are"
             } excluded.`
-          : "Every matching offer has a recorded CTC."
+          : null
       }
       table={{
         caption: "Offers by CTC range",

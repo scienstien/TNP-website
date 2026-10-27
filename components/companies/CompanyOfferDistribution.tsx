@@ -39,19 +39,19 @@ export interface CompanyOfferDistributionProps {
 }
 
 const PALETTE = [
-  "#3a72e6", // royal blue
-  "#22a08c", // emerald teal
-  "#9b6fe0", // amethyst purple
-  "#f59e0b", // warm amber
-  "#ec4899", // magenta rose
-  "#06b6d4", // bright cyan
-  "#f97316", // vivid orange
-  "#10b981", // fresh green
-  "#8b5cf6", // violet
-  "#6366f1", // indigo
+  "#579bc9",
+  "#8cc0eb",
+  "#7eacc9",
+  "#b1cfe2",
+  "#6992ad",
+  "#9ab9ca",
+  "#b99572",
+  "#829c9b",
+  "#a6b2c4",
+  "#5b839e",
 ];
 
-const NOT_RECORDED_COLOR = "#50617a";
+const NOT_RECORDED_COLOR = "#82959e";
 const COUNT_ERROR = "These figures don't add up; please refresh or report this.";
 
 export function validateDistributionCounts(total: unknown, buckets: CompanyOfferBucket[]) {
@@ -80,7 +80,7 @@ export function formatRoleOptionLabel(
 }
 
 /**
- * Deterministically pick an accessible color for a bucket based on its key/label and index.
+ * Pick a stable palette color for a bucket based on its key/label and index.
  */
 function getBucketColor(key: string, label: string, index: number): string {
   const normalizedKey = key.toLowerCase();
@@ -97,16 +97,16 @@ function getBucketColor(key: string, label: string, index: number): string {
   }
 
   // Gender known mappings
-  if (normalizedKey === "m" || normalizedLabel === "male") return "#3a72e6";
-  if (normalizedKey === "f" || normalizedLabel === "female") return "#ec4899";
-  if (normalizedKey === "o" || normalizedLabel === "other") return "#22a08c";
+  if (normalizedKey === "m" || normalizedLabel === "male") return PALETTE[0];
+  if (normalizedKey === "f" || normalizedLabel === "female") return PALETTE[6];
+  if (normalizedKey === "o" || normalizedLabel === "other") return PALETTE[7];
 
   // Category known mappings
-  if (normalizedKey === "open" || normalizedKey === "gen") return "#3a72e6";
-  if (normalizedKey.includes("obc")) return "#22a08c";
-  if (normalizedKey === "sc") return "#9b6fe0";
-  if (normalizedKey === "st") return "#f59e0b";
-  if (normalizedKey === "ews") return "#06b6d4";
+  if (normalizedKey === "open" || normalizedKey === "gen") return PALETTE[0];
+  if (normalizedKey.includes("obc")) return PALETTE[1];
+  if (normalizedKey === "sc") return PALETTE[4];
+  if (normalizedKey === "st") return PALETTE[6];
+  if (normalizedKey === "ews") return PALETTE[7];
 
   return PALETTE[index % PALETTE.length];
 }
@@ -155,7 +155,6 @@ export default function CompanyOfferDistribution({
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerInfo}>
-          <p className={styles.kicker}>OFFER COMPOSITION</p>
           <h2 id={titleId} className={styles.title}>
             Offer distribution
           </h2>
@@ -317,7 +316,7 @@ export default function CompanyOfferDistribution({
                     outerRadius="92%"
                     startAngle={90}
                     endAngle={-270}
-                    stroke="#131c2b"
+                    stroke="#243746"
                     strokeWidth={2}
                     isAnimationActive={false}
                   >

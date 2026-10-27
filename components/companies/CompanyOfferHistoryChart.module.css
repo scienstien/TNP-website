@@ -394,3 +394,14 @@
   }
 }
 
+:global(.portal-shell) .card { background: var(--theme-panel) !important; border-color: var(--theme-line) !important; color: var(--theme-ink) !important; }
+:global(.portal-shell) .card *,
+:global(.portal-shell) .overlayDialog * { color: var(--theme-ink) !important; }
+:global(.portal-shell) .card :is(.scrollArea, .stateBox, .errorBox, .tooltip),
+:global(.portal-shell) .overlayDialog :is(.overlayHeader, .overlayBody, .overlayScrollArea, .overlayChartCanvas) { background: var(--theme-support) !important; border-color: var(--theme-line) !important; }
+:global(.portal-shell) .card .expandButton,
+:global(.portal-shell) .card .retryButton,
+:global(.portal-shell) .overlayDialog .closeButton { background: var(--theme-accent) !important; border-color: var(--theme-line) !important; }
+:global(.portal-shell) .overlayDialog { background: var(--theme-panel) !important; border-color: var(--theme-line) !important; }
+:global(.portal-shell) .overlayBackdrop { background: #2437468c !important; }
+

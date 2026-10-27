@@ -10,10 +10,10 @@ export default function HomeActions({
   return (
     <div className="home-actions">
       <button className="dark-button" onClick={onDashboard}>
-        Open dashboard <span>{"->"}</span>
+        Dashboard <span aria-hidden="true">→</span>
       </button>
       <button className="light-button" onClick={onCalendar}>
-        View drive calendar
+        Calendar
       </button>
     </div>
   );

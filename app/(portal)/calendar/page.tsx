@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import CalendarView from "@/components/calendar/CalendarView";
 import { db } from "@/db";
 import { isAdminRole, requireUser, resolveDepartment } from "@/lib/auth/dal";
@@ -7,7 +8,11 @@ import { monthWindow } from "@/lib/calendar/rules";
 import { UPCOMING_MAX_DAYS } from "@/lib/calendar/upcoming";
 import { readDriveOptions } from "@/lib/drives/read";
 
-export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ month?: string | string[]; day?: string | string[] }> }) {
+export default function CalendarPage({ searchParams }: { searchParams: Promise<{ month?: string | string[]; day?: string | string[] }> }) {
+  return <Suspense fallback={<p role="status">Loading calendar…</p>}><CalendarData searchParams={searchParams} /></Suspense>;
+}
+
+async function CalendarData({ searchParams }: { searchParams: Promise<{ month?: string | string[]; day?: string | string[] }> }) {
   const user = await requireUser();
   const department = await resolveDepartment(user);
   const canEdit = isAdminRole(user.role) && department !== null;

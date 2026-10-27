@@ -154,7 +154,7 @@ export function CompanyDrivesEditor({ company, cycles, defaultCycleId, onClose, 
 
   return <div className="panel company-editor">
     <div className="company-editor-heading"><div><p className="eyebrow">DRIVES</p><h2 id="company-editor-title">{company.name}</h2>
-      <p>Add new drives, and change recorded drives with their HR contact, roles and process stages. Drives and stages are shared by every department and appear in the process calendar.</p></div>
+      <p>Manage drives, roles, HR contacts, and stages.</p></div>
       <button type="button" className="company-editor-close" aria-label="Close drives editor" onClick={onClose} disabled={pending}>×</button></div>
     {message && <p role="status" className={message === "Saved." ? "company-message" : "company-error"}>{message}</p>}
 

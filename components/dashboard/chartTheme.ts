@@ -1,25 +1,23 @@
 /**
- * Chart colours and axis styling for the dark navy theme. The offer-type palette was
- * validated on the panel surface (#131c2b): lightness band, chroma, CVD separation,
- * normal-vision distinctness and 3:1 contrast all pass.
+ * Chart colours and axis styling for the portal's light palette.
  */
 import type { OfferTypeValue } from "@/lib/placements/types";
 import { NOT_RECORDED } from "@/lib/placements/analytics";
 
-export const ACCENT = "#3a72e6";
-export const SURFACE = "#131c2b";
-export const GRID = "rgba(110, 160, 255, 0.12)";
-export const AXIS_TEXT = "#8f9bb0";
-export const LABEL_TEXT = "#dbe7fc";
+export const ACCENT = "#579bc9";
+export const SURFACE = "#ffebcc";
+export const GRID = "rgba(36, 55, 70, 0.2)";
+export const AXIS_TEXT = "#526675";
+export const LABEL_TEXT = "#243746";
 
 export const OFFER_TYPE_COLORS: Record<
   OfferTypeValue | typeof NOT_RECORDED,
   string
 > = {
-  FTE: "#3a72e6",
-  "FTE+6month": "#22a08c",
-  PPO: "#9b6fe0",
-  [NOT_RECORDED]: "#4a5d7e",
+  FTE: "#579bc9",
+  "FTE+6month": "#8cc0eb",
+  PPO: "#94aec1",
+  [NOT_RECORDED]: "#b3b9ab",
 };
 
 export const OFFER_TYPE_LABELS: Record<

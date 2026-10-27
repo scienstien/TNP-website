@@ -27,8 +27,8 @@ export default function OfferTypeDistributionChart({
 
   return (
     <ChartCard
-      title="Offer type distribution"
-      subtitle="Share of offers by type · select a segment to filter"
+      title="Offers by type"
+      subtitle="Select a segment to filter"
       isEmpty={total === 0}
       table={{
         caption: "Offers by offer type",

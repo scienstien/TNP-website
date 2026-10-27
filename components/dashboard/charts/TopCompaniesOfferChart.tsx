@@ -31,7 +31,7 @@ export default function TopCompaniesOfferChart({
   return (
     <ChartCard
       title="Top companies by offers"
-      subtitle="Students offered placements, top 10 · select a bar to filter"
+      subtitle="Top 10 · select a bar to filter"
       isEmpty={data.length === 0}
       table={{
         caption: "Top companies by number of students offered placements",

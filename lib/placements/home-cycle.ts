@@ -8,7 +8,7 @@ export interface HomeCycleSummary {
   companies: string[];
 }
 
-/** Full-cycle registered placement totals for the home comparison card. */
+/** Full-cycle registered placement totals for home highlights and comparison. */
 export function homeCycleSummaries(
   records: ReadonlyArray<PlacementRecord>,
 ): HomeCycleSummary[] {

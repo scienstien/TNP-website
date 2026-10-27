@@ -2,12 +2,7 @@
 
 import Image from "next/image";
 import { gsap } from "gsap";
-import {
-  Cinzel,
-  IBM_Plex_Sans,
-  Playfair_Display,
-  Roboto_Condensed,
-} from "next/font/google";
+import localFont from "next/font/local";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import LoginLogo from "@/components/login/LoginLogo";
 import TnpTitle from "@/components/login/TnpTitle";
@@ -15,26 +10,34 @@ import orionBackground from "@/components/login-form-background/orionimage.png";
 import AuthForms from "./AuthForms";
 import "./login.css";
 
-const heroSerif = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
+const heroSerif = localFont({
+  src: [
+    { path: "../../node_modules/@fontsource/playfair-display/files/playfair-display-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "../../node_modules/@fontsource/playfair-display/files/playfair-display-latin-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "../../node_modules/@fontsource/playfair-display/files/playfair-display-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "../../node_modules/@fontsource/playfair-display/files/playfair-display-latin-600-italic.woff2", weight: "600", style: "italic" },
+  ],
   variable: "--font-login-serif",
 });
-const heroSans = Roboto_Condensed({
-  subsets: ["latin"],
-  weight: ["700", "900"],
+const heroSans = localFont({
+  src: [
+    { path: "../../node_modules/@fontsource/roboto-condensed/files/roboto-condensed-latin-700-normal.woff2", weight: "700" },
+    { path: "../../node_modules/@fontsource/roboto-condensed/files/roboto-condensed-latin-900-normal.woff2", weight: "900" },
+  ],
   variable: "--font-login-condensed",
+  preload: false,
 });
-const heroPlex = IBM_Plex_Sans({
-  subsets: ["latin"],
+const heroPlex = localFont({
+  src: "../../node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-700-normal.woff2",
   weight: "700",
   variable: "--font-login-plex",
+  preload: false,
 });
-const heroCinzel = Cinzel({
-  subsets: ["latin"],
+const heroCinzel = localFont({
+  src: "../../node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff2",
   weight: "700",
   variable: "--font-login-cinzel",
+  preload: false,
 });
 
 type WordmarkFont = "cinzel" | "condensed" | "plex" | "geometric";

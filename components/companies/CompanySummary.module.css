@@ -45,3 +45,9 @@
   .typeSummary { grid-template-columns:84px minmax(0,1fr); }
   .typeTiles { grid-template-columns:minmax(0,1fr); }
 }
+
+:global(.portal-shell) .card { background: var(--theme-panel) !important; border-color: var(--theme-line) !important; color: var(--theme-ink) !important; }
+:global(.portal-shell) .card * { color: var(--theme-ink) !important; }
+:global(.portal-shell) .card :is(.roleCard, .typeTile, .state) { background: var(--theme-panel) !important; border-color: var(--theme-line) !important; }
+:global(.portal-shell) .card :is(.metric, .offerCount, .total) { background: var(--theme-support) !important; background-image: none !important; border-color: var(--theme-line) !important; }
+:global(.portal-shell) .card .roleFilter select { background: var(--theme-page) !important; border-color: var(--theme-line) !important; color: var(--theme-ink) !important; }

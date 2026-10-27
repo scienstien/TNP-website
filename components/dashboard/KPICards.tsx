@@ -154,8 +154,7 @@ export default function KPICards({
       </article>
 
       <p className="mme-kpi-note">
-        Placement % is placed ÷ registered students in the selected cycle.
-        Unregistered students are excluded.
+        Placement % = placed ÷ registered; unregistered excluded.
         {kpis.packagesMissing > 0 &&
           ` CTC figures exclude ${kpis.packagesMissing} offer${kpis.packagesMissing === 1 ? "" : "s"} without a recorded package.`}
         {offerFiltersActive &&

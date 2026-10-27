@@ -33,15 +33,14 @@ export default function ImportManager({ department, history }: { department: str
     finally { setBusy(false); }
   }
   return <main className={`panel ${styles.manager}`}>
-    <h1>Admin Data Management</h1>
-    <p>Import official data for <strong>{department ?? "a selected department"}</strong>. Every file is reviewed before confirmation. Existing historical records remain in place.</p>
+    <h1>Import data</h1>
     {!department && <p role="alert">Choose one department in the top navigation to import.</p>}
     <nav className={styles.links} aria-label="Import help">
-      <a href="/docs/import-templates">Template preparation guide</a>
-      {department && <a href="/api/import/references">Download current reference values (Excel)</a>}
+      <a href="/docs/import-templates">Preparation guide</a>
+      {department && <a href="/api/import/references">Reference values (Excel)</a>}
     </nav>
     <h2>1. Prepare your files</h2>
-    <p>Use version {TEMPLATE_VERSION} templates in the order below. CSV downloads contain only headers; Excel downloads include instructions and fictional examples on separate sheets.</p>
+    <p>Use version {TEMPLATE_VERSION} templates in order. Excel files include examples.</p>
     <div className={styles.scroll}><table><thead><tr><th>Order</th><th>Dataset</th><th>Required fields</th><th>Download</th></tr></thead><tbody>
       {IMPORT_KINDS.map(item => <tr key={item}><td>{TEMPLATES[item].order}</td><td>{TEMPLATES[item].title}</td><td>{TEMPLATES[item].required.join(", ")}</td><td className={styles.downloads}>
         <a href={`/api/import/templates/${item}`}>CSV template</a>
@@ -61,13 +60,13 @@ export default function ImportManager({ department, history }: { department: str
       <button type="button" disabled={!department || !file || busy} onClick={() => submit("preview")}>Validate and preview</button>
     </div>
     <p>{TEMPLATES[kind].description}</p>
-    <p>Maximum 2 MB and 5,000 data rows. Keep exact headers and column order. Blank optional cells mean NULL. Companies and placement cycles are shared institute-wide.</p>
+    <p>Max 2 MB / 5,000 rows. Keep headers in order; blank optional cells mean NULL.</p>
     {busy && <p role="status">Validating and checking database records…</p>}
     {error && <p role="alert" className={styles.error}>{error}</p>}
     {report && <section aria-label="Validation report" aria-live="polite" className={styles.report}>
       <h2>{report.committed ? "Import complete" : "Validation report"}</h2>
-      <p>{report.inserted} inserts, {report.updated} updates, {report.skipped} skipped, {report.errors.length} errors. {report.committed ? "Saved. Student Records, dashboards and comparisons now use these records." : "No changes saved yet."}</p>
-      <p>Counts describe source rows. A student row may create a person, enrollment and cycle registration together.</p>
+      <p>{report.inserted} inserts, {report.updated} updates, {report.skipped} skipped, {report.errors.length} errors. {report.committed ? "Saved." : "Not saved yet."}</p>
+      <p>Counts refer to source rows.</p>
       {report.errors.length > 0 && <ul role="alert" className={`${styles.error} ${styles.errorList}`}>{report.errors.map((item, i) => <li key={i}>{item}</li>)}</ul>}
       <div className={styles.scroll}><table><thead><tr><th>Line</th><th>Key</th><th>Action</th><th>Detail and values</th></tr></thead><tbody>
         {report.rows.slice(page * 100, (page + 1) * 100).map((row, i) => <tr key={i}><td>{row.line}</td><td>{row.key}</td><td>{row.action}</td><td>
@@ -85,7 +84,7 @@ export default function ImportManager({ department, history }: { department: str
         <button disabled={(page + 1) * 100 >= report.rows.length} onClick={() => setPage(page + 1)}>Next rows</button>
       </div>}
       {!report.committed && !report.errors.length && report.previewToken && <div className={styles.confirm}>
-        <p>Review every insert, update and skipped record above. Confirmation saves the entire file in one transaction. A changed file or database plan requires a new preview.</p>
+        <p>Review the changes above. Confirming saves the whole file; changes require a new preview.</p>
         <button type="button" disabled={busy || !department} onClick={() => submit("confirm")}>Confirm import</button>
       </div>}
     </section>}

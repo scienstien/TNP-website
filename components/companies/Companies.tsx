@@ -9,7 +9,7 @@ import "./companies.css";
 export default function Companies(props: CompanyPanelProps) {
   const [volumeMode, setVolumeMode] = useState<VolumeMode>("any");
   return <section className="companies-view">
-    <CompanyPageHeader cycles={props.cycles} cycleId={props.cycle?.cycleId ?? null} scopeLabel={props.scopeLabel} volumeMode={volumeMode} onVolumeModeChange={setVolumeMode} />
+    <CompanyPageHeader cycles={props.cycles} cycleId={props.cycle?.cycleId ?? null} volumeMode={volumeMode} onVolumeModeChange={setVolumeMode} />
     <CompanyPanelController key={`${props.scopeKey}:${props.cycle?.cycleId ?? "all"}:${volumeMode}`} {...props} volumeMode={volumeMode} />
   </section>;
 }

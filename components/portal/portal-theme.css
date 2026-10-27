@@ -1,0 +1,272 @@
+/* Authenticated portal palette. Login does not mount PortalShell. The four
+   background colors are used as page / panel / support / emphasis (40/30/20/10).
+   Dark ink remains a text color for legibility. */
+.portal-shell {
+  --theme-page: #fff9d2;
+  --theme-panel: #ffebcc;
+  --theme-support: #bfddf0;
+  --theme-accent: #8cc0eb;
+  --theme-ink: #243746;
+  --theme-muted: #526675;
+  --theme-line: #8ab6d1;
+  --ink: var(--theme-ink);
+  --paper: var(--theme-page);
+  --line: var(--theme-line);
+  --muted: var(--theme-muted);
+  --coral: var(--theme-accent);
+  --yellow: var(--theme-support);
+  --blue: var(--theme-accent);
+  --violet: var(--theme-support);
+  background: var(--theme-page) !important;
+  background-image: none !important;
+  color: var(--theme-ink) !important;
+  color-scheme: light;
+}
+.portal-shell::before { content: none !important; }
+.portal-shell .content-area { background: var(--theme-page) !important; }
+.portal-shell :is(h1, h2, h3, h4, h5, h6, p, span, small, strong, b, em, label, legend, dt, dd, th, td, li, time) {
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.eyebrow, .student-eyebrow, .company-table-kicker, .mme-field > span, .mme-field > legend, .outreach-details dt, .cal-weekdays span) {
+  color: var(--theme-muted) !important;
+}
+.portal-shell :is(button, input, select, textarea, summary) { color: var(--theme-ink) !important; }
+.portal-shell :is(input, select, textarea) { color-scheme: light !important; }
+.portal-shell option { background: var(--theme-page) !important; color: var(--theme-ink) !important; }
+.portal-shell :is(input, textarea)::placeholder { color: #5c7180 !important; opacity: 1; }
+.portal-shell :is(button, input, select, textarea, a, summary):focus-visible {
+  outline: 2px solid #3479a9 !important;
+  outline-offset: 2px;
+}
+
+/* Navigation and page structure. */
+.portal-shell .sidebar {
+  background: var(--theme-support) !important;
+  border-color: var(--theme-line) !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+.portal-shell .sidebar :is(.sidebar-lockup strong, .sidebar-lockup small, .profile-details, .profile-details small, .signout-button) {
+  color: var(--theme-ink) !important;
+}
+.portal-shell .sidebar :is(.sidebar-brandDivider, .profile) { border-color: var(--theme-line) !important; }
+.portal-shell .sidebar-brandDivider { background: var(--theme-line) !important; }
+.portal-shell .sidebar-logo { background: var(--theme-page) !important; }
+.portal-shell .sidebar nav button { color: var(--theme-ink) !important; }
+.portal-shell .sidebar nav button:hover { background: var(--theme-page) !important; }
+.portal-shell .sidebar nav button.active {
+  background: var(--theme-accent) !important;
+  box-shadow: inset 3px 0 #3479a9 !important;
+}
+.portal-shell .sidebar :is(.profile > b, .sidebar-toggle-btn, .sidebar-toggle-btn--pinned) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-page) !important;
+  color: var(--theme-ink) !important;
+  box-shadow: none !important;
+}
+.portal-shell .sidebar-toggle-btn:hover { background: var(--theme-accent) !important; box-shadow: none !important; }
+.portal-shell .dept-navbar {
+  background: var(--theme-support) !important;
+  border-color: var(--theme-line) !important;
+  backdrop-filter: none !important;
+}
+.portal-shell .dept-navbar :is(.dept-navbar-label, .dept-navbar-current) { color: var(--theme-muted) !important; }
+.portal-shell .dept-navbar-select {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-page) !important;
+  color: var(--theme-ink) !important;
+  color-scheme: light !important;
+}
+
+/* Shared surfaces and controls. */
+.portal-shell :is(.panel, .table-panel, .calendar-card, .drive-card, .home-card, .home-note, .metric, .outreach-editor, .outreach-panel, .company-table-panel, .student-table-card) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-panel) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.dark-button, .upload-button, .cal button.cal-primary, .company-drive-section-heading .dark-button) {
+  border: 1px solid #579bc9 !important;
+  background: var(--theme-accent) !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.dark-button, .upload-button, .cal button.cal-primary):hover:not(:disabled) {
+  background: var(--theme-support) !important;
+}
+.portal-shell :is(.light-button, .clear-button, .heading-actions select, .filter-bar select, .filter-bar input, .cell-input, .date-picker, .date-picker-trigger) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-page) !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.table-row, .table-header, .table-tools, .table-hint, .table-row.head) {
+  border-color: var(--theme-line) !important;
+  background: transparent !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.table-row:hover, .student-record-card:hover, .company-record-card:hover) { background: var(--theme-support) !important; }
+.portal-shell :is(.placed-tag, .student-status, .student-cycle, .pvr, .outreach-pvr) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-support) !important;
+  color: var(--theme-ink) !important;
+}
+
+/* Dashboard and its chart frames. */
+.portal-shell :is(.mme-kpi, .mme-tooltip, .mme-seg, .mme-toggle, .mme-empty, .mme-legend-item[aria-pressed="true"]) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-panel) !important;
+  box-shadow: none !important;
+}
+.portal-shell :is(.mme-field select, .mme-reset, .mme-time-retry, .mme-ctc input, .mme-chips li) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-page) !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.mme-seg button[aria-checked="true"], .mme-toggle button[aria-pressed="true"]) {
+  background: var(--theme-accent) !important;
+}
+.portal-shell .mme-range::before { background: var(--theme-support) !important; }
+.portal-shell :is(.mme-bar, .mme-time-skeleton-chart, .mme-time-skeleton-kpis span) { background: var(--theme-support) !important; }
+.portal-shell .mme-bar > span { background: #579bc9 !important; }
+.portal-shell :is(.mme-breakdown-table th, .mme-breakdown-table td, .mme-card-head) { border-color: var(--theme-line) !important; }
+.portal-shell :is(.mme-delta--good b, .mme-delta--up) { color: #285f50 !important; }
+.portal-shell :is(.mme-delta--bad b, .mme-delta--down) { color: #9f4141 !important; }
+
+/* Home, including the cycle comparison dialog. */
+.portal-shell .home-view--comparison .home-hero {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-page) !important;
+  box-shadow: none !important;
+}
+.portal-shell .home-view--comparison .home-hero::after { content: none !important; }
+.portal-shell .home-view--comparison .home-kicker { border-color: var(--theme-line) !important; }
+.portal-shell .home-view--comparison .home-actions :is(.dark-button, .light-button) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-accent) !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell .home-view--comparison .home-actions .light-button { background: var(--theme-support) !important; }
+.portal-shell .psf {
+  --psf-bg: var(--theme-panel);
+  --psf-border: var(--theme-line);
+  --psf-tile-bg: var(--theme-panel);
+  --psf-tile-border: var(--theme-line);
+  --psf-lead-bg: var(--theme-support);
+  --psf-lead-border: var(--theme-line);
+  --psf-input-bg: var(--theme-page);
+  --psf-input-border: var(--theme-line);
+  --psf-accent: #579bc9;
+  --psf-focus: #3479a9;
+  --psf-text: var(--theme-ink);
+  --psf-text-dim: var(--theme-ink);
+  --psf-muted: var(--theme-muted);
+  --psf-good: #285f50;
+  --psf-bad: #9f4141;
+  --psf-flat: var(--theme-muted);
+}
+.portal-shell :is(.psf-empty, .psf-dialog, .psf-company, .psf-figure, .psf-tab.is-active) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-panel) !important;
+}
+.portal-shell :is(.psf-figure.is-lead, .psf-tab.is-active) { background: var(--theme-support) !important; }
+.portal-shell .psf-progress { background: var(--theme-support) !important; }
+.portal-shell .psf-progress span { background: #579bc9 !important; }
+.portal-shell .psf-change--good { color: var(--psf-good) !important; }
+.portal-shell .psf-change--bad { color: var(--psf-bad) !important; }
+.portal-shell .psf .psf-company-diff--primary,
+.portal-shell .psf .psf-company--primary {
+  border-color: #85b29b !important;
+  background: #e5f2ea !important;
+}
+.portal-shell .psf .psf-company-diff--comparison,
+.portal-shell .psf .psf-company--comparison {
+  border-color: #d3a09c !important;
+  background: #fae8e6 !important;
+}
+.portal-shell .psf .psf-company-diff--primary,
+.portal-shell .psf .psf-company--primary :is(.psf-company-name, .psf-mark) {
+  color: var(--psf-good) !important;
+}
+.portal-shell .psf .psf-company-diff--comparison,
+.portal-shell .psf .psf-company--comparison :is(.psf-company-name, .psf-mark) {
+  color: var(--psf-bad) !important;
+}
+.portal-shell .psf .psf-tab--primary.is-active {
+  border-color: #85b29b !important;
+  background: #e5f2ea !important;
+  color: var(--psf-good) !important;
+}
+.portal-shell .psf .psf-tab--comparison.is-active {
+  border-color: #d3a09c !important;
+  background: #fae8e6 !important;
+  color: var(--psf-bad) !important;
+}
+.portal-shell :is(.psf-picker select, .psf-companies-open, .psf-dialog-close, .psf-tab) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-page) !important;
+}
+.portal-shell .psf-dialog::backdrop { background: #2437468c !important; }
+
+/* Student records, company directory, calendar, and outreach. */
+.portal-shell :is(.student-toolbar, .company-tools, .company-directory-header, .outreach-tools) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-support) !important;
+  background-image: none !important;
+}
+.portal-shell :is(.student-record-card, .company-record-card, .outreach-card, .company-drive-draft, .company-drive-hr, .company-drive-card, .student-stat, .company-stat, .company-drive-stage, .student-registrations li) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-panel) !important;
+  box-shadow: none !important;
+}
+.portal-shell :is(.student-record-card--expanded, .company-record-card--expanded, .company-record-details, .student-record-details) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-support) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+.portal-shell :is(.student-search, .student-filter-select, .company-search, .outreach-tools input, .outreach-field input, .outreach-field select, .outreach-field textarea, .student-records input, .student-records select, .company-field input, .company-field select, .company-drive-role-row > input, .company-drive-stage-row > select, .company-drive-stage-row > input, .cal input, .cal select, .cal textarea) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-page) !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.student-filter-chip, .student-icon-button, .student-cycle-add, .company-pagination button, .company-icon-button, .company-drive-role-row > button, .company-editor .company-actions > button, .outreach-actions button, .cal-nav button, .cal-actions button, .cal-form-actions button, .cal-tabs button) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-support) !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.company-editor, .student-editor, .cal-form, .company-modal, .student-modal) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-panel) !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.company-modal-backdrop, .student-modal-backdrop) { background: #2437468c !important; }
+.portal-shell :is(.cal-blank, .cal-day, .cal-card, .cal-up, .cal-upcoming, .cal-unscheduled, .cal-event, .cal-stage, .cal-datebox, .cal-nullable-date) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-panel) !important;
+  color: var(--theme-ink) !important;
+}
+.portal-shell :is(.cal-day:hover, .cal-day.is-selected, .cal-day--selected, .cal-chip, .cal-badge--today) {
+  background: var(--theme-support) !important;
+  box-shadow: none !important;
+}
+.portal-shell :is(.cal-range, .cal-up-summary, .cal-day-head, .cal-actions, .cal-selected-roles, .cal-role-options, .cal-feedback, .cal-process-notes, .cal-container, .cal-list) {
+  border-color: var(--theme-line) !important;
+  background: var(--theme-panel) !important;
+  background-image: none !important;
+}
+.portal-shell .cal .cal-range button[aria-checked="true"] {
+  background: var(--theme-accent) !important;
+  box-shadow: none !important;
+}
+.portal-shell :is(.cal-upcoming.is-selected, .cal-tab[aria-selected="true"], .cal-tabs button[aria-selected="true"]) {
+  background: var(--theme-support) !important;
+}
+.portal-shell .cal-count { background: var(--theme-accent) !important; }
+.portal-shell :is(.cal-num, .cal-badge, .cal-count, .cal-more, .cal-dot) { color: var(--theme-ink) !important; }
+.portal-shell .is-today .cal-num { background: var(--theme-accent) !important; }
+.portal-shell :is(.cal-days, .cal-weekdays, .cal-day) { border-color: var(--theme-line) !important; }
+.portal-shell :is(.outreach-pvr--yes, .outreach-pvr--no) { background: var(--theme-support) !important; }
+
+/* Small semantic colors remain for errors and success messages. */
+.portal-shell :is(.student-field-error, .company-error, .outreach-error, .cal-error, [role="alert"]) { color: #9f4141 !important; }
+.portal-shell :is(.outreach-message, .company-message) { color: #285f50 !important; }

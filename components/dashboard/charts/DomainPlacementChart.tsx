@@ -41,12 +41,10 @@ export default function DomainPlacementChart({
 
   return (
     <ChartCard
-      title="Domain-wise placements"
-      subtitle="Placed students by the domain of their offered role · select a bar to filter"
+      title="Placements by role domain"
+      subtitle="Select a bar to filter"
       isEmpty={data.length === 0}
-      footnote={`${plural(unplaced, "student")} without an offer ${
-        unplaced === 1 ? "is" : "are"
-      } not attributed to any domain.`}
+      footnote={`${plural(unplaced, "student")} without an offer excluded.`}
       table={{
         caption: "Placed students by role domain",
         columns: ["Domain", "Placed students", "Share of placed"],

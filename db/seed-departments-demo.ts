@@ -1,7 +1,7 @@
 /**
  * FICTIONAL multi-department dataset for the department-scoped dashboard.
  *
- * Fills the institute-wide schema (db/schema.ts): the nine B.Tech departments, B.Tech and M.Tech programmes,
+ * Fills the institute-wide schema (db/schema.ts): nine B.Tech departments and every PG catalogue branch/specialization,
  * twenty graduating batches, exactly 10,000 students, placement cycles, companies, drives, roles, events, enrollments
  * and final offers, plus a few outreach contacts per department. Every company, student and roll
  * number is invented: companies use the "DEMO" prefix and roll numbers start with 9. The shared
@@ -24,10 +24,11 @@ import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 
 import {
-  addDays, CATEGORIES, COMPANIES, createRng, cycleCode, DEPARTMENTS, demoOutreachRows, FIRST_YEAR, GENDERS,
-  generateStudents, insertAll, LAST_YEAR, MTECH_FIRST_YEAR, MTECH_SPECIALIZATION, ROLE_DOMAINS, ROLE_TITLES, tenThousandStudentCounts,
-  type DemoCohort, type DemoRole, type DeptCode, type Tx,
+  addDays, ALL_DEPARTMENTS, CATEGORIES, COMPANIES, createRng, cycleCode, DEPARTMENTS, demoOutreachRows, demoPgDegreeCode, FIRST_YEAR, GENDERS,
+  fullDemoCohorts, generateStudents, insertAll, LAST_YEAR, ROLE_DOMAINS, ROLE_TITLES, tenThousandStudentCounts,
+  type DemoRole, type DemoDeptCode, type Tx,
 } from "./demo-data";
+import { PG_BRANCHES } from "../lib/placements/pg-catalog";
 import { db, postgresClient } from "./index";
 import {
   cohorts,
@@ -101,13 +102,16 @@ async function seed() {
     // Reference data.
     await tx.insert(genderTypes).values(GENDERS.map(([code, label]) => ({ code, label }))).onConflictDoNothing();
     await tx.insert(reservationCategories).values(CATEGORIES.map(([code, label]) => ({ code, label }))).onConflictDoNothing();
-    await tx.insert(degrees).values([{ code: "B.Tech", level: "UG" }, { code: "M.Tech", level: "PG" }]).onConflictDoNothing();
+    await tx.insert(degrees).values([
+      { code: "B.Tech", level: "UG" },
+      ...["M.Tech", "M.Arch", "M.Plan", "M.Sc", "MCA", "MA", "MBA"].map((code) => ({ code, level: "PG" as const })),
+    ]).onConflictDoNothing();
     const degreeRows = await tx.select().from(degrees);
     const btech = degreeRows.find((row) => row.code === "B.Tech")!;
-    const mtech = degreeRows.find((row) => row.code === "M.Tech")!;
+    const degreeId = (code: string) => degreeRows.find((row) => row.code === code)!.degreeId;
 
     // Existing departments keep their names; user accounts depend on them.
-    for (const dept of DEPARTMENTS) {
+    for (const dept of ALL_DEPARTMENTS) {
       await tx.insert(departments).values({ code: dept.code, name: dept.name }).onConflictDoNothing({ target: departments.code });
     }
     // Retired placeholders are removed only when nothing refers to them; accounts and outreach
@@ -127,20 +131,23 @@ async function seed() {
       }
     }
     const departmentRows = await tx.select().from(departments);
-    const departmentId = (code: DeptCode) => departmentRows.find((row) => row.code === code)!.departmentId;
+    const departmentId = (code: DemoDeptCode) => departmentRows.find((row) => row.code === code)!.departmentId;
 
     // Programmes, cohorts and placement cycles (one cycle per graduating year).
-    const programmeIds = new Map<string, string>(); // `${code}:ug|pg`
+    const programmeIds = new Map<string, string>();
     const programmeRows: (typeof programmes.$inferInsert)[] = [];
     for (const dept of DEPARTMENTS) {
-      for (const level of ["ug", "pg"] as const) {
+      const programmeId = randomUUID();
+      programmeIds.set(`${dept.code}:ug`, programmeId);
+      programmeRows.push({ programmeId, departmentId: departmentId(dept.code), degreeId: btech.degreeId, specialization: null });
+    }
+    for (const branch of PG_BRANCHES) {
+      for (const specialization of branch.specializations) {
         const programmeId = randomUUID();
-        programmeIds.set(`${dept.code}:${level}`, programmeId);
+        programmeIds.set(`${branch.code}:pg:${specialization}`, programmeId);
         programmeRows.push({
-          programmeId,
-          departmentId: departmentId(dept.code),
-          degreeId: level === "ug" ? btech.degreeId : mtech.degreeId,
-          specialization: level === "ug" ? null : MTECH_SPECIALIZATION[dept.code],
+          programmeId, departmentId: departmentId(branch.code),
+          degreeId: degreeId(demoPgDegreeCode(branch.code, specialization)), specialization,
         });
       }
     }
@@ -152,18 +159,10 @@ async function seed() {
       cycleId: cycleIds.get(year)!, code: cycleCode(year), startsOn: `${year - 1}-07-01`, endsOn: `${year}-06-30`,
     })));
 
-    const cohortList: DemoCohort[] = [];
-    for (const dept of DEPARTMENTS) {
-      for (const year of years) {
-        for (const level of ["ug", "pg"] as const) {
-          if (level === "pg" && year < MTECH_FIRST_YEAR) continue;
-          cohortList.push({ cohortId: randomUUID(), dept: dept.code, level, year });
-        }
-      }
-    }
+    const cohortList = fullDemoCohorts(years);
     await insertAll(tx, cohorts, cohortList.map((cohort) => ({
       cohortId: cohort.cohortId,
-      programmeId: programmeIds.get(`${cohort.dept}:${cohort.level}`)!,
+      programmeId: programmeIds.get(cohort.level === "ug" ? `${cohort.dept}:ug` : `${cohort.dept}:pg:${cohort.specialization}`)!,
       graduationYear: cohort.year,
     })));
     await insertAll(tx, cycleCohorts, cohortList.map((cohort) => ({
@@ -253,7 +252,7 @@ async function seed() {
       if (rows.length) await tx.insert(outreachContacts).values(rows);
     }
 
-    console.log(`${plan.mode === "reset" ? "Replaced the demo data in" : "Seeded"} "${process.env[RESET_DATABASE_ENV]}": ${DEPARTMENTS.length} departments, ${cohortList.length} cohorts, ${studentRows.length} students and ${offerRows.length} offers (all fictional).`);
+    console.log(`${plan.mode === "reset" ? "Replaced the demo data in" : "Seeded"} "${process.env[RESET_DATABASE_ENV]}": ${ALL_DEPARTMENTS.length} departments, ${programmeRows.length} programmes, ${cohortList.length} cohorts, ${studentRows.length} students and ${offerRows.length} offers (all fictional).`);
   });
 }
 

@@ -26,3 +26,7 @@
 .values dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .manager summary { cursor: pointer; text-decoration: underline; margin-top: 8px; }
 @media (max-width: 600px) { .manager { padding: 16px; margin: 12px 0; } .controls { align-items: stretch; flex-direction: column; } }
+
+:global(.portal-shell) .manager :is(select, input, .report) { background: var(--theme-panel) !important; border-color: var(--theme-line) !important; color: var(--theme-ink) !important; }
+:global(.portal-shell) .manager button { background: var(--theme-accent) !important; border-color: var(--theme-line) !important; color: var(--theme-ink) !important; }
+:global(.portal-shell) .manager :focus-visible { outline-color: #3479a9 !important; }
